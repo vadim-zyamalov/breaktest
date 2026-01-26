@@ -209,14 +209,14 @@ supSBADF.statistic <- function(y,
 
     if (!generalized) {
         for (j in (floor(trim * n.obs)):n.obs) {
-            t.beta <- OLS(diff(C.t)[1:j], C.t[1:j])$t.beta
+            t.beta <- .estimate_ols(diff(C.t)[1:j], C.t[1:j])$t.beta
             SBADF.values[m] <- drop(t.beta)
             m <- m + 1
         }
     } else {
         for (i in 1:(n.obs - floor(trim * n.obs) + 1)) {
             for (j in (i + floor(trim * n.obs) - 1):n.obs) {
-                t.beta <- OLS(diff(C.t)[i:j], C.t[i:j])$t.beta
+                t.beta <- .estimate_ols(diff(C.t)[i:j], C.t[i:j])$t.beta
                 SBADF.values[m] <- drop(t.beta)
                 m <- m + 1
             }

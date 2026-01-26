@@ -117,7 +117,7 @@ lr.var <- function(y,
     if (recolor) {
         info.crit.min <- log(drop(t(y) %*% y) / (n.obs - max.lag))
 
-        tmp.AR <- AR(y, NULL, max.lag, criterion)
+        tmp.AR <- .estimate_ar(y, NULL, max.lag, criterion)
         info.crit <- info.criterion(tmp.AR$residuals, tmp.AR$lag)[[criterion]]
 
         if (info.crit.min < info.crit) {

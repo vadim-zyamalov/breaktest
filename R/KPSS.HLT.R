@@ -14,107 +14,78 @@
 #' Journal of Econometrics 167, no. 1 (2012): 140–67.
 #'
 #' @export
-KPSS.HLT <- function(y,
+kpss_hlt <- function(y,
                      const = FALSE,
                      trim = 0.15) {
-    if (!is.matrix(y)) y <- as.matrix(y)
+  if (!is.matrix(y)) y <- as.matrix(y)
 
-    n.obs <- nrow(y)
+  n_obs <- nrow(y)
 
-    if (!const) {
-        m.ksi <- 0.853
-    } else {
-        m.ksi <- 1.052
-    }
+  if (!const) {
+    m_ksi <- 0.853
+  } else {
+    m_ksi <- 1.052
+  }
 
-    d.y <- diff(y)
+  .dy <- diff(y)
 
-    first.lag <- trunc(trim * n.obs)
-    last.lag <- trunc((1 - trim) * n.obs)
+  bp_min <- trunc(trim * n_obs)
+  bp_max <- trunc((1 - trim) * n_obs)
 
-    t0 <- -Inf
-    t1 <- -Inf
+  t0 <- -Inf
+  t1 <- -Inf
 
-    tb0 <- NA
-    tb1 <- NA
+  var_y <- NA
+  var_dy <- NA
 
-    for (tb in first.lag:last.lag) {
-        DU <- c(rep(0, tb), rep(1, n.obs - tb))
-        DT <- DU * (1:n.obs - tb)
-
-        x <- cbind(
-            rep(1, n.obs),
-            1:n.obs,
-            if (const) {
-                DU
-            } else {
-                NULL
-            },
-            DT
-        )
-
-        tmp.OLS <- OLS(y, x)
-
-        lr.var.y <- lr.var.bartlett(tmp.OLS$residuals)
-        inv.xx <- qr.solve(t(x) %*% x)
-
-        t0.stat <- abs(tmp.OLS$beta[ncol(x)] /
-                       sqrt(lr.var.y * inv.xx[ncol(x), ncol(x)]))
-
-        x <- cbind(
-            rep(1, n.obs - 1),
-            if (const) diff(DU) else NULL,
-            DU[2:n.obs]
-        )
-
-        tmp.OLS <- OLS(d.y, x)
-
-        lr.var.dy <- lr.var.bartlett(tmp.OLS$residuals)
-        inv.xx <- qr.solve(t(x) %*% x)
-
-        t1.stat <- abs(tmp.OLS$beta[ncol(x)] /
-                       sqrt(lr.var.dy * inv.xx[ncol(x), ncol(x)]))
-
-        if (t0.stat > t0) {
-            t0 <- t0.stat
-            tb0 <- tb
-        }
-        if (t1.stat > t1) {
-            t1 <- t1.stat
-            tb1 <- tb
-        }
-    }
-
-    DU0 <- c(rep(0, tb0), rep(1, n.obs - tb0))
-    DT0 <- DU0 * (1:n.obs - tb0)
+  for (bp in bp_min:bp_max) {
+    du <- c(rep(0, bp), rep(1, n_obs - bp))
+    dt <- du * (1:n_obs - bp)
 
     x <- cbind(
-        rep(1, n.obs),
-        1:n.obs,
-        if (const) DU0 else NULL,
-        DT0
+      rep(1, n_obs),
+      1:n_obs,
+      ifelse(const, du, NULL),
+      dt
     )
 
-    tmp.OLS <- OLS(y, x)
+    .model <- .estimate_ols(y, x)
 
-    lr.var.y <- lr.var.bartlett(tmp.OLS$residuals)
-    kpss.y <- KPSS(tmp.OLS$residuals, lr.var.y)
+    .var_y_lr <- lr.var.bartlett(.model$residuals)
+    .xx_inv <- qr.solve(t(x) %*% x)
 
-    DU1 <- c(rep(0, tb1), rep(1, n.obs - tb1))
+    .t0 <- abs(.model$beta[ncol(x)] /
+      sqrt(.var_y_lr * .xx_inv[ncol(x), ncol(x)]))
 
     x <- cbind(
-        rep(1, n.obs - 1),
-        if (const) diff(DU1) else NULL,
-        DU1[2:n.obs]
+      rep(1, n_obs - 1),
+      ifelse(const, diff(du), NULL),
+      du[2:n_obs]
     )
 
-    tmp.OLS <- OLS(d.y, x)
+    .model <- .estimate_ols(.dy, x)
 
-    lr.var.dy <- lr.var.bartlett(tmp.OLS$residuals)
-    kpss.dy <- KPSS(tmp.OLS$residuals, lr.var.dy)
+    .var_dy_lr <- lr.var.bartlett(.model$residuals)
+    .xx_inv <- qr.solve(t(x) %*% x)
 
-    lambda.kpss <- exp(-((500 * kpss.y * kpss.dy)^2))
-    t.lambda.kpss <- lambda.kpss * t0 + m.ksi * (1 - lambda.kpss) * t1
+    .t1 <- abs(.model$beta[ncol(x)] /
+      sqrt(.var_dy_lr * .xx_inv[ncol(x), ncol(x)]))
 
-    return(t.lambda.kpss)
+    if (.t0 > t0) {
+      t0 <- .t0
+      var_y <- .var_y_lr
+    }
+    if (.t1 > t1) {
+      t1 <- .t1
+      var_dy <- .var_dy_lr
+    }
+  }
+
+  .kpss_y <- .kpss_stat(.model$residuals, var_y)
+  .kpss_dy <- .kpss_stat(.model$residuals, var_dy)
+
+  .kpss_lambda <- exp(-((500 * .kpss_y * .kpss_dy)^2))
+  .kpss_lambda_t <- .kpss_lambda * t0 + m_ksi * (1 - .kpss_lambda) * t1
+
+  .kpss_lambda_t
 }

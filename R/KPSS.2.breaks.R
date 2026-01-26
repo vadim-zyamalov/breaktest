@@ -43,40 +43,37 @@
 #' https://doi.org/10.1007/s10108-006-9017-8.
 #'
 #' @export
-KPSS.2.breaks <- function(y,
-                          model,
-                          break.point,
-                          max.lag,
-                          kernel) {
-    if (!is.matrix(y)) y <- as.matrix(y)
+kpss_double <- function(y,
+                        model,
+                        break_point,
+                        max_lag,
+                        kernel) {
+  if (!is.matrix(y)) y <- as.matrix(y)
 
-    n.obs <- nrow(y)
+  n_obs <- nrow(y)
 
-    z <- determinants.KPSS.2.breaks(model, n.obs, break.point)
+  z <- trend_kpss_double(model, n_obs, break_point)
 
-    res.OLS <- OLS(y, z)
+  .model <- .estimate_ols(y, z)
 
-    if (!is.null(kernel)) {
-        test <- KPSS(
-            res.OLS$residuals,
-            lr.var.SPC(res.OLS$residuals, max.lag, kernel)
-        )
-    } else {
-        test <- KPSS(
-            res.OLS$residuals,
-            lr.var.bartlett.AK(res.OLS$residuals)
-        )
-    }
-
-    return(
-        list(
-            beta = res.OLS$beta,
-            test = test,
-            residuals = res.OLS$residuals,
-            t.beta = res.OLS$t.beta,
-            break_point = break.point
-        )
+  test <- ifelse(!is.null(kernel),
+    .kpss_stat(
+      .model$residuals,
+      lr.var.SPC(.model$residuals, max_lag, kernel)
+    ),
+    .kpss_stat(
+      .model$residuals,
+      lr.var.bartlett.AK(.model$residuals)
     )
+  )
+
+  list(
+    beta        = .model$beta,
+    test        = test,
+    residuals   = .model$residuals,
+    t.beta      = .model$t.beta,
+    break_point = break_point
+  )
 }
 
 
@@ -117,31 +114,28 @@ KPSS.2.breaks <- function(y,
 #' https://doi.org/10.1111/j.1468-0084.2006.00180.x.
 #'
 #' @export
-KPSS.2.breaks.unknown <- function(y,
-                                  model,
-                                  max.lag = 0,
-                                  kernel = "bartlett") {
-    if (!is.matrix(y)) y <- as.matrix(y)
+kpww_double_unknown <- function(y,
+                                model,
+                                max_lag = 0,
+                                kernel = "bartlett") {
+  if (!is.matrix(y)) y <- as.matrix(y)
 
-    res.segs <- segments.OLS.2.breaks(y, model)
+  .segments <- .segments_ols_double(y, model)
 
-    if (!is.null(kernel)) {
-        test <- KPSS(
-            res.segs$residuals,
-            lr.var.SPC(res.segs$residuals, max.lag, kernel)
-        )
-    } else {
-        test <- KPSS(
-            res.segs$residuals,
-            lr.var.bartlett.AK(res.segs$residuals)
-        )
-    }
-
-    return(
-        list(
-            test = test,
-            tb1 = res.segs$tb1,
-            tb2 = res.segs$tb2
-        )
+  test <- ifelse(!is.null(kernel),
+    .kpss_stat(
+      .segments$residuals,
+      lr.var.SPC(.segments$residuals, max_lag, kernel)
+    ),
+    .kpss_stat(
+      .segments$residuals,
+      lr.var.bartlett.AK(.segments$residuals)
     )
+  )
+
+  list(
+    test = test,
+    tb1  = .segments$tb1,
+    tb2  = .segments$tb2
+  )
 }

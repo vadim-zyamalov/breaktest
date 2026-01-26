@@ -101,9 +101,9 @@ PY.single <- function(y,
             if (trend) DT else NULL
         )
 
-        k.hat <- max(1, AR(y, x, max.lag, criterion)$lag)
+        k.hat <- max(1, .estimate_ar(y, x, max.lag, criterion)$lag)
 
-        resids <- OLS(y, x)$residuals
+        resids <- .estimate_ols(y, x)$residuals
 
         d.resid <- c(0, diff(resids))
 
@@ -116,7 +116,7 @@ PY.single <- function(y,
         }
         x.u <- x.u[k.hat:n.obs, , drop = FALSE]
 
-        tmp.OLS <- OLS(y.u, x.u)
+        tmp.OLS <- .estimate_ols(y.u, x.u)
         beta.u <- tmp.OLS$beta
         u.resid <- tmp.OLS$residuals
         rm(tmp.OLS)
@@ -170,7 +170,7 @@ PY.single <- function(y,
                 a.hat.M * x[1:(n.obs - 1), , drop = FALSE]
         )
 
-        tmp.OLS <- OLS(y.g, x.g)
+        tmp.OLS <- .estimate_ols(y.g, x.g)
         beta.g <- tmp.OLS$beta
         g.resid <- tmp.OLS$residuals
         rm(tmp.OLS)
@@ -186,7 +186,7 @@ PY.single <- function(y,
                 y.v <- g.resid[(k.hat - 1):nrow(g.resid), , drop = FALSE]
                 x.v <- x.v[(k.hat - 1):nrow(g.resid), , drop = FALSE]
 
-                tmp.OLS <- OLS(y.v, x.v)
+                tmp.OLS <- .estimate_ols(y.v, x.v)
                 beta.v <- tmp.OLS$beta
                 v.resid <- tmp.OLS$residuals
                 rm(tmp.OLS)
@@ -204,7 +204,7 @@ PY.single <- function(y,
                             x.ki[1, ],
                             x.ki[2:n.obs, ] - a.hat.M * x.ki[1:(n.obs - 1), ]
                         )
-                        beta.ki <- OLS(y.g, x.g.ki)$beta
+                        beta.ki <- .estimate_ols(y.g, x.g.ki)$beta
                         BETAS[k.i, ] <- drop(beta.ki)
                     }
                     beta.g[2] <- beta.g[2] -
@@ -228,7 +228,7 @@ PY.single <- function(y,
                             x.ki[1, ],
                             x.ki[2:n.obs, ] - a.hat.M * x.ki[1:(n.obs - 1), ]
                         )
-                        beta.ki <- OLS(y.g, x.g.ki)$beta
+                        beta.ki <- .estimate_ols(y.g, x.g.ki)$beta
                         BETAS[k.i, ] <- drop(beta.ki)
                         sig.e <- drop(t(v.resid) %*% v.resid) / (n.obs - k.hat)
                         h0 <- sig.e / ((1 - sum(beta.v))^2)

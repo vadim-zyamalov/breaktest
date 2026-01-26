@@ -101,7 +101,7 @@ coint.test.GH <- function(...,
             )
         }
 
-        e <- OLS(y1, x)$residuals
+        e <- .estimate_ols(y1, x)$residuals
 
         rho <- sum(e[1:(n.obs - 1), ] * e[2:n.obs, ]) /
             sum(e[1:(n.obs - 1), ]^2)

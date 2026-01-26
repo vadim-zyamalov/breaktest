@@ -62,10 +62,10 @@ coint.test.PR <- function(y,
         cbind(rep(1, n.obs), (1:n.obs))
     }
 
-    y.d <- GLS(y, zy, opt.cbar)$residuals
-    x.d <- GLS(x, zx, opt.cbar)$residuals
+    y.d <- .estimate_gls(y, zy, opt.cbar)$residuals
+    x.d <- .estimate_gls(x, zx, opt.cbar)$residuals
 
-    model <- OLS(y.d, x.d)
+    model <- .estimate_ols(y.d, x.d)
     ud.hat <- cbind(model$residuals)
 
     result <- resid.tests.PR(ud.hat, min.lag, max.lag, opt.cbar, deter)
@@ -108,7 +108,7 @@ resid.tests.PR <- function(ud,
     d.ud <- diffn(ud, na = 0)
     sum.ud.sq <- drop(t(lag.ud) %*% lag.ud)
 
-    model.1 <- OLS(
+    model.1 <- .estimate_ols(
         ud[2:n.obs, 1, drop = FALSE],
         ud[1:(n.obs - 1), 1, drop = FALSE]
     )
@@ -136,7 +136,7 @@ resid.tests.PR <- function(ud,
         tmp.reg <-
             tmp.reg[(lag.bic + 2):nrow(tmp.reg), , drop = FALSE]
 
-        model.2 <- OLS(
+        model.2 <- .estimate_ols(
             d.ud[(lag.bic + 2):nrow(d.ud), , drop = FALSE],
             tmp.reg
         )

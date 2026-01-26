@@ -16,24 +16,21 @@
 #' @importFrom stats .lm.fit
 #'
 #' @keywords internal
-OLS <- function(y,
-                x) {
-    if (!is.matrix(y)) y <- as.matrix(y)
-    if (!is.matrix(x)) x <- as.matrix(x)
+.estimate_ols <- function(y, x) {
+  if (!is.matrix(y)) y <- as.matrix(y)
+  if (!is.matrix(x)) x <- as.matrix(x)
 
-    tmp.model <- .lm.fit(x, y)
-    S.2 <- drop(t(tmp.model$residuals) %*% tmp.model$residuals) /
-        (nrow(x) - ncol(x))
-    t.beta <- tmp.model$coefficients / sqrt(diag(S.2 * qr.solve(t(x) %*% x)))
+  .model <- .lm.fit(x, y)
+  s_2 <- drop(t(.model$residuals) %*% .model$residuals) /
+    (nrow(x) - ncol(x))
+  t.beta <- .model$coefficients / sqrt(diag(s_2 * qr.solve(t(x) %*% x)))
 
-    return(
-        list(
-            beta = as.matrix(tmp.model$coefficients),
-            residuals = tmp.model$residuals,
-            predict = tmp.model$fitted.values,
-            t.beta = t.beta
-        )
-    )
+  list(
+    beta = as.matrix(.model$coefficients),
+    residuals = .model$residuals,
+    predict = .model$fitted.values,
+    t.beta = t.beta
+  )
 }
 
 
@@ -54,53 +51,40 @@ OLS <- function(y,
 #' * `t.beta`: \eqn{t}-statistics for `beta`.
 #'
 #' @keywords internal
-GLS <- function(y,
-                z,
-                c) {
-    if (!is.matrix(y)) y <- as.matrix(y)
-    if (!is.matrix(z)) z <- as.matrix(z)
+.estimate_gls <- function(y, z, c) {
+  if (!is.matrix(y)) y <- as.matrix(y)
+  if (!is.matrix(z)) z <- as.matrix(z)
 
-    n.obs <- nrow(y)
-    n.var <- ncol(y)
+  n_obs <- nrow(y)
+  n_var <- ncol(y)
 
-    rho <- 1 + c / n.obs
+  rho <- 1 + c / n_obs
 
-    y.hat <- y - rho * lagn(y, 1)
-    y.hat[1, ] <- y[1, ]
+  y_hat <- y - rho * lagn(y, 1)
+  y_hat[1, ] <- y[1, ]
 
-    z.hat <- z - rho * lagn(z, 1)
-    z.hat[1, ] <- z[1, ]
+  z_hat <- z - rho * lagn(z, 1)
+  z_hat[1, ] <- z[1, ]
 
-    betas <- NULL
-    resids <- NULL
-    fitted.values <- NULL
-    t.betas <- NULL
+  betas <- NULL
+  resids <- NULL
+  fitted <- NULL
+  t.betas <- NULL
 
-    for (i in 1:n.var) {
-        res.OLS <- OLS(y.hat[, i, drop = FALSE], z.hat)
-        betas <- cbind(betas, res.OLS$beta)
-        t.betas <- cbind(
-            t.betas,
-            res.OLS$t.beta
-        )
-        fitted.values <- cbind(
-            fitted.values,
-            z %*% res.OLS$beta
-        )
-        resids <- cbind(
-            resids,
-            y[, i, drop = FALSE] - fitted.values
-        )
-    }
+  for (i in 1:n_var) {
+    .model <- .estimate_ols(y_hat[, i, drop = FALSE], z_hat)
+    betas <- cbind(betas, .model$beta)
+    t.betas <- cbind(t.betas, .model$t.beta)
+    fitted <- cbind(fitted, z %*% .model$beta)
+    resids <- cbind(resids, y[, i, drop = FALSE] - fitted)
+  }
 
-    return(
-        list(
-            beta = betas,
-            residuals = resids,
-            predict = fitted.values,
-            t.beta = drop(t.betas)
-        )
-    )
+  list(
+    beta = betas,
+    residuals = resids,
+    predict = fitted,
+    t.beta = drop(t.betas)
+  )
 }
 
 
@@ -120,94 +104,86 @@ GLS <- function(y,
 #' * `lag`: estimated number of lags.
 #'
 #' @keywords internal
-AR <- function(y,
-               x,
-               max.lag,
-               criterion = "aic") {
-    if (!is.null(criterion)) {
-        if (!criterion %in% c("bic", "aic", "lwz", "hq")) {
-            warning("WARNING! Unknown criterion, none is used")
-            criterion <- NULL
-        }
+.estimate_ar <- function(
+  y,
+  x,
+  max_lag,
+  criterion = "aic"
+) {
+  if (!is.null(criterion)) {
+    if (!criterion %in% c("bic", "aic", "lwz", "hq")) {
+      stop("WARNING! Unknown criterion, none is used")
     }
+  }
 
-    if (!is.matrix(y)) y <- as.matrix(y)
-    n.obs <- nrow(y)
-    tmp.y <- y[(1 + max.lag):n.obs, , drop = FALSE]
+  if (!is.matrix(y)) y <- as.matrix(y)
+  n_obs <- nrow(y)
+  .lhs <- y[(1 + max_lag):n_obs, , drop = FALSE]
+
+  if (!is.null(x)) {
+    if (!is.null(x) && !is.matrix(x)) x <- as.matrix(x)
+    k <- ncol(x)
+    .rhs <- x[(1 + max_lag):n_obs, , drop = FALSE]
+  } else {
+    k <- 0
+    .rhs <- NULL
+  }
+
+  for (l in 1:max_lag) {
+    if (l <= max_lag) {
+      .rhs <- cbind(
+        .rhs,
+        lagn(y, l)[(1 + max_lag):n_obs, , drop = FALSE]
+      )
+    }
+  }
+
+  if (is.null(criterion)) {
+    .lag <- max_lag
+    .model <- .estimate_ols(.lhs, .rhs[, 1:(k + .lag), drop = FALSE])
+    .beta <- .model$beta
+    .resid <- .model$residuals
+    .predict <- .model$predict
+    .t_beta <- .model$t.beta
+  } else {
+    .lag <- 0
 
     if (!is.null(x)) {
-        if (!is.null(x) && !is.matrix(x)) x <- as.matrix(x)
-        k <- ncol(x)
-        tmp.x <- x[(1 + max.lag):n.obs, , drop = FALSE]
+      .model <- .estimate_ols(.lhs, .rhs[, 1:k, drop = FALSE])
+      .beta <- .model$beta
+      .resid <- .model$residuals
+      .predict <- .model$predict
+      .t_beta <- .model$t.beta
+      .ic <- log(drop(t(.resid) %*% .resid) / (n_obs - max_lag))
     } else {
-        k <- 0
-        tmp.x <- NULL
+      .ic <- Inf
     }
 
-    for (l in 1:max.lag) {
-        if (l <= max.lag) {
-            tmp.x <- cbind(
-                tmp.x,
-                lagn(y, l)[(1 + max.lag):n.obs, , drop = FALSE]
-            )
+    for (l in 1:max_lag) {
+      if (l <= max_lag) {
+        .model <- .estimate_ols(.lhs, .rhs[, 1:(k + l), drop = FALSE])
+        .model_ic <- info.criterion(.model$residuals, l)[[criterion]]
+
+        if (.model_ic < .ic) {
+          .ic <- .model_ic
+          .beta <- .model$beta
+          .resid <- .model$residuals
+          .predict <- .model$predict
+          .t_beta <- .model$t.beta
+          .lag <- l
         }
+      }
     }
+  }
 
-    if (is.null(criterion)) {
-        res.lag <- max.lag
-        tmp.OLS <- OLS(tmp.y, tmp.x[, 1:(k + res.lag), drop = FALSE])
-        res.beta <- tmp.OLS$beta
-        res.resid <- tmp.OLS$residuals
-        res.predict <- tmp.OLS$predict
-        res.t.beta <- tmp.OLS$t.beta
-        rm(tmp.OLS)
-    } else {
-        res.lag <- 0
-
-        if (!is.null(x)) {
-            tmp.OLS <- OLS(tmp.y, tmp.x[, 1:k, drop = FALSE])
-            res.beta <- tmp.OLS$beta
-            res.resid <- tmp.OLS$residuals
-            res.predict <- tmp.OLS$predict
-            res.t.beta <- tmp.OLS$t.beta
-            rm(tmp.OLS)
-            res.IC <- log(drop(t(res.resid) %*% res.resid) / (n.obs - max.lag))
-        } else {
-            res.IC <- Inf
-        }
-
-        for (l in 1:max.lag) {
-            if (l <= max.lag) {
-                tmp.OLS <- OLS(tmp.y, tmp.x[, 1:(k + l), drop = FALSE])
-                tmp.beta <- tmp.OLS$beta
-                tmp.resid <- tmp.OLS$residuals
-                tmp.predict <- tmp.OLS$predict
-                tmp.t.beta <- tmp.OLS$t.beta
-                rm(tmp.OLS)
-                temp.IC <- info.criterion(tmp.resid, l)[[criterion]]
-
-                if (temp.IC < res.IC) {
-                    res.IC <- temp.IC
-                    res.beta <- tmp.beta
-                    res.resid <- tmp.resid
-                    res.predict <- tmp.predict
-                    res.t.beta <- tmp.t.beta
-                    res.lag <- l
-                }
-            }
-        }
-    }
-
-    return(
-        list(
-            beta = res.beta,
-            residuals = res.resid,
-            predict = res.predict,
-            t.beta = res.t.beta,
-            lag = res.lag,
-            criterion = res.IC
-        )
-    )
+  list(
+    beta      = .beta,
+    residuals = .resid,
+    predict   = .predict,
+    t.beta    = .t_beta,
+    lag       = .lag,
+    criterion = .ic
+  )
 }
 
 
@@ -234,33 +210,32 @@ AR <- function(y,
 #' School of Economics. University of Nottingham, 2022.
 #'
 #' @keywords internal
-NW.estimation <- function(y,
-                          x,
-                          h,
-                          kernel = "unif") {
-    if (!kernel %in% c("unif", "gauss")) {
-        warning("WARNING! Unknown kernel, unif is used instead")
-        kernel <- "unif"
-    }
+.estimate_nw <- function(
+  y,
+  x,
+  h,
+  kernel = "unif"
+) {
+  if (!kernel %in% c("unif", "gauss")) {
+    stop("WARNING! Unknown kernel, unif is used instead")
+  }
 
-    n.obs <- length(y)
+  n_obs <- length(y)
 
-    rho <- rep(0, n.obs)
-    for (k in 1:n.obs) {
-        W <- NW.kernel(k, (1:n.obs) / n.obs, h, kernel)
-        rho[k] <- sum(x * W * y) / sum(x * W * x)
-    }
+  rho <- rep(0, n_obs)
+  for (k in 1:n_obs) {
+    .w <- .kernel_nw(k, (1:n_obs) / n_obs, h, kernel)
+    rho[k] <- sum(x * .w * y) / sum(x * .w * x)
+  }
 
-    return(
-        list(
-            my = y,
-            mx = x,
-            h = h,
-            kernel = kernel,
-            rr1.est = rho,
-            u.hat = y - rho * x
-        )
-    )
+  list(
+    my      = y,
+    mx      = x,
+    h       = h,
+    kernel  = kernel,
+    rr1.est = rho,
+    u.hat   = y - rho * x
+  )
 }
 
 
@@ -292,31 +267,31 @@ NW.estimation <- function(y,
 #' School of Economics. University of Nottingham, 2022.
 #'
 #' @keywords internal
-NW.volatility <- function(e,
-                          h,
-                          kernel = "unif") {
-    if (!kernel %in% c("unif", "gauss")) {
-        warning("WARNING! Unknown kernel, unif is used instead")
-        kernel <- "unif"
-    }
+.volatility_nw <- function(
+  e,
+  h,
+  kernel = "unif"
+) {
+  if (!kernel %in% c("unif", "gauss")) {
+    stop("WARNING! Unknown kernel, unif is used instead")
+  }
 
-    n.obs <- length(e)
+  n_obs <- length(e)
 
-    omega.sq <- rep(0, n.obs)
-    for (k in 1:n.obs) {
-        W <- NW.kernel(k, (1:n.obs) / n.obs, h, kernel)
-        omega.sq[k] <- sum(W * e^2) / sum(W)
-    }
+  omega2 <- rep(0, n_obs)
 
-    return(
-        list(
-            me = e,
-            h = h,
-            kernel = kernel,
-            omega.sq = omega.sq,
-            se = sqrt(omega.sq)
-        )
-    )
+  for (k in 1:n_obs) {
+    .w <- .kernel_nw(k, (1:n_obs) / n_obs, h, kernel)
+    omega2[k] <- sum(.w * e^2) / sum(.w)
+  }
+
+  list(
+    me       = e,
+    h        = h,
+    kernel   = kernel,
+    omega.sq = omega2,
+    se       = sqrt(omega2)
+  )
 }
 
 
@@ -341,42 +316,37 @@ NW.volatility <- function(e,
 #' @return A list of arguments as well as the estimated bandwidth `h`.
 #'
 #' @keywords internal
-NW.loocv <- function(y,
-                     x,
-                     kernel = "unif") {
-    if (!kernel %in% c("unif", "gauss")) {
-        warning("WARNING! Unknown kernel, unif is used instead")
-        kernel <- "unif"
+.bandwidth_nw <- function(y, x, kernel = "unif") {
+  if (!kernel %in% c("unif", "gauss")) {
+    stop("WARNING! Unknown kernel, unif is used instead")
+  }
+
+  n_obs <- length(y)
+
+  h_candidates <- seq(n_obs^(-0.5), n_obs^(-0.3), by = 0.01)
+  rss <- Inf
+
+  for (.h in h_candidates) {
+    rho <- rep(0, n_obs)
+    for (k in 1:n_obs) {
+      .w <- .kernel_nw(k, (1:n_obs) / n_obs, .h, kernel)
+      .w[k] <- 0
+      rho[k] <- sum(x * .w * y) / sum(x * .w * x)
     }
 
-    n.obs <- length(y)
-
-    HT <- seq(n.obs^(-0.5), n.obs^(-0.3), by = 0.01)
-    cv0 <- Inf
-
-    for (hi in HT) {
-        rho <- rep(0, n.obs)
-        for (k in 1:n.obs) {
-            W <- NW.kernel(k, (1:n.obs) / n.obs, hi, kernel)
-            W[k] <- 0
-            rho[k] <- sum(x * W * y) / sum(x * W * x)
-        }
-
-        cv1 <- sum((y - rho * x)^2)
-        if (cv1 < cv0) {
-            cv0 <- cv1
-            h <- hi
-        }
+    .rss <- sum((y - rho * x)^2)
+    if (.rss < rss) {
+      rss <- .rss
+      h <- .h
     }
+  }
 
-    return(
-        list(
-            my = y,
-            mx = x,
-            kernel = kernel,
-            h = h
-        )
-    )
+  list(
+    my     = y,
+    mx     = x,
+    kernel = kernel,
+    h      = h
+  )
 }
 
 
@@ -396,14 +366,12 @@ NW.loocv <- function(y,
 #' @importFrom stats pnorm
 #'
 #' @keywords internal
-NW.kernel <- function(i,
-                      x,
-                      h,
-                      kernel = "unif") {
-    if (kernel == "unif") {
-        W <- ifelse(abs((x - x[i]) / h) <= 1, 1, 0)
-    } else if (kernel == "gauss") {
-        W <- pnorm((x - x[i]) / h)
-    }
-    return(W)
+.kernel_nw <- function(i,
+                       x,
+                       h,
+                       kernel = "unif") {
+  switch(kernel,
+    unif  = ifelse(abs((x - x[i]) / h) <= 1, 1, 0),
+    gauss = pnorm((x - x[i]) / h)
+  )
 }

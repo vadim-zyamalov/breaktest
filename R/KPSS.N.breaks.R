@@ -65,70 +65,70 @@ KPSS.N.breaks <- function(y,
                           max.lag,
                           kernel,
                           criterion = "bic") {
-    if (!is.matrix(y)) y <- as.matrix(y)
-    if (!is.null(x)) {
-        if (!is.matrix(x)) x <- as.matrix(x)
-    }
+  if (!is.matrix(y)) y <- as.matrix(y)
+  if (!is.null(x)) {
+    if (!is.matrix(x)) x <- as.matrix(x)
+  }
 
-    n.obs <- nrow(y)
+  n.obs <- nrow(y)
 
-    if (weakly.exog) {
-        xt <- cbind(
-            x,
-            determinants.KPSS.N.breaks(model, n.obs, break.point, const, trend)
-        )
-
-        tmp.OLS <- OLS(y, xt)
-        beta <- tmp.OLS$beta
-        resids <- tmp.OLS$residuals
-        t.beta <- tmp.OLS$t.beta
-        DOLS.lags <- 0
-        DOLS.leads <- 0
-        rm(tmp.OLS)
-    } else {
-        info.crit.min <- Inf
-        for (i in lags.init:1) {
-            for (j in leads.init:1) {
-                tmp.DOLS <- DOLS.N.breaks(
-                    y, x, model, break.point, const, trend, i, j
-                )
-                beta <- tmp.DOLS$beta
-                resids <- tmp.DOLS$residuals
-                t.beta <- tmp.DOLS$t.beta
-                info.crit <- tmp.DOLS$criterions
-                if (info.crit[[criterion]] < info.crit.min) {
-                    info.crit.min <- info.crit[[criterion]]
-                    beta.min <- beta
-                    t.beta.min <- t.beta
-                    resid.min <- resids
-                    DOLS.lags <- i
-                    DOLS.leads <- j
-                }
-                rm(tmp.DOLS)
-            }
-        }
-        resids <- resid.min
-        beta <- beta.min
-        t.beta <- t.beta.min
-    }
-
-    if (!is.null(kernel)) {
-        test <- KPSS(resids, lr.var.SPC(resids, max.lag, kernel))
-    } else {
-        test <- KPSS(resids, lr.var.bartlett.AK(resids))
-    }
-
-    return(
-        list(
-            beta = beta,
-            test = test,
-            residuals = resids,
-            t.beta = t.beta,
-            DOLS.lags = DOLS.lags,
-            DOLS.leads = DOLS.leads,
-            break.point = break.point
-        )
+  if (weakly.exog) {
+    xt <- cbind(
+      x,
+      trend_kpss_miltiple(model, n.obs, break.point, const, trend)
     )
+
+    tmp.OLS <- .estimate_ols(y, xt)
+    beta <- tmp.OLS$beta
+    resids <- tmp.OLS$residuals
+    t.beta <- tmp.OLS$t.beta
+    DOLS.lags <- 0
+    DOLS.leads <- 0
+    rm(tmp.OLS)
+  } else {
+    info.crit.min <- Inf
+    for (i in lags.init:1) {
+      for (j in leads.init:1) {
+        tmp.DOLS <- DOLS.N.breaks(
+          y, x, model, break.point, const, trend, i, j
+        )
+        beta <- tmp.DOLS$beta
+        resids <- tmp.DOLS$residuals
+        t.beta <- tmp.DOLS$t.beta
+        info.crit <- tmp.DOLS$criterions
+        if (info.crit[[criterion]] < info.crit.min) {
+          info.crit.min <- info.crit[[criterion]]
+          beta.min <- beta
+          t.beta.min <- t.beta
+          resid.min <- resids
+          DOLS.lags <- i
+          DOLS.leads <- j
+        }
+        rm(tmp.DOLS)
+      }
+    }
+    resids <- resid.min
+    beta <- beta.min
+    t.beta <- t.beta.min
+  }
+
+  if (!is.null(kernel)) {
+    test <- .kpss_stat(resids, lr.var.SPC(resids, max.lag, kernel))
+  } else {
+    test <- .kpss_stat(resids, lr.var.bartlett.AK(resids))
+  }
+
+  return(
+    list(
+      beta = beta,
+      test = test,
+      residuals = resids,
+      t.beta = t.beta,
+      DOLS.lags = DOLS.lags,
+      DOLS.leads = DOLS.leads,
+      break.point = break.point
+    )
+  )
 }
 
 
@@ -197,87 +197,87 @@ KPSS.N.breaks.bootstrap <- function(y,
                                     iter = 9999,
                                     bootstrap = "sample",
                                     criterion = "bic") {
-    if (!is.matrix(y)) y <- as.matrix(y)
-    if (!is.null(x)) {
-        if (!is.matrix(x)) x <- as.matrix(x)
+  if (!is.matrix(y)) y <- as.matrix(y)
+  if (!is.null(x)) {
+    if (!is.matrix(x)) x <- as.matrix(x)
+  }
+
+  n.obs <- nrow(y)
+
+  tmp.kpss <- KPSS.N.breaks(
+    y, x,
+    model, break.point,
+    const, trend,
+    weakly.exog,
+    lags.init, leads.init,
+    max.lag, kernel,
+    criterion
+  )
+  test <- tmp.kpss$test
+  u <- tmp.kpss$residuals
+  DOLS.lags <- tmp.kpss$DOLS.lags
+  DOLS.leads <- tmp.kpss$DOLS.leads
+  rm(tmp.kpss)
+
+  if (weakly.exog) {
+    xreg <- cbind(
+      x,
+      trend_kpss_miltiple(model, n.obs, break.point, const, trend)
+    )
+  } else {
+    xreg <- DOLS.vars.N.breaks(
+      y, x,
+      model, break.point,
+      const, trend,
+      DOLS.lags, DOLS.leads
+    )$xreg
+  }
+
+  cores <- detectCores()
+
+  progress.bar <- txtProgressBar(max = iter, style = 3)
+  progress <- function(n) setTxtProgressBar(progress.bar, n)
+
+  cluster <- makeCluster(max(cores - 1, 1))
+  registerDoSNOW(cluster)
+
+  result <- foreach(
+    i = 1:iter,
+    .combine = rbind,
+    .options.snow = list(progress = progress)
+  ) %dopar% {
+    if (bootstrap == "sample") {
+      temp.y <- sample(u, length(u), replace = TRUE)
+    } else if (bootstrap == "Cavaliere-Taylor") {
+      z <- rnorm(length(u))
+      temp.y <- z * u
+    } else if (bootstrap == "Rademacher") {
+      z <- sample(c(-1, 1), length(u), replace = TRUE)
+      temp.y <- z * u
     }
 
-    n.obs <- nrow(y)
+    resids <- .estimate_ols(temp.y, xreg)$residuals
 
-    tmp.kpss <- KPSS.N.breaks(
-        y, x,
-        model, break.point,
-        const, trend,
-        weakly.exog,
-        lags.init, leads.init,
-        max.lag, kernel,
-        criterion
-    )
-    test <- tmp.kpss$test
-    u <- tmp.kpss$residuals
-    DOLS.lags <- tmp.kpss$DOLS.lags
-    DOLS.leads <- tmp.kpss$DOLS.leads
-    rm(tmp.kpss)
-
-    if (weakly.exog) {
-        xreg <- cbind(
-            x,
-            determinants.KPSS.N.breaks(model, n.obs, break.point, const, trend)
-        )
+    if (!is.null(kernel)) {
+      temp.test <- .kpss_stat(resids, lr.var.SPC(resids, max.lag, kernel))
     } else {
-        xreg <- DOLS.vars.N.breaks(
-            y, x,
-            model, break.point,
-            const, trend,
-            DOLS.lags, DOLS.leads
-        )$xreg
+      temp.test <- .kpss_stat(resids, lr.var.bartlett.AK(resids))
     }
 
-    cores <- detectCores()
+    temp.test
+  }
 
-    progress.bar <- txtProgressBar(max = iter, style = 3)
-    progress <- function(n) setTxtProgressBar(progress.bar, n)
+  stopCluster(cluster)
 
-    cluster <- makeCluster(max(cores - 1, 1))
-    registerDoSNOW(cluster)
+  p.value <- (1 / iter) * sum(I(test <= result))
 
-    result <- foreach(
-        i = 1:iter,
-        .combine = rbind,
-        .options.snow = list(progress = progress)
-    ) %dopar% {
-        if (bootstrap == "sample") {
-            temp.y <- sample(u, length(u), replace = TRUE)
-        } else if (bootstrap == "Cavaliere-Taylor") {
-            z <- rnorm(length(u))
-            temp.y <- z * u
-        } else if (bootstrap == "Rademacher") {
-            z <- sample(c(-1, 1), length(u), replace = TRUE)
-            temp.y <- z * u
-        }
-
-        resids <- OLS(temp.y, xreg)$residuals
-
-        if (!is.null(kernel)) {
-            temp.test <- KPSS(resids, lr.var.SPC(resids, max.lag, kernel))
-        } else {
-            temp.test <- KPSS(resids, lr.var.bartlett.AK(resids))
-        }
-
-        temp.test
-    }
-
-    stopCluster(cluster)
-
-    p.value <- (1 / iter) * sum(I(test <= result))
-
-    return(
-        list(
-            test = test,
-            p.value = p.value,
-            bootstrapped = result
-        )
+  return(
+    list(
+      test = test,
+      p.value = p.value,
+      bootstrapped = result
     )
+  )
 }
 
 
@@ -309,31 +309,31 @@ DOLS.N.breaks <- function(y,
                           trend = FALSE,
                           k.lags,
                           k.leads) {
-    if (!is.matrix(y)) y <- as.matrix(y)
-    if (is.null(x)) {
-        stop("ERROR! Explanatory variables needed for DOLS")
-    }
-    if (!is.matrix(x)) x <- as.matrix(x)
+  if (!is.matrix(y)) y <- as.matrix(y)
+  if (is.null(x)) {
+    stop("ERROR! Explanatory variables needed for DOLS")
+  }
+  if (!is.matrix(x)) x <- as.matrix(x)
 
-    dols.vars <- DOLS.vars.N.breaks(
-        y, x,
-        model, break.point,
-        const, trend,
-        k.lags, k.leads
+  dols.vars <- DOLS.vars.N.breaks(
+    y, x,
+    model, break.point,
+    const, trend,
+    k.lags, k.leads
+  )
+
+  res.OLS <- .estimate_ols(dols.vars$yreg, dols.vars$xreg)
+
+  criterions <- info.criterion(res.OLS$residuals, ncol(dols.vars$xreg))
+
+  return(
+    list(
+      beta = res.OLS$beta,
+      residuals = res.OLS$residuals,
+      criterions = criterions,
+      t.beta = res.OLS$t.beta
     )
-
-    res.OLS <- OLS(dols.vars$yreg, dols.vars$xreg)
-
-    criterions <- info.criterion(res.OLS$residuals, ncol(dols.vars$xreg))
-
-    return(
-        list(
-            beta = res.OLS$beta,
-            residuals = res.OLS$residuals,
-            criterions = criterions,
-            t.beta = res.OLS$t.beta
-        )
-    )
+  )
 }
 
 
@@ -361,63 +361,63 @@ DOLS.vars.N.breaks <- function(y,
                                trend = FALSE,
                                k.lags,
                                k.leads) {
-    if (is.null(x)) {
-        stop("ERROR! Explanatory variables needed for DOLS")
-    }
-    if (!is.matrix(y)) y <- as.matrix(y)
-    if (!is.matrix(x)) x <- as.matrix(x)
+  if (is.null(x)) {
+    stop("ERROR! Explanatory variables needed for DOLS")
+  }
+  if (!is.matrix(y)) y <- as.matrix(y)
+  if (!is.matrix(x)) x <- as.matrix(x)
 
-    n.obs <- nrow(y)
+  n.obs <- nrow(y)
 
-    d.x.step <- x[2:n.obs, , drop = FALSE] - x[1:(n.obs - 1), , drop = FALSE]
-    d.x.lag <- d.x.step
-    d.x.lead <- d.x.step
+  d.x.step <- x[2:n.obs, , drop = FALSE] - x[1:(n.obs - 1), , drop = FALSE]
+  d.x.lag <- d.x.step
+  d.x.lead <- d.x.step
 
-    for (i in 1:k.lags) {
-        d.x.lag <- cbind(
-            d.x.lag,
-            lagn(d.x.step, i)
-        )
-    }
-
-    for (i in 1:k.leads) {
-        d.x.lead <- cbind(
-            d.x.lead,
-            lagn(d.x.step, -i)
-        )
-    }
-
-    if (k.lags != 0 && k.leads != 0) {
-        lags <- d.x.lag
-        leads <- d.x.lead[, (ncol(x) + 1):(ncol(d.x.lead)), drop = FALSE]
-        lags.leads <- cbind(lags, leads)
-        lags.leads <-
-            lags.leads[(k.lags + 1):(n.obs - 1 - k.leads), , drop = FALSE]
-    } else if (k.lags != 0 && k.leads == 0) {
-        lags <- d.x.lag
-        lags.leads <- lags[(k.lags + 1):(n.obs - 1), , drop = FALSE]
-    } else if (k.lags == 0 && k.leads != 0) {
-        lags <- d.x.lag
-        leads <- d.x.lead[, (ncol(x) + 1):(ncol(d.x.lead)), drop = FALSE]
-        lags.leads <- cbind(lags, leads)
-        lags.leads <- lags.leads[1:(n.obs - 1 - k.leads), , drop = FALSE]
-    } else if (k.lags == 0 && k.leads == 0) {
-        lags.leads <- d.x.lag
-    }
-    deter <- determinants.KPSS.N.breaks(model, n.obs, break.point, const, trend)
-
-    xreg <- cbind(
-        deter[(k.lags + 2):(n.obs - k.leads), , drop = FALSE],
-        x[(k.lags + 2):(n.obs - k.leads), , drop = FALSE],
-        lags.leads
+  for (i in 1:k.lags) {
+    d.x.lag <- cbind(
+      d.x.lag,
+      lagn(d.x.step, i)
     )
+  }
 
-    yreg <- y[(k.lags + 2):(n.obs - k.leads), 1, drop = FALSE]
-
-    return(
-        list(
-            yreg = yreg,
-            xreg = xreg
-        )
+  for (i in 1:k.leads) {
+    d.x.lead <- cbind(
+      d.x.lead,
+      lagn(d.x.step, -i)
     )
+  }
+
+  if (k.lags != 0 && k.leads != 0) {
+    lags <- d.x.lag
+    leads <- d.x.lead[, (ncol(x) + 1):(ncol(d.x.lead)), drop = FALSE]
+    lags.leads <- cbind(lags, leads)
+    lags.leads <-
+      lags.leads[(k.lags + 1):(n.obs - 1 - k.leads), , drop = FALSE]
+  } else if (k.lags != 0 && k.leads == 0) {
+    lags <- d.x.lag
+    lags.leads <- lags[(k.lags + 1):(n.obs - 1), , drop = FALSE]
+  } else if (k.lags == 0 && k.leads != 0) {
+    lags <- d.x.lag
+    leads <- d.x.lead[, (ncol(x) + 1):(ncol(d.x.lead)), drop = FALSE]
+    lags.leads <- cbind(lags, leads)
+    lags.leads <- lags.leads[1:(n.obs - 1 - k.leads), , drop = FALSE]
+  } else if (k.lags == 0 && k.leads == 0) {
+    lags.leads <- d.x.lag
+  }
+  deter <- trend_kpss_miltiple(model, n.obs, break.point, const, trend)
+
+  xreg <- cbind(
+    deter[(k.lags + 2):(n.obs - k.leads), , drop = FALSE],
+    x[(k.lags + 2):(n.obs - k.leads), , drop = FALSE],
+    lags.leads
+  )
+
+  yreg <- y[(k.lags + 2):(n.obs - k.leads), 1, drop = FALSE]
+
+  return(
+    list(
+      yreg = yreg,
+      xreg = xreg
+    )
+  )
 }

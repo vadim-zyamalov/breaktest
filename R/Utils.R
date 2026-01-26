@@ -11,24 +11,21 @@
 lagn <- function(x,
                  i,
                  na = NA) {
-    if (!is.matrix(x)) x <- as.matrix(x)
-    n.obs <- nrow(x)
-    n.var <- ncol(x)
-    if (i > 0) {
-        return(
-            rbind(
-                matrix(data = na, nrow = i, ncol = n.var),
-                x[1:(n.obs - i), , drop = FALSE]
-            )
-        )
-    } else {
-        return(
-            rbind(
-                x[(1 + abs(i)):n.obs, , drop = FALSE],
-                matrix(data = na, nrow = abs(i), ncol = n.var)
-            )
-        )
-    }
+  if (!is.matrix(x)) x <- as.matrix(x)
+  n_obs <- nrow(x)
+  n_var <- ncol(x)
+
+  if (i > 0) {
+    rbind(
+      matrix(data = na, nrow = i, ncol = n_var),
+      x[1:(n_obs - i), , drop = FALSE]
+    )
+  } else {
+    rbind(
+      x[(1 + abs(i)):n_obs, , drop = FALSE],
+      matrix(data = na, nrow = abs(i), ncol = n_var)
+    )
+  }
 }
 
 
@@ -47,20 +44,19 @@ diffn <- function(x,
                   lag = 1,
                   differences = 1,
                   na = NA) {
-    if (!is.matrix(x)) x <- as.matrix(x)
-    n.obs <- nrow(x)
-    n.var <- ncol(x)
-    tmp.diff <- diff(x, lag = lag, differences = differences)
-    return(
-        rbind(
-            matrix(
-                data = na,
-                nrow = n.obs - nrow(tmp.diff),
-                ncol = n.var
-            ),
-            tmp.diff
-        )
-    )
+  if (!is.matrix(x)) x <- as.matrix(x)
+  n_obs <- nrow(x)
+  n_var <- ncol(x)
+  .diff <- diff(x, lag = lag, differences = differences)
+
+  rbind(
+    matrix(
+      data = na,
+      nrow = n_obs - nrow(.diff),
+      ncol = n_var
+    ),
+    .diff
+  )
 }
 
 
@@ -71,15 +67,13 @@ diffn <- function(x,
 #' @param variance A value of the long-run variance.
 #'
 #' @keywords internal
-KPSS <- function(resids,
-                 variance) {
-    if (!is.matrix(resids)) resids <- as.matrix(resids)
+.kpss_stat <- function(resids,
+                       variance) {
+  if (!is.matrix(resids)) resids <- as.matrix(resids)
+  n_obs <- nrow(resids)
+  s_t <- apply(resids, 2, cumsum)
 
-    n.obs <- nrow(resids)
-
-    S.t <- apply(resids, 2, cumsum)
-
-    return(drop(t(S.t) %*% S.t) / (n.obs^2 * variance))
+  drop(t(s_t) %*% s_t) / (n_obs^2 * variance)
 }
 
 
@@ -105,29 +99,25 @@ KPSS <- function(resids,
 #' Kennedy School of Government, Harvard University, 1990.
 #'
 #' @keywords internal
-MZ.statistic <- function(y,
-                         l,
-                         const = FALSE,
-                         trend = FALSE) {
-    n.obs <- nrow(y)
+.mz_stats <- function(y,
+                      l,
+                      const = FALSE,
+                      trend = FALSE) {
+  n_obs <- nrow(y)
+  .adf <- ADF.test(y, const, trend, l, criterion = NULL)
 
-    tmp.ADF <- ADF.test(y, const, trend, l, criterion = NULL)
+  denom <- 1 - sum(.adf$beta) + .adf$alpha
+  s_2 <- drop(t(.adf$residuals) %*% .adf$residuals) /
+    (nrow(.adf$residuals) - (1 + l)) / denom^2
+  sum_y2 <- sum(.adf$yd[1:(n_obs - 1)]^2)
 
-    denom <- 1 - sum(tmp.ADF$beta) + tmp.ADF$alpha
-    S.2 <- drop(t(tmp.ADF$residuals) %*% tmp.ADF$residuals) /
-        (nrow(tmp.ADF$residuals) - (1 + l)) / denom^2
+  mza <- (y[n_obs]^2 / n_obs - s_2) / (2 * sum_y2 / n_obs^2)
+  msb <- sqrt(sum_y2 / s_2 / n_obs^2)
+  mzt <- mza * msb
 
-    sum.y2 <- sum(tmp.ADF$yd[1:(n.obs - 1)]^2)
-
-    mza <- (y[n.obs]^2 / n.obs - S.2) / (2 * sum.y2 / n.obs^2)
-    msb <- sqrt(sum.y2 / S.2 / n.obs^2)
-    mzt <- mza * msb
-
-    return(
-        list(
-            mza = mza,
-            msb = msb,
-            mzt = mzt
-        )
-    )
+  list(
+    mza = mza,
+    msb = msb,
+    mzt = mzt
+  )
 }

@@ -19,29 +19,25 @@
 #' https://doi.org/10.1111/j.1468-0084.2006.00180.x.
 #'
 #' @keywords internal
-segments.OLS.1.break <- function(beg,
+.segments_ols_single <- function(beg,
                                  end,
-                                 first.break,
-                                 last.break,
+                                 bp_min,
+                                 bp_max,
                                  len,
-                                 SSR.data) {
-    tmp.result <- matrix(data = Inf, nrow = len, ncol = 1)
+                                 rss_values) {
+  .rss <- matrix(data = Inf, nrow = len, ncol = 1)
 
-    for (tb in first.break:last.break) {
-        tmp.result[tb] <- SSR.data[beg, tb] +
-            SSR.data[tb + 1, end]
-    }
+  for (bp in bp_min:bp_max) {
+    .rss[bp] <- rss_values[beg, bp] + rss_values[bp + 1, end]
+  }
 
-    min.ssr <- min(tmp.result[first.break:last.break])
-    break.point <- (first.break - 1) +
-        which.min(tmp.result[first.break:last.break])
+  .rss_min <- min(.rss[bp_min:bp_max])
+  .bp <- (bp_min - 1) + which.min(.rss[bp_min:bp_max])
 
-    return(
-        list(
-            SSR = min.ssr,
-            break.point = break.point
-        )
-    )
+  list(
+    SSR         = .rss_min,
+    break.point = .bp
+  )
 }
 
 
@@ -68,67 +64,65 @@ segments.OLS.1.break <- function(beg,
 #' https://doi.org/10.1007/s10108-006-9017-8.
 #'
 #' @keywords internal
-segments.OLS.2.breaks <- function(y,
-                                  model) {
-    if (!is.matrix(y)) y <- as.matrix(y)
+.segments_ols_double <- function(y,
+                                 model) {
+  if (!is.matrix(y)) y <- as.matrix(y)
 
-    n.obs <- nrow(y)
+  n_obs <- nrow(y)
 
-    res.r <- 0
-    cur.ssr <- Inf
-    res.tb1 <- 0
-    res.tb2 <- 0
+  .resids <- 0
+  .rss <- Inf
+  .bp1 <- 0
+  .bp2 <- 0
 
-    if (1 <= model && model <= 4) {
-        for (i in 2:(n.obs - 4)) {
-            for (j in (i + 2):(n.obs - 2)) {
-                z <- determinants.KPSS.2.breaks(model, n.obs, c(i, j))
-                resids <- OLS(y, z)$residuals
-                ssr <- drop(t(resids) %*% resids)
-                if (ssr < cur.ssr) {
-                    res.r <- resids
-                    cur.ssr <- ssr
-                    res.tb1 <- i
-                    res.tb2 <- j
-                }
-            }
+  if (1 <= model && model <= 4) {
+    for (bp1 in 2:(n_obs - 4)) {
+      for (bp2 in (bp1 + 2):(n_obs - 2)) {
+        z <- trend_kpss_double(model, n_obs, c(bp1, bp2))
+        resids <- .estimate_ols(y, z)$residuals
+        ssr <- drop(t(resids) %*% resids)
+        if (ssr < .rss) {
+          .resids <- resids
+          .rss <- ssr
+          .bp1 <- bp1
+          .bp2 <- bp2
         }
-    } else if (5 <= model && model <= 7) {
-        for (i in 2:(n.obs - 4)) {
-            for (j in (i + 2):(n.obs - 2)) {
-                z <- determinants.KPSS.2.breaks(model, n.obs, c(i, j))
-                resids <- OLS(y, z)$residuals
-                ssr <- drop(t(resids) %*% resids)
-                if (ssr < cur.ssr) {
-                    res.r <- resids
-                    cur.ssr <- ssr
-                    res.tb1 <- i
-                    res.tb2 <- j
-                }
-            }
-        }
-        for (j in 2:(n.obs - 4)) {
-            for (i in (j + 2):(n.obs - 2)) {
-                z <- determinants.KPSS.2.breaks(model, n.obs, c(i, j))
-                resids <- OLS(y, z)$residuals
-                ssr <- drop(t(resids) %*% resids)
-                if (ssr < cur.ssr) {
-                    res.r <- resids
-                    cur.ssr <- ssr
-                    res.tb1 <- j
-                    res.tb2 <- i
-                }
-            }
-        }
+      }
     }
+  } else if (5 <= model && model <= 7) {
+    for (bp1 in 2:(n_obs - 4)) {
+      for (bp2 in (bp1 + 2):(n_obs - 2)) {
+        z <- trend_kpss_double(model, n_obs, c(bp1, bp2))
+        resids <- .estimate_ols(y, z)$residuals
+        ssr <- drop(t(resids) %*% resids)
+        if (ssr < .rss) {
+          .resids <- resids
+          .rss <- ssr
+          .bp1 <- bp1
+          .bp2 <- bp2
+        }
+      }
+    }
+    for (bp2 in 2:(n_obs - 4)) {
+      for (bp1 in (bp2 + 2):(n_obs - 2)) {
+        z <- trend_kpss_double(model, n_obs, c(bp1, bp2))
+        resids <- .estimate_ols(y, z)$residuals
+        ssr <- drop(t(resids) %*% resids)
+        if (ssr < .rss) {
+          .resids <- resids
+          .rss <- ssr
+          .bp1 <- bp1
+          .bp2 <- bp2
+        }
+      }
+    }
+  }
 
-    return(
-        list(
-            residuals = res.r,
-            tb1 = res.tb1,
-            tb2 = res.tb2
-        )
-    )
+  list(
+    residuals = .resids,
+    tb1       = .bp1,
+    tb2       = .bp2
+  )
 }
 
 
@@ -152,102 +146,102 @@ segments.OLS.2.breaks <- function(y,
 #' https://doi.org/10.1002/jae.659.
 #'
 #' @keywords internal
-segments.OLS.N.breaks <- function(y,
-                                  x,
-                                  m = 1,
-                                  width = 2,
-                                  SSR.data = NULL) {
-    if (!is.matrix(y)) y <- as.matrix(y)
-    if (!is.matrix(x)) x <- as.matrix(x)
+.segments_ols_mulitiple <- function(
+  y,
+  x,
+  m = 1,
+  width = 2,
+  rss_values = NULL
+) {
+  if (!is.matrix(y)) y <- as.matrix(y)
+  if (!is.matrix(x)) x <- as.matrix(x)
 
-    n.obs <- nrow(y)
+  n_obs <- nrow(y)
 
-    if (is.null(SSR.data)) {
-        SSR.data <- SSR.matrix(y, x, width)
-    }
+  if (is.null(rss_values)) {
+    rss_values <- SSR.matrix(y, x, width)
+  }
 
-    if (m == 1) {
-        tmp.result <- segments.OLS.1.break(
-            1, n.obs,
-            width, n.obs - width,
-            n.obs, SSR.data
-        )
-        res.ssr <- tmp.result$SSR
-        res.break <- tmp.result$break.point
-    } else {
-        variants <- n.obs - (m + 1) * width + 1
-        cur.ssr <- matrix(
-            data = Inf,
-            nrow = variants,
-            ncol = 1
-        )
-        cur.breaks <- matrix(
-            data = 0,
-            nrow = variants,
-            ncol = m
-        )
-        for (step in 1:m) {
-            tmp.ssr <- matrix(
-                data = Inf,
-                nrow = variants,
-                ncol = 1
-            )
-            if (step == 1) {
-                for (v in 1:variants) {
-                    step.end <- 2 * width + v - 1
-                    tmp.res <- segments.OLS.1.break(
-                        1,
-                        step.end,
-                        width,
-                        step.end - width,
-                        step.end, SSR.data
-                    )
-                    cur.ssr[v, 1] <- tmp.res$SSR
-                    cur.breaks[v, 1] <- tmp.res$break.point
-                }
-            } else if (step == m) {
-                for (v in 1:variants) {
-                    tmp.ssr[v, 1] <- cur.ssr[v, 1] +
-                        SSR.data[step * width + v, n.obs]
-                }
-                res.ssr <- min(tmp.ssr)
-                res.index <- which.min(tmp.ssr)
-                res.break <- cur.breaks[res.index, ]
-                res.break[m] <- step * width + res.index - 1
-            } else {
-                new.ssr <- matrix(
-                    data = Inf,
-                    nrow = variants,
-                    ncol = 1
-                )
-                new.breaks <- matrix(
-                    data = 0,
-                    nrow = variants,
-                    ncol = m
-                )
-                for (step.end in ((step + 1) * width):(n.obs - (m - step) * width)) { # nolint
-                    new.v <- step.end - (step + 1) * width + 1
-                    for (v in 1:variants) {
-                        tmp.ssr[v, 1] <- cur.ssr[v, 1] +
-                            SSR.data[step * width + v, step.end]
-                    }
-                    new.ssr[new.v, 1] <- min(tmp.ssr)
-                    new.index <- which.min(tmp.ssr)
-                    new.breaks[new.v, 1:m] <- cur.breaks[new.index, ]
-                    new.breaks[new.v, step] <- step * width + new.index - 1
-                }
-                cur.ssr <- new.ssr
-                cur.breaks <- new.breaks
-            }
-        }
-    }
-
-    return(
-        list(
-            SSR = res.ssr,
-            break.point = res.break
-        )
+  if (m == 1) {
+    .segments <- .segments_ols_single(
+      1, n_obs,
+      width, n_obs - width,
+      n_obs, rss_values
     )
+    .rss <- .segments$SSR
+    .bp <- .segments$break.point
+  } else {
+    n_variants <- n_obs - (m + 1) * width + 1
+    .rss <- matrix(
+      data = Inf,
+      nrow = n_variants,
+      ncol = 1
+    )
+    .bp <- matrix(
+      data = 0,
+      nrow = n_variants,
+      ncol = m
+    )
+    for (step in 1:m) {
+      .rss_loop <- matrix(
+        data = Inf,
+        nrow = n_variants,
+        ncol = 1
+      )
+      if (step == 1) {
+        for (v in 1:n_variants) {
+          .last_step <- 2 * width + v - 1
+          .segments <- .segments_ols_single(
+            1,
+            .last_step,
+            width,
+            .last_step - width,
+            .last_step, rss_values
+          )
+          .rss[v, 1] <- .segments$SSR
+          .bp[v, 1] <- .segments$break.point
+        }
+      } else if (step == m) {
+        for (v in 1:n_variants) {
+          .rss_loop[v, 1] <- .rss[v, 1] +
+            rss_values[step * width + v, n_obs]
+        }
+        .rss_final <- min(.rss_loop)
+        .idx_final <- which.min(.rss_loop)
+        .bp_final <- .bp[.idx_final, ]
+        .bp_final[m] <- step * width + .idx_final - 1
+      } else {
+        .rss_new <- matrix(
+          data = Inf,
+          nrow = n_variants,
+          ncol = 1
+        )
+        .bp_new <- matrix(
+          data = 0,
+          nrow = n_variants,
+          ncol = m
+        )
+        for (.last_step in ((step + 1) * width):(n_obs - (m - step) * width)) {
+          .v_new <- .last_step - (step + 1) * width + 1
+          for (v in 1:n_variants) {
+            .rss_loop[v, 1] <- .rss[v, 1] +
+              rss_values[step * width + v, .last_step]
+          }
+          .rss_new[.v_new, 1] <- min(.rss_loop)
+          .idx_new <- which.min(.rss_loop)
+          .bp_new[.v_new, 1:m] <- .bp[.idx_new, ]
+          .bp_new[.v_new, step] <- step * width + .idx_new - 1
+        }
+        .rss <- .rss_new
+        .bp <- .bp_new
+      }
+    }
+  }
+
+  list(
+    SSR         = .rss_final,
+    break.point = .bp_final
+  )
 }
 
 
@@ -272,126 +266,122 @@ segments.OLS.N.breaks <- function(y,
 #' https://doi.org/10.1515/jtse-2016-0014.
 #'
 #' @keywords internal
-segments.GLS <- function(y,
-                         const = FALSE,
-                         trend = FALSE,
-                         breaks = 1,
-                         first.break = NULL,
-                         last.break = NULL,
-                         trim = 0.15) {
-    if (!is.matrix(y)) y <- as.matrix(y)
+.segments_gls <- function(y,
+                          const = FALSE,
+                          trend = FALSE,
+                          breaks = 1,
+                          bp_min = NULL,
+                          bp_max = NULL,
+                          trim = 0.15) {
+  if (!is.matrix(y)) y <- as.matrix(y)
 
-    if (breaks < 1) {
-        warning("At least one break is needed!")
-        breaks <- 1
-    }
-    if (breaks > 3) {
-        warning("More than three breaks are not supported at the moment!")
-        breaks <- 3
-    }
+  if (breaks < 1) {
+    stop("At least one break is needed!")
+  }
+  if (breaks > 3) {
+    stop("More than three breaks are not supported at the moment!")
+  }
 
-    n.obs <- nrow(y)
-    x.const <- rep(1, n.obs)
-    x.trend <- 1:n.obs
+  n_obs <- nrow(y)
+  const <- rep(1, n_obs)
+  trend <- 1:n_obs
 
-    if (is.null(first.break) || is.null(last.break)) {
-        first.break <- floor(trim * n.obs) + 1
-        last.break <- floor((1 - trim) * n.obs) + 1
-    }
-    width <- first.break - 1
+  if (is.null(bp_min)) bp_min <- floor(trim * n_obs) + 1
+  if (is.null(bp_max)) bp_max <- floor((1 - trim) * n_obs) + 1
+  width <- bp_min - 1
 
-    steps <- c(0, 0.2, 0.4, 0.6, 0.8, 0.9, 0.95, 0.975, 1)
+  steps <- c(0, 0.2, 0.4, 0.6, 0.8, 0.9, 0.95, 0.975, 1)
 
-    res.SSR <- Inf
-    res.tb <- rep(0, breaks)
+  .rss <- Inf
+  .bps <- rep(0, breaks)
 
-    for (alpha in steps) {
-        if (breaks == 1) {
-            for (tb1 in first.break:last.break) {
-                DU1 <- as.numeric(x.trend > tb1)
-                DT1 <- DU1 * (x.trend - tb1)
+  for (alpha in steps) {
+    if (breaks == 1) {
+      for (bp1 in bp_min:bp_max) {
+        du1 <- as.numeric(trend > bp1)
+        dt1 <- du1 * (trend - bp1)
 
-                x <- cbind(
-                    x.const,
-                    x.trend,
-                    if (const) DU1 else NULL,
-                    if (trend) DT1 else NULL
-                )
+        x <- cbind(
+          const,
+          trend,
+          if (const) du1 else NULL,
+          if (trend) dt1 else NULL
+        )
 
-                c_bar <- n.obs * (alpha - 1)
-                resids <- GLS(y, x, c_bar)$residuals
+        c_bar <- n_obs * (alpha - 1)
+        resids <- .estimate_gls(y, x, c_bar)$residuals
 
-                tmp.SSR <- drop(t(resids) %*% resids)
+        .rss_loop <- drop(t(resids) %*% resids)
 
-                if (tmp.SSR < res.SSR) {
-                    res.SSR <- tmp.SSR
-                    res.tb <- c(tb1)
-                }
-            }
-        } else if (breaks == 2) {
-            for (tb1 in first.break:(last.break - width)) {
-                for (tb2 in (tb1 + width):last.break) {
-                    DU1 <- as.numeric(x.trend > tb1)
-                    DT1 <- DU1 * (x.trend - tb1)
-                    DU2 <- as.numeric(x.trend > tb2)
-                    DT2 <- DU2 * (x.trend - tb2)
-
-                    x <- cbind(
-                        x.const,
-                        x.trend,
-                        if (const) DU1 else NULL,
-                        if (trend) DT1 else NULL,
-                        if (const) DU2 else NULL,
-                        if (trend) DT2 else NULL
-                    )
-
-                    c_bar <- n.obs * (alpha - 1)
-                    resids <- GLS(y, x, c_bar)$residuals
-
-                    tmp.SSR <- drop(t(resids) %*% resids)
-
-                    if (tmp.SSR < res.SSR) {
-                        res.SSR <- tmp.SSR
-                        res.tb <- c(tb1, tb2)
-                    }
-                }
-            }
-        } else if (breaks == 3) {
-            for (tb1 in first.break:(last.break - 2 * width)) {
-                for (tb2 in (tb1 + width):(last.break - width)) {
-                    for (tb3 in (tb2 + width):last.break) {
-                        DU1 <- as.numeric(x.trend > tb1)
-                        DT1 <- DU1 * (x.trend - tb1)
-                        DU2 <- as.numeric(x.trend > tb2)
-                        DT2 <- DU2 * (x.trend - tb2)
-                        DU3 <- as.numeric(x.trend > tb3)
-                        DT3 <- DU3 * (x.trend - tb3)
-
-                        x <- cbind(
-                            x.const,
-                            x.trend,
-                            if (const) DU1 else NULL,
-                            if (trend) DT1 else NULL,
-                            if (const) DU2 else NULL,
-                            if (trend) DT2 else NULL,
-                            if (const) DU3 else NULL,
-                            if (trend) DT3 else NULL
-                        )
-
-                        c_bar <- n.obs * (alpha - 1)
-                        resids <- GLS(y, x, c_bar)$residuals
-
-                        tmp.SSR <- drop(t(resids) %*% resids)
-
-                        if (tmp.SSR < res.SSR) {
-                            res.SSR <- tmp.SSR
-                            res.tb <- c(tb1, tb2, tb3)
-                        }
-                    }
-                }
-            }
+        if (.rss_loop < .rss) {
+          .rss <- .rss_loop
+          .bps <- c(bp1)
         }
-    }
+      }
+    } else if (breaks == 2) {
+      for (bp1 in bp_min:(bp_max - width)) {
+        for (bp2 in (bp1 + width):bp_max) {
+          du1 <- as.numeric(trend > bp1)
+          dt1 <- du1 * (trend - bp1)
+          du2 <- as.numeric(trend > bp2)
+          dt2 <- du2 * (trend - bp2)
 
-    return(res.tb)
+          x <- cbind(
+            const,
+            trend,
+            if (const) du1 else NULL,
+            if (trend) dt1 else NULL,
+            if (const) du2 else NULL,
+            if (trend) dt2 else NULL
+          )
+
+          c_bar <- n_obs * (alpha - 1)
+          resids <- .estimate_gls(y, x, c_bar)$residuals
+
+          .rss_loop <- drop(t(resids) %*% resids)
+
+          if (.rss_loop < .rss) {
+            .rss <- .rss_loop
+            .bps <- c(bp1, bp2)
+          }
+        }
+      }
+    } else if (breaks == 3) {
+      for (bp1 in bp_min:(bp_max - 2 * width)) {
+        for (bp2 in (bp1 + width):(bp_max - width)) {
+          for (bp3 in (bp2 + width):bp_max) {
+            du1 <- as.numeric(trend > bp1)
+            dt1 <- du1 * (trend - bp1)
+            du2 <- as.numeric(trend > bp2)
+            dt2 <- du2 * (trend - bp2)
+            du3 <- as.numeric(trend > bp3)
+            dt3 <- du3 * (trend - bp3)
+
+            x <- cbind(
+              const,
+              trend,
+              if (const) du1 else NULL,
+              if (trend) dt1 else NULL,
+              if (const) du2 else NULL,
+              if (trend) dt2 else NULL,
+              if (const) du3 else NULL,
+              if (trend) dt3 else NULL
+            )
+
+            c_bar <- n_obs * (alpha - 1)
+            resids <- .estimate_gls(y, x, c_bar)$residuals
+
+            .rss_loop <- drop(t(resids) %*% resids)
+
+            if (.rss_loop < .rss) {
+              .rss <- .rss_loop
+              .bps <- c(bp1, bp2, bp3)
+            }
+          }
+        }
+      }
+    }
+  }
+
+  .bps
 }

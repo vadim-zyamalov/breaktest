@@ -64,7 +64,7 @@ SSR.recursive <- function(y,
     x.0 <- x[beg:(beg + width - 1), , drop = FALSE]
 
     inv.XX.0 <- qr.solve(t(x.0) %*% x.0)
-    tmp.OLS <- OLS(y.0, x.0)
+    tmp.OLS <- .estimate_ols(y.0, x.0)
     beta.0 <- tmp.OLS$beta
     resid.0 <- tmp.OLS$residuals
     rm(tmp.OLS)

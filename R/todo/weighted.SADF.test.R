@@ -384,9 +384,9 @@ supBZ.statistic <- function(y,
         ## NW estimation.
         my <- (diff(y))^2
         mx <- rep(1, n.obs - 1)
-        nw.loocv.model <- NW.loocv(my, mx, kernel = "gauss")
+        nw.loocv.model <- .bandwidth_nw(my, mx, kernel = "gauss")
         h.est <- nw.loocv.model$h
-        nw.model <- NW.volatility(
+        nw.model <- .volatility_nw(
             my,
             kernel = "gauss",
             h = nw.loocv.model$h

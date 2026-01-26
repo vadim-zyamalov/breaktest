@@ -41,77 +41,66 @@
 #' https://doi.org/10.1111/j.1468-0084.2006.00180.x.
 #'
 #' @export
-KPSS.1.break <- function(y,
-                         x,
-                         model,
-                         break.point,
-                         weakly.exog = TRUE,
-                         ll.init) {
-    if (!is.matrix(y)) y <- as.matrix(y)
-    if (!is.null(x)) {
-        if (!is.matrix(x)) x <- as.matrix(x)
+kpss_single <- function(y,
+                        x,
+                        model,
+                        tb,
+                        weakly_exog = TRUE,
+                        n_lag_lead) {
+  if (!is.matrix(y)) y <- as.matrix(y)
+  if (!is.null(x)) {
+    if (!is.matrix(x)) x <- as.matrix(x)
+  }
+
+  n_obs <- nrow(y)
+
+  if (model < 0 && model > 6) {
+    stop("ERROR: Try to specify the deterministic component again")
+  }
+
+  if (weakly_exog) {
+    if (model == 0) {
+      xt <- x
+    } else if (1 <= model && model <= 4) {
+      deter <- trend_kpss_single(model, n_obs, tb)
+      xt <- cbind(deter, x)
+    } else if (model == 5) {
+      deter <- trend_kpss_single(1, n_obs, tb)
+      xdu <- sweep(x, 1, deter[, 2, drop = FALSE], `*`)
+      xt <- cbind(deter, x, xdu)
+    } else if (model == 6) {
+      deter <- trend_kpss_single(4, n_obs, tb)
+      xdu <- sweep(x, 1, deter[, 2, drop = FALSE], `*`)
+      xt <- cbind(deter, x, xdu)
     }
 
-    n.obs <- nrow(y)
-
-    if (model < 0 && model > 6) {
-        stop("ERROR: Try to specify the deterministic component again")
+    .res_ols <- .estimate_ols(y, xt)
+    beta <- .res_ols$beta
+    resids <- .res_ols$residuals
+    t_beta <- .res_ols$t.beta
+    rm(.res_ols)
+  } else {
+    bic <- Inf
+    for (i in n_lag_lead:1) {
+      .res_dols <- .dols_single(y, x, model, tb, i, i)
+      if (.res_dols$bic < bic) {
+        bic <- .res_dols$bic
+        beta <- .res_dols$beta
+        t_beta <- .res_dols$t.beta
+        resids <- .res_dols$residuals
+      }
     }
+  }
 
-    if (weakly.exog) {
-        if (model == 0) {
-            xt <- x
-        } else if (1 <= model && model <= 4) {
-            deter <- determinants.KPSS.1.break(model, n.obs, break.point)
-            xt <- cbind(deter, x)
-        } else if (model == 5) {
-            deter <- determinants.KPSS.1.break(1, n.obs, break.point)
-            xdu <- sweep(x, 1, deter[, 2, drop = FALSE], `*`)
-            xt <- cbind(deter, x, xdu)
-        } else if (model == 6) {
-            deter <- determinants.KPSS.1.break(4, n.obs, break.point)
-            xdu <- sweep(x, 1, deter[, 2, drop = FALSE], `*`)
-            xt <- cbind(deter, x, xdu)
-        }
+  test <- .kpss_stat(resids, lr.var.bartlett.AK(resids))
 
-        tmp.OLS <- OLS(y, xt)
-        beta <- tmp.OLS$beta
-        resids <- tmp.OLS$residuals
-        t.beta <- tmp.OLS$t.beta
-        rm(tmp.OLS)
-    } else {
-        bic.min <- Inf
-        for (i in ll.init:1) {
-            tmp.DOLS <- DOLS.1.break(y, x, model, break.point, i, i)
-            beta <- tmp.DOLS$beta
-            resids <- tmp.DOLS$residuals
-            bic <- tmp.DOLS$bic
-            t.beta <- tmp.DOLS$t.beta
-            rm(tmp.DOLS)
-
-            if (bic < bic.min) {
-                bic.min <- bic
-                beta.min <- beta
-                t.beta.min <- t.beta
-                resid.min <- resids
-            }
-        }
-        resids <- resid.min
-        beta <- beta.min
-        t.beta <- t.beta.min
-    }
-
-    test <- KPSS(resids, lr.var.bartlett.AK(resids))
-
-    return(
-        list(
-            beta = beta,
-            test = test,
-            residuals = resids,
-            t.beta = t.beta,
-            break.point = break.point
-        )
-    )
+  list(
+    beta = beta,
+    test = test,
+    residuals = resids,
+    t.beta = t_beta,
+    break.point = tb
+  )
 }
 
 
@@ -159,43 +148,41 @@ KPSS.1.break <- function(y,
 #' https://doi.org/10.1111/j.1468-0084.2006.00180.x.
 #'
 #' @export
-KPSS.1.break.unknown <- function(y,
-                                 x,
-                                 model,
-                                 weakly.exog,
-                                 ll.init) {
-    if (!is.matrix(y)) y <- as.matrix(y)
-    if (!is.matrix(x)) x <- as.matrix(x)
+kpss_single_unknown <- function(y,
+                                x,
+                                model,
+                                weakly_exog,
+                                lag_lead) {
+  if (!is.matrix(y)) y <- as.matrix(y)
+  if (!is.matrix(x)) x <- as.matrix(x)
 
-    n.obs <- nrow(y)
+  n_obs <- nrow(y)
 
-    temp.result <- matrix(data = 0, nrow = n.obs - 5, ncol = 2)
+  min_test <- Inf
+  idx_test <- NULL
+  min_rss <- Inf
+  idx_rss <- NULL
 
-    for (i in 3:(n.obs - 3)) {
-        if (ll.init + 2 < i && i < n.obs - 5 - ll.init) {
-            tmp.kpss <- KPSS.1.break(y, x, model, i, weakly.exog, ll.init)
-            temp.result[i - 2, 1] <- tmp.kpss$test
-            temp.result[i - 2, 2] <-
-                drop(t(tmp.kpss$residuals) %*% tmp.kpss$residuals)
-        } else {
-            temp.result[i - 2, 1] <- 2^20
-            temp.result[i - 2, 2] <- 2^20
-        }
+  for (i in 3:(n_obs - 3)) {
+    if (lag_lead + 2 < i && i < n_obs - 5 - lag_lead) {
+      .result <- kpss_single(y, x, model, i, weakly_exog, lag_lead)
+      .rss <- drop(t(.result$residuals) %*% .result$residuals)
+
+      if (.result$test < min_test) {
+        min_test <- .result$test
+        idx_test <- i
+      }
+
+      if (.rss < min_rss) {
+        min_rss <- .rss
+        idx_rss <- i
+      }
     }
+  }
 
-    minSC <- min(temp.result[, 1])
-    tbe <- which.min(temp.result[, 1])
-    result <- cbind(minSC, 2 + tbe)
-
-    tbe <- which.min(temp.result[, 2])
-    minSC <- temp.result[tbe, 1]
-    result <- rbind(
-        result,
-        cbind(minSC, 2 + tbe)
-    )
-
-    colnames(result) <- c("stat", "tb")
-    return(result)
+  result <- matrix(c(min_test, min_rss, idx_test, idx_rss), ncol = 2)
+  colnames(result) <- c("stat", "tb")
+  result
 }
 
 
@@ -227,102 +214,100 @@ KPSS.1.break.unknown <- function(y,
 #' https://doi.org/10.1111/j.1468-0084.2006.00180.x.
 #'
 #' @keywords internal
-DOLS.1.break <- function(y,
+.dols_single <- function(y,
                          x,
                          model,
-                         break.point,
-                         k.lags,
-                         k.leads) {
-    if (is.null(x)) {
-        stop("ERROR! Explanatory variables needed for DOLS")
-    }
-    if (!is.matrix(y)) y <- as.matrix(y)
-    if (!is.matrix(x)) x <- as.matrix(x)
+                         tb,
+                         k_lags,
+                         k_leads) {
+  if (is.null(x)) {
+    stop("ERROR! Explanatory variables needed for DOLS")
+  }
+  if (!is.matrix(y)) y <- as.matrix(y)
+  if (!is.matrix(x)) x <- as.matrix(x)
 
-    n.obs <- nrow(y)
+  n_obs <- nrow(y)
 
-    d.x.step <- diff(x)
-    d.x.lag <- d.x.step
-    d.x.lead <- d.x.step
+  .diff_x <- diff(x)
+  .diff_x_lag <- .diff_x
+  .diff_x_lead <- .diff_x
 
-    for (i in 1:k.lags) {
-        d.x.lag <- cbind(
-            d.x.lag,
-            lagn(d.x.step, i)
-        )
-    }
-
-    for (i in 1:k.leads) {
-        d.x.lead <- cbind(
-            d.x.lead,
-            lagn(d.x.step, -i)
-        )
-    }
-
-    if (k.lags != 0 && k.leads != 0) {
-        lags <- d.x.lag
-        leads <- d.x.lead[, (ncol(x) + 1):(ncol(d.x.lead)), drop = FALSE]
-        lags.leads <- cbind(lags, leads)
-        lags.leads <-
-            lags.leads[(k.lags + 1):(n.obs - 1 - k.leads), , drop = FALSE]
-    } else if (k.lags != 0 && k.leads == 0) {
-        lags <- d.x.lag
-        lags.leads <- lags[(k.lags + 1):(n.obs - 1), , drop = FALSE]
-    } else if (k.lags == 0 && k.leads != 0) {
-        lags <- d.x.lag
-        leads <- d.x.lead[, (ncol(x) + 1):(ncol(d.x.lead)), drop = FALSE]
-        lags.leads <- cbind(lags, leads)
-        lags.leads <- lags.leads[1:(n.obs - 1 - k.leads), , drop = FALSE]
-    } else if (k.lags == 0 && k.leads == 0) {
-        lags.leads <- d.x.lag
-    }
-
-    if (model == 0) {
-        xreg <- cbind(
-            x[(k.lags + 2):(n.obs - k.leads), , drop = FALSE],
-            lags.leads
-        )
-    } else if (model >= 1 && model <= 4) {
-        deter <- determinants.KPSS.1.break(model, n.obs, break.point)
-        xreg <- cbind(
-            deter[(k.lags + 2):(n.obs - k.leads), , drop = FALSE],
-            x[(k.lags + 2):(n.obs - k.leads), , drop = FALSE],
-            lags.leads
-        )
-    } else if (model == 5) {
-        deter <- determinants.KPSS.1.break(1, n.obs, break.point)
-        xdu <- sweep(x, 1, deter[, 2, drop = FALSE], `*`)
-        xreg <- cbind(
-            deter[(k.lags + 2):(n.obs - k.leads), , drop = FALSE],
-            x[(k.lags + 2):(n.obs - k.leads), , drop = FALSE],
-            xdu[(k.lags + 2):(n.obs - k.leads), , drop = FALSE],
-            lags.leads
-        )
-    } else if (model == 6) {
-        deter <- determinants.KPSS.1.break(4, n.obs, break.point)
-        xdu <- sweep(x, 1, deter[, 2, drop = FALSE], `*`)
-        xreg <- cbind(
-            deter[(k.lags + 2):(n.obs - k.leads), , drop = FALSE],
-            x[(k.lags + 2):(n.obs - k.leads), , drop = FALSE],
-            xdu[(k.lags + 2):(n.obs - k.leads), , drop = FALSE],
-            lags.leads
-        )
-    }
-
-    res.OLS <- OLS(
-        y[(k.lags + 2):(n.obs - k.leads), 1, drop = FALSE],
-        xreg
+  for (i in 1:k_lags) {
+    .diff_x_lag <- cbind(
+      .diff_x_lag,
+      lagn(.diff_x, i)
     )
+  }
 
-    bic <- log(drop(t(res.OLS$residuals) %*% res.OLS$residuals) / nrow(xreg)) +
-        ncol(xreg) * log(nrow(xreg)) / nrow(xreg)
-
-    return(
-        list(
-            beta   = res.OLS$beta,
-            resid  = res.OLS$residuals,
-            bic    = bic,
-            t.beta = res.OLS$t.beta
-        )
+  for (i in 1:k_leads) {
+    .diff_x_lead <- cbind(
+      .diff_x_lead,
+      lagn(.diff_x, -i)
     )
+  }
+
+  if (k_lags != 0 && k_leads != 0) {
+    lags <- .diff_x_lag
+    leads <- .diff_x_lead[, (ncol(x) + 1):(ncol(.diff_x_lead)), drop = FALSE]
+    lags_leads <- cbind(lags, leads)
+    lags_leads <-
+      lags_leads[(k_lags + 1):(n_obs - 1 - k_leads), , drop = FALSE]
+  } else if (k_lags != 0 && k_leads == 0) {
+    lags <- .diff_x_lag
+    lags_leads <- lags[(k_lags + 1):(n_obs - 1), , drop = FALSE]
+  } else if (k_lags == 0 && k_leads != 0) {
+    lags <- .diff_x_lag
+    leads <- .diff_x_lead[, (ncol(x) + 1):(ncol(.diff_x_lead)), drop = FALSE]
+    lags_leads <- cbind(lags, leads)
+    lags_leads <- lags_leads[1:(n_obs - 1 - k_leads), , drop = FALSE]
+  } else if (k_lags == 0 && k_leads == 0) {
+    lags_leads <- .diff_x_lag
+  }
+
+  if (model == 0) {
+    xreg <- cbind(
+      x[(k_lags + 2):(n_obs - k_leads), , drop = FALSE],
+      lags_leads
+    )
+  } else if (model >= 1 && model <= 4) {
+    deter <- trend_kpss_single(model, n_obs, tb)
+    xreg <- cbind(
+      deter[(k_lags + 2):(n_obs - k_leads), , drop = FALSE],
+      x[(k_lags + 2):(n_obs - k_leads), , drop = FALSE],
+      lags_leads
+    )
+  } else if (model == 5) {
+    deter <- trend_kpss_single(1, n_obs, tb)
+    xdu <- sweep(x, 1, deter[, 2, drop = FALSE], `*`)
+    xreg <- cbind(
+      deter[(k_lags + 2):(n_obs - k_leads), , drop = FALSE],
+      x[(k_lags + 2):(n_obs - k_leads), , drop = FALSE],
+      xdu[(k_lags + 2):(n_obs - k_leads), , drop = FALSE],
+      lags_leads
+    )
+  } else if (model == 6) {
+    deter <- trend_kpss_single(4, n_obs, tb)
+    xdu <- sweep(x, 1, deter[, 2, drop = FALSE], `*`)
+    xreg <- cbind(
+      deter[(k_lags + 2):(n_obs - k_leads), , drop = FALSE],
+      x[(k_lags + 2):(n_obs - k_leads), , drop = FALSE],
+      xdu[(k_lags + 2):(n_obs - k_leads), , drop = FALSE],
+      lags_leads
+    )
+  }
+
+  .res_ols <- .estimate_ols(
+    y[(k_lags + 2):(n_obs - k_leads), 1, drop = FALSE],
+    xreg
+  )
+
+  bic <- log(drop(t(.res_ols$residuals) %*% .res_ols$residuals) / nrow(xreg)) +
+    ncol(xreg) * log(nrow(xreg)) / nrow(xreg)
+
+  list(
+    beta   = .res_ols$beta,
+    resid  = .res_ols$residuals,
+    bic    = bic,
+    t.beta = .res_ols$t.beta
+  )
 }

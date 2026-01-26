@@ -124,9 +124,9 @@ MDF.multiple <- function(y,
     x <- cbind(x.const, x.trend)
 
     ## GLS case
-    resid.GLS.t <- GLS(y, x, -13.5)$residuals
+    resid.GLS.t <- .estimate_gls(y, x, -13.5)$residuals
 
-    resid.OLS.t <- OLS(y, x)$residuals
+    resid.OLS.t <- .estimate_ols(y, x)$residuals
     DF.OLS.t <- ADF.test(resid.OLS.t,
                          const = FALSE, trend = FALSE,
                          max.lag = max.lag,
@@ -163,7 +163,7 @@ MDF.multiple <- function(y,
             DT1
         )
 
-        resid.OLS <- OLS(y, x)$residuals
+        resid.OLS <- .estimate_ols(y, x)$residuals
         DF1.tb <- ADF.test(resid.OLS,
                            const = FALSE, trend = FALSE,
                            max.lag = max.lag,
@@ -182,7 +182,7 @@ MDF.multiple <- function(y,
             stat.OLS <- DF1.tb$t.alpha
         }
 
-        resid.GLS <- GLS(y, x, -17.6)$residuals
+        resid.GLS <- .estimate_gls(y, x, -17.6)$residuals
         DF1.tb <- ADF.test(resid.GLS,
                            const = FALSE, trend = FALSE,
                            max.lag = k.t,
@@ -212,7 +212,7 @@ MDF.multiple <- function(y,
                 DT2
             )
 
-            resid.OLS <- OLS(y, x)$residuals
+            resid.OLS <- .estimate_ols(y, x)$residuals
             DF2.tb <- ADF.test(resid.OLS,
                 const = FALSE, trend = FALSE,
                 max.lag = max.lag,
@@ -233,7 +233,7 @@ MDF.multiple <- function(y,
                 stat.OLS <- DF2.tb$t.alpha
             }
 
-            resid.GLS <- GLS(y, x, -21.5)$residuals
+            resid.GLS <- .estimate_gls(y, x, -21.5)$residuals
             DF2.tb <- ADF.test(resid.GLS,
                 const = FALSE, trend = FALSE,
                 max.lag = k.t,
@@ -270,7 +270,7 @@ MDF.multiple <- function(y,
                     DT3
                 )
 
-                resid.OLS <- OLS(y, x)$residuals
+                resid.OLS <- .estimate_ols(y, x)$residuals
                 DF3.tb <- ADF.test(resid.OLS,
                     const = FALSE, trend = FALSE,
                     max.lag = max.lag,
@@ -291,7 +291,7 @@ MDF.multiple <- function(y,
                      stat.OLS <- DF3.tb$t.alpha
                  }
 
-                resid.GLS <- GLS(y, x, -25.5)$residuals
+                resid.GLS <- .estimate_gls(y, x, -25.5)$residuals
                 DF3.tb <- ADF.test(resid.GLS,
                     const = FALSE, trend = FALSE,
                     max.lag = k.t,
@@ -322,7 +322,7 @@ MDF.multiple <- function(y,
             DT2
         )
 
-        tmp.OLS <- OLS(y, x)
+        tmp.OLS <- .estimate_ols(y, x)
         bb <- tmp.OLS$beta
         rr <- tmp.OLS$residuals
         rm(tmp.OLS)
@@ -350,7 +350,7 @@ MDF.multiple <- function(y,
             DT3
         )
 
-        tmp.OLS <- OLS(y, x)
+        tmp.OLS <- .estimate_ols(y, x)
         bb <- tmp.OLS$beta
         rr <- tmp.OLS$residuals
         rm(tmp.OLS)

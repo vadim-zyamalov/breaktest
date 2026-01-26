@@ -91,7 +91,7 @@ MDF.single <- function(y,
 
     ## OLS/GLS Part ##
     ## Mean case
-    resid.OLS.m <- OLS(y, x[, 1, drop = FALSE])$residuals
+    resid.OLS.m <- .estimate_ols(y, x[, 1, drop = FALSE])$residuals
     DF.OLS.m <- ADF.test(resid.OLS.m,
                          const = FALSE, trend = FALSE,
                          max.lag = max.lag,
@@ -104,14 +104,14 @@ MDF.single <- function(y,
                          max.lag = k.m,
                          criterion = NULL)
 
-    resid.GLS.m <- GLS(y, x[, 1, drop = FALSE], -7)$residuals
+    resid.GLS.m <- .estimate_gls(y, x[, 1, drop = FALSE], -7)$residuals
     DF.GLS.m <- ADF.test(resid.GLS.m,
                          const = FALSE, trend = FALSE,
                          max.lag = k.m,
                          criterion = NULL)
 
     ## Trend case
-    resid.OLS.t <- OLS(y, x[, 1:2])$residuals
+    resid.OLS.t <- .estimate_ols(y, x[, 1:2])$residuals
     DF.OLS.t <- ADF.test(resid.OLS.t,
                          const = FALSE, trend = FALSE,
                          max.lag = max.lag,
@@ -124,14 +124,14 @@ MDF.single <- function(y,
                          max.lag = k.t,
                          criterion = NULL)
 
-    resid.GLS.t <- GLS(y, x[, 1:2], -13.5)$residuals
+    resid.GLS.t <- .estimate_gls(y, x[, 1:2], -13.5)$residuals
     DF.GLS.t <- ADF.test(resid.GLS.t,
                          const = FALSE, trend = FALSE,
                          max.lag = k.t,
                          criterion = NULL)
 
     ## ADF-OLS (lambda) ##
-    resid.OLS <- OLS(y, x)$residuals
+    resid.OLS <- .estimate_ols(y, x)$residuals
     DF1 <- ADF.test(resid.OLS,
                     const = FALSE, trend = FALSE,
                     max.lag = max.lag,
@@ -158,7 +158,7 @@ MDF.single <- function(y,
             if (trend) DT1 else NULL
         )
 
-        resid.OLS <- OLS(y, z)$residuals
+        resid.OLS <- .estimate_ols(y, z)$residuals
         DF1.tb <- ADF.test(resid.OLS,
                            const = FALSE, trend = FALSE,
                            max.lag = max.lag,
@@ -166,7 +166,7 @@ MDF.single <- function(y,
                            modified.criterion = TRUE)
         k.tb <- max(1, DF1.tb$lag)
 
-        resid.GLS <- GLS(y, z, -17.6)$residuals
+        resid.GLS <- .estimate_gls(y, z, -17.6)$residuals
         DF1.tb <- ADF.test(resid.GLS,
                            const = FALSE, trend = FALSE,
                            max.lag = k.tb,
@@ -186,7 +186,7 @@ MDF.single <- function(y,
             DT1
         )
 
-        resid.OLS <- OLS(y, z)$residuals
+        resid.OLS <- .estimate_ols(y, z)$residuals
         DF2 <- ADF.test(resid.OLS,
                         const = FALSE, trend = FALSE,
                         max.lag = max.lag,
@@ -209,7 +209,7 @@ MDF.single <- function(y,
     cv.PY <- tmp.PY$critical.value
     rm(tmp.PY)
 
-    tmp.OLS <- OLS(y, x)
+    tmp.OLS <- .estimate_ols(y, x)
     t.alpha <- tmp.OLS$beta[1] /
         sqrt(drop(t(tmp.OLS$residuals) %*% tmp.OLS$residuals) / n.obs)
     t.alpha.id <- as.numeric(abs(t.alpha) > 1)

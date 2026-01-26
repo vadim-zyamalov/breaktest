@@ -16,31 +16,31 @@ robust.tests.single <- function(y,
                                 trend = FALSE,
                                 season = FALSE,
                                 trim = 0.15) {
-    if (!is.matrix(y)) y <- as.matrix(y)
+  if (!is.matrix(y)) y <- as.matrix(y)
 
-    n.obs <- nrow(y)
+  n.obs <- nrow(y)
 
-    x.const <- rep(1, n.obs)
+  x.const <- rep(1, n.obs)
 
-    if (season) {
-        SEAS <- cbind(
-            x.const,
-            seasonal.dummies(n.obs)
-        )
-        y <- OLS(y, SEAS)$residuals
-    }
-
-    result <- MDF.single(
-        y = y,
-        const = const,
-        trend = trend,
-        trim = trim
+  if (season) {
+    SEAS <- cbind(
+      x.const,
+      seasonal_dummies(n.obs)
     )
+    y <- .estimate_ols(y, SEAS)$residuals
+  }
 
-    result <- append(result, list(season = season), 2)
-    class(result) <- "robustUR"
+  result <- MDF.single(
+    y = y,
+    const = const,
+    trend = trend,
+    trim = trim
+  )
 
-    return(result)
+  result <- append(result, list(season = season), 2)
+  class(result) <- "robustUR"
+
+  return(result)
 }
 
 
@@ -63,40 +63,40 @@ robust.tests.multiple <- function(y,
                                   season = FALSE,
                                   breaks = 2,
                                   trim = 0.15) {
-    if (!is.matrix(y)) y <- as.matrix(y)
+  if (!is.matrix(y)) y <- as.matrix(y)
 
-     ## Start ##
-    n.obs <- nrow(y)
+  ## Start ##
+  n.obs <- nrow(y)
 
-    x.const <- rep(1, n.obs)
+  x.const <- rep(1, n.obs)
 
-    if (season) {
-        SEAS <- cbind(
-            x.const,
-            seasonal.dummies(n.obs)
-        )
-        y <- OLS(y, SEAS)$residuals
-    }
-
-    m.star <- KP(
-        y = y,
-        const = const, breaks = breaks,
-        criterion = "aic", trim = trim
+  if (season) {
+    SEAS <- cbind(
+      x.const,
+      seasonal_dummies(n.obs)
     )
+    y <- .estimate_ols(y, SEAS)$residuals
+  }
 
-    result <- MDF.multiple(
-        y = y,
-        const = const,
-        breaks = breaks,
-        breaks.star = m.star,
-        trim = trim,
-        ZA = FALSE
-    )
+  m.star <- KP(
+    y = y,
+    const = const, breaks = breaks,
+    criterion = "aic", trim = trim
+  )
 
-    result <- append(result, list(season = season), 1)
-    class(result) <- "robustURN"
+  result <- MDF.multiple(
+    y = y,
+    const = const,
+    breaks = breaks,
+    breaks.star = m.star,
+    trim = trim,
+    ZA = FALSE
+  )
 
-    return(result)
+  result <- append(result, list(season = season), 1)
+  class(result) <- "robustURN"
+
+  return(result)
 }
 
 
@@ -129,25 +129,25 @@ KP <- function(y,
                breaks = 1,
                criterion = "aic",
                trim = 0.15) {
-    if (!is.matrix(y)) y <- as.matrix(y)
+  if (!is.matrix(y)) y <- as.matrix(y)
 
-    n.obs <- nrow(y)
-    k.max <- trunc(12 * (n.obs / 100)^(1 / 4))
+  n.obs <- nrow(y)
+  k.max <- trunc(12 * (n.obs / 100)^(1 / 4))
 
-    model <- as.numeric(const) + 1
-    trim.pos <- which(c(0.01, 0.05, 0.1, 0.15, 0.25) == trim)
+  model <- as.numeric(const) + 1
+  trim.pos <- which(c(0.01, 0.05, 0.1, 0.15, 0.25) == trim)
 
-    res <- 0
+  res <- 0
 
-    for (l in 0:(breaks - 1)) {
-        test.stat <- PY.sequential(y, const, l, criterion, trim, k.max)
-        c.v <- .cval_KP[[model]][[trim.pos]]
+  for (l in 0:(breaks - 1)) {
+    test.stat <- PY.sequential(y, const, l, criterion, trim, k.max)
+    c.v <- .cval_KP[[model]][[trim.pos]]
 
-        if (test.stat < c.v[2, l + 1]) {
-            res <- l
-            break
-        }
+    if (test.stat < c.v[2, l + 1]) {
+      res <- l
+      break
     }
+  }
 
-    return(res)
+  return(res)
 }

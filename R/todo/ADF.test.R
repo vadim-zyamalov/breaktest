@@ -70,7 +70,7 @@ ADF.test <- function(y,
 
     ## Detrending
     if (!is.null(deter)) {
-        yd <- OLS(y, deter)$residuals
+        yd <- .estimate_ols(y, deter)$residuals
     } else {
         yd <- y
     }
@@ -97,7 +97,7 @@ ADF.test <- function(y,
             xr <- x
         }
 
-        tmp.ols <- OLS(
+        tmp.ols <- .estimate_ols(
             d.yr[(2 + max.lag):n.obs, , drop = FALSE],
             xr[(2 + max.lag):n.obs, 1, drop = FALSE]
         )
@@ -125,7 +125,7 @@ ADF.test <- function(y,
                 xr <- x
             }
 
-            tmp.ols <- OLS(
+            tmp.ols <- .estimate_ols(
                 d.yr[(2 + max.lag):n.obs, , drop = FALSE],
                 xr[(2 + max.lag):n.obs, 1:(1 + l), drop = FALSE]
             )
@@ -146,7 +146,7 @@ ADF.test <- function(y,
         }
     }
 
-    res.OLS <- OLS(
+    res.OLS <- .estimate_ols(
         d.y[(2 + res.lag):n.obs, , drop = FALSE],
         x[(2 + res.lag):n.obs, 1:(1 + res.lag), drop = FALSE]
     )
@@ -201,17 +201,17 @@ rescale.CPST <- function(d.y,
                          deter,
                          adf.lag,
                          max.lag) {
-    e <- OLS(d.y, x[, 1:(1 + adf.lag), drop = FALSE])$residuals
+    e <- .estimate_ols(d.y, x[, 1:(1 + adf.lag), drop = FALSE])$residuals
 
-    NW.se <- NW.volatility(
+    NW.se <- .volatility_nw(
         e,
-        NW.loocv(e^2, rep(1, nrow(e)))$h
+        .bandwidth_nw(e^2, rep(1, nrow(e)))$h
     )$se
 
     yr <- cumsum(d.y / NW.se)
 
     if (!is.null(deter)) {
-        yr <- OLS(yr, deter)$residuals
+        yr <- .estimate_ols(yr, deter)$residuals
     }
 
     d.yr <- as.matrix(c(0, diff(yr)))
