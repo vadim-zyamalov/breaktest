@@ -45,7 +45,7 @@ kpss_hlt <- function(y,
     x <- cbind(
       rep(1, n_obs),
       1:n_obs,
-      ifelse(const, du, NULL),
+      if (const) du else NULL,
       dt
     )
 
@@ -59,7 +59,7 @@ kpss_hlt <- function(y,
 
     x <- cbind(
       rep(1, n_obs - 1),
-      ifelse(const, diff(du), NULL),
+      if (const) diff(du) else NULL,
       du[2:n_obs]
     )
 

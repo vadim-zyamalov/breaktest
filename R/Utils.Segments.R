@@ -19,12 +19,12 @@
 #' https://doi.org/10.1111/j.1468-0084.2006.00180.x.
 #'
 #' @keywords internal
-.segments_ols_single <- function(beg,
-                                 end,
-                                 bp_min,
-                                 bp_max,
-                                 len,
-                                 rss_values) {
+segments_ols_single <- function(beg,
+                                end,
+                                bp_min,
+                                bp_max,
+                                len,
+                                rss_values) {
   .rss <- matrix(data = Inf, nrow = len, ncol = 1)
 
   for (bp in bp_min:bp_max) {
@@ -64,8 +64,8 @@
 #' https://doi.org/10.1007/s10108-006-9017-8.
 #'
 #' @keywords internal
-.segments_ols_double <- function(y,
-                                 model) {
+segments_ols_double <- function(y,
+                                model) {
   if (!is.matrix(y)) y <- as.matrix(y)
 
   n_obs <- nrow(y)
@@ -146,7 +146,7 @@
 #' https://doi.org/10.1002/jae.659.
 #'
 #' @keywords internal
-.segments_ols_mulitiple <- function(
+segments_ols_mulitiple <- function(
   y,
   x,
   m = 1,
@@ -159,17 +159,17 @@
   n_obs <- nrow(y)
 
   if (is.null(rss_values)) {
-    rss_values <- SSR.matrix(y, x, width)
+    rss_values <- ssr_matrix(y, x, width)
   }
 
   if (m == 1) {
-    .segments <- .segments_ols_single(
+    .segments <- segments_ols_single(
       1, n_obs,
       width, n_obs - width,
       n_obs, rss_values
     )
-    .rss <- .segments$SSR
-    .bp <- .segments$break.point
+    .rss_final <- .segments$SSR
+    .bp_final <- .segments$break.point
   } else {
     n_variants <- n_obs - (m + 1) * width + 1
     .rss <- matrix(
@@ -191,7 +191,7 @@
       if (step == 1) {
         for (v in 1:n_variants) {
           .last_step <- 2 * width + v - 1
-          .segments <- .segments_ols_single(
+          .segments <- segments_ols_single(
             1,
             .last_step,
             width,
@@ -266,13 +266,13 @@
 #' https://doi.org/10.1515/jtse-2016-0014.
 #'
 #' @keywords internal
-.segments_gls <- function(y,
-                          const = FALSE,
-                          trend = FALSE,
-                          breaks = 1,
-                          bp_min = NULL,
-                          bp_max = NULL,
-                          trim = 0.15) {
+segments_gls <- function(y,
+                         const = FALSE,
+                         trend = FALSE,
+                         breaks = 1,
+                         bp_min = NULL,
+                         bp_max = NULL,
+                         trim = 0.15) {
   if (!is.matrix(y)) y <- as.matrix(y)
 
   if (breaks < 1) {

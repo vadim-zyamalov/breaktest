@@ -29,8 +29,8 @@
 #' * `quadratic`: \eqn{
 #' \frac{25}{12 \pi^2 x^2}
 #' \left(\frac{\sin(6 \pi x / 5)}{6 \pi x / 5} - \cos(6 \pi x / 5)\right)}
-#' @param limit.lags Whether all lags shoult be used in formulae.
-#' @param limit.selector Way of limit selection:
+#' @param limit_lags Whether all lags shoult be used in formulae.
+#' @param limit_selector Way of limit selection:
 #' * `kpss-q`: \eqn{4 (T / 100)^{1 / 4}}.
 #' * `kpss-m`: \eqn{12 (T / 100)^{1 / 4}}.
 #' * `Andrews`: kernel-specific formula from Andrews (1991).
@@ -40,8 +40,8 @@
 #' @param upper.lag.limit The value used to calculate the upper limit
 #' for Kurozumi (2002) proposal.
 #' @param recolor Whether the correction by Sul et al. (2005) should be used.
-#' This option resets `limit.lags` to `TRUE`, and `limit.selector` to `Andrews`.
-#' @param max.lag Maximum number of lags used in AR regresion during
+#' This option resets `limit_lags` to `TRUE`, and `limit_selector` to `Andrews`.
+#' @param max_lag Maximum number of lags used in AR regresion during
 #' recolorization. Otherwize ignored.
 #' @param criterion The information crietreion: bic, aic or lwz.
 #'
@@ -193,8 +193,8 @@
 .variance_lr_bartlett <- function(y) {
   .variance_lr(
     y,
-    limit.lags = TRUE,
-    limit.selector = "kpss-q"
+    limit_lags = TRUE,
+    limit_selector = "kpss-q"
   )
 }
 
@@ -204,8 +204,8 @@
   .variance_lr(
     y,
     kernel = "quadratic",
-    limit.lags = TRUE,
-    limit.selector = "Andrews"
+    limit_lags = TRUE,
+    limit_selector = "Andrews"
   )
 }
 
@@ -215,8 +215,8 @@
   .variance_lr(
     y,
     kernel = "bartlett",
-    limit.lags = TRUE,
-    limit.selector = "Kurozumi"
+    limit_lags = TRUE,
+    limit_selector = "Kurozumi"
   )
 }
 
@@ -224,13 +224,13 @@
 #' @order 5
 .variance_lr_spc <- function(
   y,
-  max.lag = 0,
+  max_lag = 0,
   kernel = "bartlett",
   criterion = "bic"
 ) {
   .variance_lr(
     y,
-    max.lag = max.lag,
+    max_lag = max_lag,
     kernel = kernel,
     criterion = criterion,
     recolor = TRUE

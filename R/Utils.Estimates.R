@@ -1,4 +1,4 @@
-r #' @title
+#' @title
 #' Custom OLS with extra information
 #'
 #' @description
@@ -33,6 +33,132 @@ r #' @title
   )
 }
 
+
+#' @title
+#' Estimating DOLS regression for a single known break point
+#'
+#' @param y A time series of interest.
+#' @param x A matrix of explanatory stochastic regressors.
+#' @param model See Carrion-i-Silvestre and Sansó (2006)
+#' * 1: for model An,
+#' * 2: for model A,
+#' * 3: for model B,
+#' * 4: for model C,
+#' * 5: for model D,
+#' * 6: for model E.
+#' @param break.point A position of the break point.
+#' @param k.lags,k.leads A number of lags and leads in DOLS regression.
+#'
+#' @return A list of:
+#' * Estimates of coefficients,
+#' * Estimates of residuals,
+#' * A value of BIC,
+#' * \eqn{t}-statistics for the estimates of coefficients.
+#'
+#' @references
+#' Carrion-i-Silvestre, Josep Lluís, and Andreu Sansó.
+#' “Testing the Null of Cointegration with Structural Breaks.”
+#' Oxford Bulletin of Economics and Statistics 68, no. 5 (October 2006): 623–46.
+#' https://doi.org/10.1111/j.1468-0084.2006.00180.x.
+#'
+#' @keywords internal
+.estimate_dols_single <- function(y,
+                                  x,
+                                  model,
+                                  tb,
+                                  k_lags,
+                                  k_leads) {
+  if (is.null(x)) {
+    stop("ERROR! Explanatory variables needed for DOLS")
+  }
+  if (!is.matrix(y)) y <- as.matrix(y)
+  if (!is.matrix(x)) x <- as.matrix(x)
+
+  n_obs <- nrow(y)
+
+  .diff_x <- diff(x)
+  .diff_x_lag <- .diff_x
+  .diff_x_lead <- .diff_x
+
+  for (i in 1:k_lags) {
+    .diff_x_lag <- cbind(
+      .diff_x_lag,
+      lagn(.diff_x, i)
+    )
+  }
+
+  for (i in 1:k_leads) {
+    .diff_x_lead <- cbind(
+      .diff_x_lead,
+      lagn(.diff_x, -i)
+    )
+  }
+
+  if (k_lags != 0 && k_leads != 0) {
+    lags <- .diff_x_lag
+    leads <- .diff_x_lead[, (ncol(x) + 1):(ncol(.diff_x_lead)), drop = FALSE]
+    lags_leads <- cbind(lags, leads)
+    lags_leads <-
+      lags_leads[(k_lags + 1):(n_obs - 1 - k_leads), , drop = FALSE]
+  } else if (k_lags != 0 && k_leads == 0) {
+    lags <- .diff_x_lag
+    lags_leads <- lags[(k_lags + 1):(n_obs - 1), , drop = FALSE]
+  } else if (k_lags == 0 && k_leads != 0) {
+    lags <- .diff_x_lag
+    leads <- .diff_x_lead[, (ncol(x) + 1):(ncol(.diff_x_lead)), drop = FALSE]
+    lags_leads <- cbind(lags, leads)
+    lags_leads <- lags_leads[1:(n_obs - 1 - k_leads), , drop = FALSE]
+  } else if (k_lags == 0 && k_leads == 0) {
+    lags_leads <- .diff_x_lag
+  }
+
+  if (model == 0) {
+    xreg <- cbind(
+      x[(k_lags + 2):(n_obs - k_leads), , drop = FALSE],
+      lags_leads
+    )
+  } else if (model >= 1 && model <= 4) {
+    deter <- trend_kpss_single(model, n_obs, tb)
+    xreg <- cbind(
+      deter[(k_lags + 2):(n_obs - k_leads), , drop = FALSE],
+      x[(k_lags + 2):(n_obs - k_leads), , drop = FALSE],
+      lags_leads
+    )
+  } else if (model == 5) {
+    deter <- trend_kpss_single(1, n_obs, tb)
+    xdu <- sweep(x, 1, deter[, 2, drop = FALSE], `*`)
+    xreg <- cbind(
+      deter[(k_lags + 2):(n_obs - k_leads), , drop = FALSE],
+      x[(k_lags + 2):(n_obs - k_leads), , drop = FALSE],
+      xdu[(k_lags + 2):(n_obs - k_leads), , drop = FALSE],
+      lags_leads
+    )
+  } else if (model == 6) {
+    deter <- trend_kpss_single(4, n_obs, tb)
+    xdu <- sweep(x, 1, deter[, 2, drop = FALSE], `*`)
+    xreg <- cbind(
+      deter[(k_lags + 2):(n_obs - k_leads), , drop = FALSE],
+      x[(k_lags + 2):(n_obs - k_leads), , drop = FALSE],
+      xdu[(k_lags + 2):(n_obs - k_leads), , drop = FALSE],
+      lags_leads
+    )
+  }
+
+  .res_ols <- .estimate_ols(
+    y[(k_lags + 2):(n_obs - k_leads), 1, drop = FALSE],
+    xreg
+  )
+
+  bic <- log(drop(t(.res_ols$residuals) %*% .res_ols$residuals) / nrow(xreg)) +
+    ncol(xreg) * log(nrow(xreg)) / nrow(xreg)
+
+  list(
+    beta      = .res_ols$beta,
+    residuals = .res_ols$residuals,
+    bic       = bic,
+    t.beta    = .res_ols$t.beta
+  )
+}
 
 
 #' @title
@@ -428,7 +554,7 @@ r #' @title
                        h,
                        kernel = "unif") {
   switch(kernel,
-    unif  = ifelse(abs((x - x[i]) / h) <= 1, 1, 0),
+    unif  = if (abs((x - x[i]) / h) <= 1) 1 else 0,
     gauss = pnorm((x - x[i]) / h)
   )
 }

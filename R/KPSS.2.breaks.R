@@ -56,16 +56,17 @@ kpss_double <- function(y,
 
   .model <- .estimate_ols(y, z)
 
-  test <- ifelse(!is.null(kernel),
+  test <- if (!is.null(kernel)) {
     .kpss_stat(
       .model$residuals,
       .variance_lr_spc(.model$residuals, max_lag, kernel)
-    ),
+    )
+  } else {
     .kpss_stat(
       .model$residuals,
       .variance_lr_kurozumi(.model$residuals)
     )
-  )
+  }
 
   list(
     beta        = .model$beta,
@@ -120,18 +121,19 @@ kpww_double_unknown <- function(y,
                                 kernel = "bartlett") {
   if (!is.matrix(y)) y <- as.matrix(y)
 
-  .segments <- .segments_ols_double(y, model)
+  .segments <- segments_ols_double(y, model)
 
-  test <- ifelse(!is.null(kernel),
+  test <- if (!is.null(kernel)) {
     .kpss_stat(
       .segments$residuals,
       .variance_lr_spc(.segments$residuals, max_lag, kernel)
-    ),
+    )
+  } else {
     .kpss_stat(
       .segments$residuals,
       .variance_lr_kurozumi(.segments$residuals)
     )
-  )
+  }
 
   list(
     test = test,

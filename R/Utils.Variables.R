@@ -25,27 +25,22 @@ trend_kpss_single <- function(model,
 
   const <- matrix(data = 1, nrow = n_obs, ncol = 1)
 
-  trend <- ifelse(model != 1,
-    matrix(data = 1:n_obs, nrow = n_obs, ncol = 1),
+  trend <- if (model != 1) {
+    matrix(data = 1:n_obs, nrow = n_obs, ncol = 1)
+  } else {
     NULL
-  )
+  }
 
-  du <- ifelse(model != 3,
-    .du(break_point, n_obs),
-    NULL
-  )
+  du <- if (model != 3) .du(break_point, n_obs) else NULL
 
-  dt <- ifelse(model %in% c(3, 4),
-    .dt(break_point, n_obs),
-    NULL
-  )
+  dt <- if (model %in% c(3, 4)) .dt(break_point, n_obs) else NULL
 
   cbind(const, trend, du, dt)
 }
 
 
 #' @title
-#' Construct determinant variables for [KPSS.2.breaks]
+#' Construct determinant variables for [kpss_double]
 #'
 #' @details
 #' Procedure to compute deterministic terms
@@ -75,37 +70,42 @@ trend_kpss_double <- function(model,
 
   const <- matrix(data = 1, nrow = n_obs, ncol = 1)
 
-  trend <- ifelse(model %in% c(2, 3, 4),
-    matrix(data = 1:n_obs, nrow = n_obs, ncol = 1),
+  trend <- if (model %in% c(2, 3, 4)) {
+    matrix(data = 1:n_obs, nrow = n_obs, ncol = 1)
+  } else {
     NULL
-  )
+  }
 
-  du1 <- ifelse(model %in% c(1, 2, 4, 5, 6, 7),
-    .du(break_point[1], n_obs),
+  du1 <- if (model %in% c(1, 2, 4, 5, 6, 7)) {
+    .du(break_point[1], n_obs)
+  } else {
     NULL
-  )
+  }
 
-  du2 <- ifelse(model %in% c(1, 2, 4, 6),
-    .du(break_point[2], n_obs),
+  du2 <- if (model %in% c(1, 2, 4, 6)) {
+    .du(break_point[2], n_obs)
+  } else {
     NULL
-  )
+  }
 
-  dt1 <- ifelse(model %in% c(3, 4, 6, 7),
-    .dt(break_point[1], n_obs),
+  dt1 <- if (model %in% c(3, 4, 6, 7)) {
+    .dt(break_point[1], n_obs)
+  } else {
     NULL
-  )
+  }
 
-  dt2 <- ifelse(model %in% c(3, 4, 5, 7),
-    .dt(break_point[2], n_obs),
+  dt2 <- if (model %in% c(3, 4, 5, 7)) {
+    .dt(break_point[2], n_obs)
+  } else {
     NULL
-  )
+  }
 
   cbind(const, trend, du1, dt1, du2, dt2)
 }
 
 
 #' @title
-#' Deterministic terms for [KPSS.N.breaks]
+#' Deterministic terms for [kpss_multiple]
 #'
 #' @description
 #' Procedure to compute deterministic terms for KPSS with \eqn{m}
@@ -156,7 +156,7 @@ trend_kpss_miltiple <- function(model,
   }
 
   for (i in 1:n_breaks) {
-    xt <- switch(model,
+    xt <- switch(model[i],
       cbind(xt, .du(break_point[i], n_obs)),
       cbind(xt, .dt(break_point[i], n_obs)),
       cbind(xt, .du(break_point[i], n_obs), .dt(break_point[i], n_obs))
