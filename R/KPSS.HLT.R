@@ -51,7 +51,7 @@ kpss_hlt <- function(y,
 
     .model <- .estimate_ols(y, x)
 
-    .var_y_lr <- lr.var.bartlett(.model$residuals)
+    .var_y_lr <- .variance_lr_bartlett(.model$residuals)
     .xx_inv <- qr.solve(t(x) %*% x)
 
     .t0 <- abs(.model$beta[ncol(x)] /
@@ -65,7 +65,7 @@ kpss_hlt <- function(y,
 
     .model <- .estimate_ols(.dy, x)
 
-    .var_dy_lr <- lr.var.bartlett(.model$residuals)
+    .var_dy_lr <- .variance_lr_bartlett(.model$residuals)
     .xx_inv <- qr.solve(t(x) %*% x)
 
     .t1 <- abs(.model$beta[ncol(x)] /

@@ -59,11 +59,11 @@ kpss_double <- function(y,
   test <- ifelse(!is.null(kernel),
     .kpss_stat(
       .model$residuals,
-      lr.var.SPC(.model$residuals, max_lag, kernel)
+      .variance_lr_spc(.model$residuals, max_lag, kernel)
     ),
     .kpss_stat(
       .model$residuals,
-      lr.var.bartlett.AK(.model$residuals)
+      .variance_lr_kurozumi(.model$residuals)
     )
   )
 
@@ -125,11 +125,11 @@ kpww_double_unknown <- function(y,
   test <- ifelse(!is.null(kernel),
     .kpss_stat(
       .segments$residuals,
-      lr.var.SPC(.segments$residuals, max_lag, kernel)
+      .variance_lr_spc(.segments$residuals, max_lag, kernel)
     ),
     .kpss_stat(
       .segments$residuals,
-      lr.var.bartlett.AK(.segments$residuals)
+      .variance_lr_kurozumi(.segments$residuals)
     )
   )
 

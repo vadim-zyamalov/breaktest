@@ -168,6 +168,88 @@ trend_kpss_miltiple <- function(model,
 
 
 #' @title
+#' Preparing variables for DOLS regression with multiple known break points
+#'
+#' @param y A time series of interest.
+#' @param x A matrix of explanatory stochastic regressors.
+#' @param model A scalar or vector of
+#' * 1: for the break in const.
+#' * 2: for the break in trend.
+#' * 3: for the break in const and trend.
+#' @param break.point An array of moments of structural breaks.
+#' @param const,trend Whether a constant or trend are to be included.
+#' @param k.lags,k.leads A number of lags and leads in DOLS regression.
+#'
+#' @return A list of LHS and RHS variables.
+#'
+#' @keywords internal
+variables_dols_multiple <- function(
+  y,
+  x,
+  model,
+  break_point,
+  const = FALSE,
+  trend = FALSE,
+  n_lags,
+  n_leads
+) {
+  if (is.null(x)) {
+    stop("ERROR! Explanatory variables needed for DOLS")
+  }
+  if (!is.matrix(y)) y <- as.matrix(y)
+  if (!is.matrix(x)) x <- as.matrix(x)
+
+  n_obs <- nrow(y)
+
+  .dx_step <- x[2:n_obs, , drop = FALSE] - x[1:(n_obs - 1), , drop = FALSE]
+  .dx_lags <- .dx_step
+  .dx_leads <- .dx_step
+
+  for (i in 1:n_lags) {
+    .dx_lags <- cbind(
+      .dx_lags,
+      lagn(.dx_step, i)
+    )
+  }
+
+  for (i in 1:n_leads) {
+    .dx_leads <- cbind(
+      .dx_leads,
+      lagn(.dx_step, -i)
+    )
+  }
+
+  if (n_lags != 0 && n_leads != 0) {
+    lags <- .dx_lags
+    leads <- .dx_leads[, (ncol(x) + 1):(ncol(.dx_leads)), drop = FALSE]
+    .lags_leads <- cbind(lags, leads)
+    .lags_leads <-
+      .lags_leads[(n_lags + 1):(n_obs - 1 - n_leads), , drop = FALSE]
+  } else if (n_lags != 0 && n_leads == 0) {
+    lags <- .dx_lags
+    .lags_leads <- lags[(n_lags + 1):(n_obs - 1), , drop = FALSE]
+  } else if (n_lags == 0 && n_leads != 0) {
+    lags <- .dx_lags
+    leads <- .dx_leads[, (ncol(x) + 1):(ncol(.dx_leads)), drop = FALSE]
+    .lags_leads <- cbind(lags, leads)
+    .lags_leads <- .lags_leads[1:(n_obs - 1 - n_leads), , drop = FALSE]
+  } else if (n_lags == 0 && n_leads == 0) {
+    .lags_leads <- .dx_lags
+  }
+  deter <- trend_kpss_miltiple(model, n_obs, break_point, const, trend)
+
+  list(
+    yreg = y[(n_lags + 2):(n_obs - n_leads), 1, drop = FALSE],
+    xreg = cbind(
+      deter[(n_lags + 2):(n_obs - n_leads), , drop = FALSE],
+      x[(n_lags + 2):(n_obs - n_leads), , drop = FALSE],
+      .lags_leads
+    )
+  )
+}
+
+
+#' @title
 #' Generating monthly seasonal dummy variables
 #'
 #' @param n.obs number of observations.

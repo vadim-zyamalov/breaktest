@@ -1,4 +1,4 @@
-#' @title
+r #' @title
 #' Custom OLS with extra information
 #'
 #' @description
@@ -30,6 +30,63 @@
     residuals = .model$residuals,
     predict = .model$fitted.values,
     t.beta = t.beta
+  )
+}
+
+
+
+#' @title
+#' Estimating DOLS regression for multiple known break points
+#'
+#' @param y A time series of interest.
+#' @param x A matrix of explanatory stochastic regressors.
+#' @param model A scalar or vector of break types:
+#' * 1: for the break in const.
+#' * 2: for the break in trend.
+#' * 3: for the break in const and trend.
+#' @param break.point An array of moments of structural breaks.
+#' @param const,trend Whether a constant or trend are to be included.
+#' @param k.lags,k.leads A number of lags and leads in DOLS regression.
+#'
+#' @return A list of:
+#' * Estimates of coefficients,
+#' * Estimates of residuals,
+#' * A set of informational criterions values,
+#' * \eqn{t}-statistics for the estimates of coefficients.
+#'
+#' @keywords internal
+.estimate_dols_multiple <- function(
+  y,
+  x,
+  model,
+  break_point,
+  const = FALSE,
+  trend = FALSE,
+  n_lags,
+  n_leads
+) {
+  if (!is.matrix(y)) y <- as.matrix(y)
+  if (is.null(x)) {
+    stop("ERROR! Explanatory variables needed for DOLS")
+  }
+  if (!is.matrix(x)) x <- as.matrix(x)
+
+  .vars_dols <- variables_dols_multiple(
+    y, x,
+    model, break_point,
+    const, trend,
+    n_lags, n_leads
+  )
+
+  .model <- .estimate_ols(.vars_dols$yreg, .vars_dols$xreg)
+
+  criterions <- .info_criterion(.model$residuals, ncol(.vars_dols$xreg))
+
+  list(
+    beta       = .model$beta,
+    residuals  = .model$residuals,
+    criterions = criterions,
+    t.beta     = .model$t.beta
   )
 }
 
@@ -162,7 +219,7 @@
     for (l in 1:max_lag) {
       if (l <= max_lag) {
         .model <- .estimate_ols(.lhs, .rhs[, 1:(k + l), drop = FALSE])
-        .model_ic <- info.criterion(.model$residuals, l)[[criterion]]
+        .model_ic <- .info_criterion(.model$residuals, l)[[criterion]]
 
         if (.model_ic < .ic) {
           .ic <- .model_ic

@@ -92,7 +92,7 @@ kpss_single <- function(y,
     }
   }
 
-  test <- .kpss_stat(resids, lr.var.bartlett.AK(resids))
+  test <- .kpss_stat(resids, .variance_lr_kurozumi(resids))
 
   list(
     beta = beta,
