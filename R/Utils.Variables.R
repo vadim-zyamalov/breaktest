@@ -70,7 +70,7 @@ trend_kpss_double <- function(model,
 
   const <- matrix(data = 1, nrow = n_obs, ncol = 1)
 
-  trend <- if (model %in% c(2, 3, 4)) {
+  trend <- if (model %in% c(2, 3, 4, 5)) {
     matrix(data = 1:n_obs, nrow = n_obs, ncol = 1)
   } else {
     NULL

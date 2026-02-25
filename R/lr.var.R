@@ -180,7 +180,6 @@
   }
 
   if (recolor) {
-    print(rho)
     lrv_recolored <- lrv / (1 - sum(rho))^2
     lrv <- min(lrv_recolored, n_obs * 0.15 * lrv)
   }

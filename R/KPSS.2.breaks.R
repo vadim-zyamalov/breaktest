@@ -115,7 +115,7 @@ kpss_double <- function(y,
 #' https://doi.org/10.1111/j.1468-0084.2006.00180.x.
 #'
 #' @export
-kpww_double_unknown <- function(y,
+kpss_double_unknown <- function(y,
                                 model,
                                 max_lag = 0,
                                 kernel = "bartlett") {

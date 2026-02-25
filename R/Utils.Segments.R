@@ -64,8 +64,7 @@ segments_ols_single <- function(beg,
 #' https://doi.org/10.1007/s10108-006-9017-8.
 #'
 #' @keywords internal
-segments_ols_double <- function(y,
-                                model) {
+segments_ols_double <- function(y, model) {
   if (!is.matrix(y)) y <- as.matrix(y)
 
   n_obs <- nrow(y)
@@ -79,7 +78,7 @@ segments_ols_double <- function(y,
     for (bp1 in 2:(n_obs - 4)) {
       for (bp2 in (bp1 + 2):(n_obs - 2)) {
         z <- trend_kpss_double(model, n_obs, c(bp1, bp2))
-        resids <- .estimate_ols(y, z)$residuals
+        resids <- .lm.fit(z, y)$residuals
         ssr <- drop(t(resids) %*% resids)
         if (ssr < .rss) {
           .resids <- resids
@@ -93,7 +92,7 @@ segments_ols_double <- function(y,
     for (bp1 in 2:(n_obs - 4)) {
       for (bp2 in (bp1 + 2):(n_obs - 2)) {
         z <- trend_kpss_double(model, n_obs, c(bp1, bp2))
-        resids <- .estimate_ols(y, z)$residuals
+        resids <- .lm.fit(z, y)$residuals
         ssr <- drop(t(resids) %*% resids)
         if (ssr < .rss) {
           .resids <- resids
@@ -106,7 +105,7 @@ segments_ols_double <- function(y,
     for (bp2 in 2:(n_obs - 4)) {
       for (bp1 in (bp2 + 2):(n_obs - 2)) {
         z <- trend_kpss_double(model, n_obs, c(bp1, bp2))
-        resids <- .estimate_ols(y, z)$residuals
+        resids <- .lm.fit(z, y)$residuals
         ssr <- drop(t(resids) %*% resids)
         if (ssr < .rss) {
           .resids <- resids

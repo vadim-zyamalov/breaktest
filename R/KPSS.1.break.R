@@ -181,5 +181,6 @@ kpss_single_unknown <- function(y,
 
   result <- matrix(c(min_test, min_rss, idx_test, idx_rss), ncol = 2)
   colnames(result) <- c("stat", "tb")
+  rownames(result) <- c("min(stat)", "min(RSS)")
   result
 }
