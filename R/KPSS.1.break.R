@@ -41,47 +41,47 @@
 #' https://doi.org/10.1111/j.1468-0084.2006.00180.x.
 #'
 #' @export
-kpss_single <- function(y,
+kpss.single <- function(y,
                         x,
                         model,
-                        tb,
-                        weakly_exog = TRUE,
-                        n_lag_lead) {
+                        t.break,
+                        weakly.exog = TRUE,
+                        n.lag.lead) {
   if (!is.matrix(y)) y <- as.matrix(y)
   if (!is.null(x)) {
     if (!is.matrix(x)) x <- as.matrix(x)
   }
 
-  n_obs <- nrow(y)
+  n.obs <- nrow(y)
 
   if (model < 0 && model > 6) {
     stop("ERROR: Try to specify the deterministic component again")
   }
 
-  if (weakly_exog) {
+  if (weakly.exog) {
     if (model == 0) {
       xt <- x
     } else if (1 <= model && model <= 4) {
-      deter <- trend_kpss_single(model, n_obs, tb)
+      deter <- trend.kpss.single(model, n.obs, t.break)
       xt <- cbind(deter, x)
     } else if (model == 5) {
-      deter <- trend_kpss_single(1, n_obs, tb)
+      deter <- trend.kpss.single(1, n.obs, t.break)
       xdu <- sweep(x, 1, deter[, 2, drop = FALSE], `*`)
       xt <- cbind(deter, x, xdu)
     } else if (model == 6) {
-      deter <- trend_kpss_single(4, n_obs, tb)
+      deter <- trend.kpss.single(4, n.obs, t.break)
       xdu <- sweep(x, 1, deter[, 2, drop = FALSE], `*`)
       xt <- cbind(deter, x, xdu)
     }
 
-    .res_ols <- .estimate_ols(y, xt)
+    .res_ols <- .OLS(y, xt)
     beta <- .res_ols$beta
     resids <- .res_ols$residuals
     t_beta <- .res_ols$t.beta
   } else {
     bic <- Inf
-    for (i in n_lag_lead:1) {
-      .res_dols <- .estimate_dols_single(y, x, model, tb, i, i)
+    for (i in n.lag.lead:1) {
+      .res_dols <- .DOLS.single(y, x, model, t.break, i, i)
       if (.res_dols$bic < bic) {
         bic <- .res_dols$bic
         beta <- .res_dols$beta
@@ -91,14 +91,14 @@ kpss_single <- function(y,
     }
   }
 
-  test <- .kpss_stat(resids, .variance_lr_kurozumi(resids))
+  test <- .kpss.statistic(resids, .lr.var.kurozumi(resids))
 
   list(
     beta = beta,
     test = test,
     residuals = resids,
     t.beta = t_beta,
-    break.point = tb
+    break.point = t.break
   )
 }
 
@@ -147,39 +147,39 @@ kpss_single <- function(y,
 #' https://doi.org/10.1111/j.1468-0084.2006.00180.x.
 #'
 #' @export
-kpss_single_unknown <- function(y,
+kpss.single.unknown <- function(y,
                                 x,
                                 model,
-                                weakly_exog,
-                                lag_lead) {
+                                weakly.exog,
+                                ll.init) {
   if (!is.matrix(y)) y <- as.matrix(y)
   if (!is.matrix(x)) x <- as.matrix(x)
 
-  n_obs <- nrow(y)
+  n.obs <- nrow(y)
 
-  min_test <- Inf
-  idx_test <- NULL
-  min_rss <- Inf
-  idx_rss <- NULL
+  min.test <- Inf
+  idx.test <- NULL
+  min.rss <- Inf
+  idx.rss <- NULL
 
-  for (i in 3:(n_obs - 3)) {
-    if (lag_lead + 2 < i && i < n_obs - 5 - lag_lead) {
-      .result <- kpss_single(y, x, model, i, weakly_exog, lag_lead)
+  for (i in 3:(n.obs - 3)) {
+    if (ll.init + 2 < i && i < n.obs - 5 - ll.init) {
+      .result <- kpss.single(y, x, model, i, weakly.exog, ll.init)
       .rss <- drop(t(.result$residuals) %*% .result$residuals)
 
-      if (.result$test < min_test) {
-        min_test <- .result$test
-        idx_test <- i
+      if (.result$test < min.test) {
+        min.test <- .result$test
+        idx.test <- i
       }
 
-      if (.rss < min_rss) {
-        min_rss <- .rss
-        idx_rss <- i
+      if (.rss < min.rss) {
+        min.rss <- .rss
+        idx.rss <- i
       }
     }
   }
 
-  result <- matrix(c(min_test, min_rss, idx_test, idx_rss), ncol = 2)
+  result <- matrix(c(min.test, min.rss, idx.test, idx.rss), ncol = 2)
   colnames(result) <- c("stat", "tb")
   rownames(result) <- c("min(stat)", "min(RSS)")
   result

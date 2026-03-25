@@ -19,23 +19,23 @@
 #' https://doi.org/10.1111/j.1468-0084.2006.00180.x.
 #'
 #' @keywords internal
-segments_ols_single <- function(beg,
+segments.ols.single <- function(beg,
                                 end,
-                                bp_min,
-                                bp_max,
+                                bp.min,
+                                bp.max,
                                 len,
-                                rss_values) {
+                                SSR.data) {
   .rss <- matrix(data = Inf, nrow = len, ncol = 1)
 
-  for (bp in bp_min:bp_max) {
-    .rss[bp] <- rss_values[beg, bp] + rss_values[bp + 1, end]
+  for (bp in bp.min:bp.max) {
+    .rss[bp] <- SSR.data[beg, bp] + SSR.data[bp + 1, end]
   }
 
-  .rss_min <- min(.rss[bp_min:bp_max])
-  .bp <- (bp_min - 1) + which.min(.rss[bp_min:bp_max])
+  .rss.min <- min(.rss[bp.min:bp.max])
+  .bp <- (bp.min - 1) + which.min(.rss[bp.min:bp.max])
 
   list(
-    SSR         = .rss_min,
+    SSR         = .rss.min,
     break.point = .bp
   )
 }
@@ -64,10 +64,10 @@ segments_ols_single <- function(beg,
 #' https://doi.org/10.1007/s10108-006-9017-8.
 #'
 #' @keywords internal
-segments_ols_double <- function(y, model) {
+segments.ols.double <- function(y, model) {
   if (!is.matrix(y)) y <- as.matrix(y)
 
-  n_obs <- nrow(y)
+  n.obs <- nrow(y)
 
   .resids <- 0
   .rss <- Inf
@@ -75,9 +75,9 @@ segments_ols_double <- function(y, model) {
   .bp2 <- 0
 
   if (1 <= model && model <= 4) {
-    for (bp1 in 2:(n_obs - 4)) {
-      for (bp2 in (bp1 + 2):(n_obs - 2)) {
-        z <- trend_kpss_double(model, n_obs, c(bp1, bp2))
+    for (bp1 in 2:(n.obs - 4)) {
+      for (bp2 in (bp1 + 2):(n.obs - 2)) {
+        z <- trend.kpss.double(model, n.obs, c(bp1, bp2))
         resids <- .lm.fit(z, y)$residuals
         ssr <- drop(t(resids) %*% resids)
         if (ssr < .rss) {
@@ -89,9 +89,9 @@ segments_ols_double <- function(y, model) {
       }
     }
   } else if (5 <= model && model <= 7) {
-    for (bp1 in 2:(n_obs - 4)) {
-      for (bp2 in (bp1 + 2):(n_obs - 2)) {
-        z <- trend_kpss_double(model, n_obs, c(bp1, bp2))
+    for (bp1 in 2:(n.obs - 4)) {
+      for (bp2 in (bp1 + 2):(n.obs - 2)) {
+        z <- trend.kpss.double(model, n.obs, c(bp1, bp2))
         resids <- .lm.fit(z, y)$residuals
         ssr <- drop(t(resids) %*% resids)
         if (ssr < .rss) {
@@ -102,9 +102,9 @@ segments_ols_double <- function(y, model) {
         }
       }
     }
-    for (bp2 in 2:(n_obs - 4)) {
-      for (bp1 in (bp2 + 2):(n_obs - 2)) {
-        z <- trend_kpss_double(model, n_obs, c(bp1, bp2))
+    for (bp2 in 2:(n.obs - 4)) {
+      for (bp1 in (bp2 + 2):(n.obs - 2)) {
+        z <- trend.kpss.double(model, n.obs, c(bp1, bp2))
         resids <- .lm.fit(z, y)$residuals
         ssr <- drop(t(resids) %*% resids)
         if (ssr < .rss) {
@@ -145,32 +145,32 @@ segments_ols_double <- function(y, model) {
 #' https://doi.org/10.1002/jae.659.
 #'
 #' @keywords internal
-segments_ols_mulitiple <- function(
+segments.ols.mulitiple <- function(
   y,
   x,
   m = 1,
   width = 2,
-  rss_values = NULL
+  SSR.data = NULL
 ) {
   if (!is.matrix(y)) y <- as.matrix(y)
   if (!is.matrix(x)) x <- as.matrix(x)
 
-  n_obs <- nrow(y)
+  n.obs <- nrow(y)
 
-  if (is.null(rss_values)) {
-    rss_values <- ssr_matrix(y, x, width)
+  if (is.null(SSR.data)) {
+    SSR.data <- SSR.matrix(y, x, width)
   }
 
   if (m == 1) {
-    .segments <- segments_ols_single(
-      1, n_obs,
-      width, n_obs - width,
-      n_obs, rss_values
+    .segments <- segments.ols.single(
+      1, n.obs,
+      width, n.obs - width,
+      n.obs, SSR.data
     )
     .rss_final <- .segments$SSR
     .bp_final <- .segments$break.point
   } else {
-    n_variants <- n_obs - (m + 1) * width + 1
+    n_variants <- n.obs - (m + 1) * width + 1
     .rss <- matrix(
       data = Inf,
       nrow = n_variants,
@@ -190,12 +190,12 @@ segments_ols_mulitiple <- function(
       if (step == 1) {
         for (v in 1:n_variants) {
           .last_step <- 2 * width + v - 1
-          .segments <- segments_ols_single(
+          .segments <- segments.ols.single(
             1,
             .last_step,
             width,
             .last_step - width,
-            .last_step, rss_values
+            .last_step, SSR.data
           )
           .rss[v, 1] <- .segments$SSR
           .bp[v, 1] <- .segments$break.point
@@ -203,7 +203,7 @@ segments_ols_mulitiple <- function(
       } else if (step == m) {
         for (v in 1:n_variants) {
           .rss_loop[v, 1] <- .rss[v, 1] +
-            rss_values[step * width + v, n_obs]
+            SSR.data[step * width + v, n.obs]
         }
         .rss_final <- min(.rss_loop)
         .idx_final <- which.min(.rss_loop)
@@ -220,11 +220,11 @@ segments_ols_mulitiple <- function(
           nrow = n_variants,
           ncol = m
         )
-        for (.last_step in ((step + 1) * width):(n_obs - (m - step) * width)) {
+        for (.last_step in ((step + 1) * width):(n.obs - (m - step) * width)) {
           .v_new <- .last_step - (step + 1) * width + 1
           for (v in 1:n_variants) {
             .rss_loop[v, 1] <- .rss[v, 1] +
-              rss_values[step * width + v, .last_step]
+              SSR.data[step * width + v, .last_step]
           }
           .rss_new[.v_new, 1] <- min(.rss_loop)
           .idx_new <- which.min(.rss_loop)
@@ -265,7 +265,7 @@ segments_ols_mulitiple <- function(
 #' https://doi.org/10.1515/jtse-2016-0014.
 #'
 #' @keywords internal
-segments_gls <- function(y,
+segments.gls <- function(y,
                          const = FALSE,
                          trend = FALSE,
                          breaks = 1,
@@ -281,12 +281,12 @@ segments_gls <- function(y,
     stop("More than three breaks are not supported at the moment!")
   }
 
-  n_obs <- nrow(y)
-  const <- rep(1, n_obs)
-  trend <- 1:n_obs
+  n.obs <- nrow(y)
+  const <- rep(1, n.obs)
+  trend <- 1:n.obs
 
-  if (is.null(bp_min)) bp_min <- floor(trim * n_obs) + 1
-  if (is.null(bp_max)) bp_max <- floor((1 - trim) * n_obs) + 1
+  if (is.null(bp_min)) bp_min <- floor(trim * n.obs) + 1
+  if (is.null(bp_max)) bp_max <- floor((1 - trim) * n.obs) + 1
   width <- bp_min - 1
 
   steps <- c(0, 0.2, 0.4, 0.6, 0.8, 0.9, 0.95, 0.975, 1)
@@ -307,8 +307,8 @@ segments_gls <- function(y,
           if (trend) dt1 else NULL
         )
 
-        c_bar <- n_obs * (alpha - 1)
-        resids <- .estimate_gls(y, x, c_bar)$residuals
+        c_bar <- n.obs * (alpha - 1)
+        resids <- .GLS(y, x, c_bar)$residuals
 
         .rss_loop <- drop(t(resids) %*% resids)
 
@@ -334,8 +334,8 @@ segments_gls <- function(y,
             if (trend) dt2 else NULL
           )
 
-          c_bar <- n_obs * (alpha - 1)
-          resids <- .estimate_gls(y, x, c_bar)$residuals
+          c_bar <- n.obs * (alpha - 1)
+          resids <- .GLS(y, x, c_bar)$residuals
 
           .rss_loop <- drop(t(resids) %*% resids)
 
@@ -367,8 +367,8 @@ segments_gls <- function(y,
               if (trend) dt3 else NULL
             )
 
-            c_bar <- n_obs * (alpha - 1)
-            resids <- .estimate_gls(y, x, c_bar)$residuals
+            c_bar <- n.obs * (alpha - 1)
+            resids <- .GLS(y, x, c_bar)$residuals
 
             .rss_loop <- drop(t(resids) %*% resids)
 

@@ -8,9 +8,9 @@
 #' @return Lagged or leaded vector.
 #'
 #' @keywords internal
-lagn <- function(x,
-                 i,
-                 na = NA) {
+.lagn <- function(x,
+                  i,
+                  na = NA) {
   if (!is.matrix(x)) x <- as.matrix(x)
   n_obs <- nrow(x)
   n_var <- ncol(x)
@@ -40,10 +40,10 @@ lagn <- function(x,
 #' @return Vector or matrix of differences.
 #'
 #' @keywords internal
-diffn <- function(x,
-                  lag = 1,
-                  differences = 1,
-                  na = NA) {
+.diffn <- function(x,
+                   lag = 1,
+                   differences = 1,
+                   na = NA) {
   if (!is.matrix(x)) x <- as.matrix(x)
   n_obs <- nrow(x)
   n_var <- ncol(x)
@@ -67,8 +67,8 @@ diffn <- function(x,
 #' @param variance A value of the long-run variance.
 #'
 #' @keywords internal
-.kpss_stat <- function(resids,
-                       variance) {
+.kpss.statistic <- function(resids,
+                            variance) {
   if (!is.matrix(resids)) resids <- as.matrix(resids)
   n_obs <- nrow(resids)
   s_t <- apply(resids, 2, cumsum)

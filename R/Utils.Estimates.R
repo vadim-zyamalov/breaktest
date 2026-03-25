@@ -16,14 +16,14 @@
 #' @importFrom stats .lm.fit
 #'
 #' @keywords internal
-.estimate_ols <- function(y, x) {
+.OLS <- function(y, x) {
   if (!is.matrix(y)) y <- as.matrix(y)
   if (!is.matrix(x)) x <- as.matrix(x)
 
-  .model <- .lm.fit(x, y)
-  s_2 <- drop(t(.model$residuals) %*% .model$residuals) /
+  .model <- lm(y ~ x - 1)
+  s.sq <- drop(t(.model$residuals) %*% .model$residuals) /
     (nrow(x) - ncol(x))
-  t.beta <- .model$coefficients / sqrt(diag(s_2 * qr.solve(t(x) %*% x)))
+  t.beta <- .model$coefficients / sqrt(diag(s.sq * qr.solve(t(x) %*% x)))
 
   list(
     beta = as.matrix(.model$coefficients),
@@ -62,12 +62,12 @@
 #' https://doi.org/10.1111/j.1468-0084.2006.00180.x.
 #'
 #' @keywords internal
-.estimate_dols_single <- function(y,
-                                  x,
-                                  model,
-                                  tb,
-                                  k_lags,
-                                  k_leads) {
+.DOLS.single <- function(y,
+                         x,
+                         model,
+                         tb,
+                         k_lags,
+                         k_leads) {
   if (is.null(x)) {
     stop("ERROR! Explanatory variables needed for DOLS")
   }
@@ -83,14 +83,14 @@
   for (i in 1:k_lags) {
     .diff_x_lag <- cbind(
       .diff_x_lag,
-      lagn(.diff_x, i)
+      .lagn(.diff_x, i)
     )
   }
 
   for (i in 1:k_leads) {
     .diff_x_lead <- cbind(
       .diff_x_lead,
-      lagn(.diff_x, -i)
+      .lagn(.diff_x, -i)
     )
   }
 
@@ -118,14 +118,14 @@
       lags_leads
     )
   } else if (model >= 1 && model <= 4) {
-    deter <- trend_kpss_single(model, n_obs, tb)
+    deter <- trend.kpss.single(model, n_obs, tb)
     xreg <- cbind(
       deter[(k_lags + 2):(n_obs - k_leads), , drop = FALSE],
       x[(k_lags + 2):(n_obs - k_leads), , drop = FALSE],
       lags_leads
     )
   } else if (model == 5) {
-    deter <- trend_kpss_single(1, n_obs, tb)
+    deter <- trend.kpss.single(1, n_obs, tb)
     xdu <- sweep(x, 1, deter[, 2, drop = FALSE], `*`)
     xreg <- cbind(
       deter[(k_lags + 2):(n_obs - k_leads), , drop = FALSE],
@@ -134,7 +134,7 @@
       lags_leads
     )
   } else if (model == 6) {
-    deter <- trend_kpss_single(4, n_obs, tb)
+    deter <- trend.kpss.single(4, n_obs, tb)
     xdu <- sweep(x, 1, deter[, 2, drop = FALSE], `*`)
     xreg <- cbind(
       deter[(k_lags + 2):(n_obs - k_leads), , drop = FALSE],
@@ -144,7 +144,7 @@
     )
   }
 
-  .res_ols <- .estimate_ols(
+  .res_ols <- .OLS(
     y[(k_lags + 2):(n_obs - k_leads), 1, drop = FALSE],
     xreg
   )
@@ -181,7 +181,7 @@
 #' * \eqn{t}-statistics for the estimates of coefficients.
 #'
 #' @keywords internal
-.estimate_dols_multiple <- function(
+.DOLS.multiple <- function(
   y,
   x,
   model,
@@ -197,16 +197,16 @@
   }
   if (!is.matrix(x)) x <- as.matrix(x)
 
-  .vars_dols <- variables_dols_multiple(
+  .vars_dols <- variables.dols.multiple(
     y, x,
     model, break_point,
     const, trend,
     n_lags, n_leads
   )
 
-  .model <- .estimate_ols(.vars_dols$yreg, .vars_dols$xreg)
+  .model <- .OLS(.vars_dols$yreg, .vars_dols$xreg)
 
-  criterions <- .info_criterion(.model$residuals, ncol(.vars_dols$xreg))
+  criterions <- .ic.values(.model$residuals, ncol(.vars_dols$xreg))
 
   list(
     beta       = .model$beta,
@@ -234,7 +234,7 @@
 #' * `t.beta`: \eqn{t}-statistics for `beta`.
 #'
 #' @keywords internal
-.estimate_gls <- function(y, z, c) {
+.GLS <- function(y, z, c) {
   if (!is.matrix(y)) y <- as.matrix(y)
   if (!is.matrix(z)) z <- as.matrix(z)
 
@@ -243,10 +243,10 @@
 
   rho <- 1 + c / n_obs
 
-  y_hat <- y - rho * lagn(y, 1)
+  y_hat <- y - rho * .lagn(y, 1)
   y_hat[1, ] <- y[1, ]
 
-  z_hat <- z - rho * lagn(z, 1)
+  z_hat <- z - rho * .lagn(z, 1)
   z_hat[1, ] <- z[1, ]
 
   betas <- NULL
@@ -255,7 +255,7 @@
   t.betas <- NULL
 
   for (i in 1:n_var) {
-    .model <- .estimate_ols(y_hat[, i, drop = FALSE], z_hat)
+    .model <- .OLS(y_hat[, i, drop = FALSE], z_hat)
     betas <- cbind(betas, .model$beta)
     t.betas <- cbind(t.betas, .model$t.beta)
     fitted <- cbind(fitted, z %*% .model$beta)
@@ -287,7 +287,7 @@
 #' * `lag`: estimated number of lags.
 #'
 #' @keywords internal
-.estimate_ar <- function(
+.AR <- function(
   y,
   x,
   max_lag,
@@ -316,14 +316,14 @@
     if (l <= max_lag) {
       .rhs <- cbind(
         .rhs,
-        lagn(y, l)[(1 + max_lag):n_obs, , drop = FALSE]
+        .lagn(y, l)[(1 + max_lag):n_obs, , drop = FALSE]
       )
     }
   }
 
   if (is.null(criterion)) {
     .lag <- max_lag
-    .model <- .estimate_ols(.lhs, .rhs[, 1:(k + .lag), drop = FALSE])
+    .model <- .OLS(.lhs, .rhs[, 1:(k + .lag), drop = FALSE])
     .beta <- .model$beta
     .resid <- .model$residuals
     .predict <- .model$predict
@@ -332,7 +332,7 @@
     .lag <- 0
 
     if (!is.null(x)) {
-      .model <- .estimate_ols(.lhs, .rhs[, 1:k, drop = FALSE])
+      .model <- .OLS(.lhs, .rhs[, 1:k, drop = FALSE])
       .beta <- .model$beta
       .resid <- .model$residuals
       .predict <- .model$predict
@@ -344,8 +344,8 @@
 
     for (l in 1:max_lag) {
       if (l <= max_lag) {
-        .model <- .estimate_ols(.lhs, .rhs[, 1:(k + l), drop = FALSE])
-        .model_ic <- .info_criterion(.model$residuals, l)[[criterion]]
+        .model <- .OLS(.lhs, .rhs[, 1:(k + l), drop = FALSE])
+        .model_ic <- .ic.values(.model$residuals, l)[[criterion]]
 
         if (.model_ic < .ic) {
           .ic <- .model_ic
@@ -393,7 +393,7 @@
 #' School of Economics. University of Nottingham, 2022.
 #'
 #' @keywords internal
-.estimate_nw <- function(
+.NW.reg <- function(
   y,
   x,
   h,
@@ -407,7 +407,7 @@
 
   rho <- rep(0, n_obs)
   for (k in 1:n_obs) {
-    .w <- .kernel_nw(k, (1:n_obs) / n_obs, h, kernel)
+    .w <- .NW.kernel(k, (1:n_obs) / n_obs, h, kernel)
     rho[k] <- sum(x * .w * y) / sum(x * .w * x)
   }
 
@@ -450,7 +450,7 @@
 #' School of Economics. University of Nottingham, 2022.
 #'
 #' @keywords internal
-.volatility_nw <- function(
+.NW.variance <- function(
   e,
   h,
   kernel = "unif"
@@ -464,7 +464,7 @@
   omega2 <- rep(0, n_obs)
 
   for (k in 1:n_obs) {
-    .w <- .kernel_nw(k, (1:n_obs) / n_obs, h, kernel)
+    .w <- .NW.kernel(k, (1:n_obs) / n_obs, h, kernel)
     omega2[k] <- sum(.w * e^2) / sum(.w)
   }
 
@@ -499,7 +499,7 @@
 #' @return A list of arguments as well as the estimated bandwidth `h`.
 #'
 #' @keywords internal
-.bandwidth_nw <- function(y, x, kernel = "unif") {
+.NW.bandwidth <- function(y, x, kernel = "unif") {
   if (!kernel %in% c("unif", "gauss")) {
     stop("WARNING! Unknown kernel, unif is used instead")
   }
@@ -512,7 +512,7 @@
   for (.h in h_candidates) {
     rho <- rep(0, n_obs)
     for (k in 1:n_obs) {
-      .w <- .kernel_nw(k, (1:n_obs) / n_obs, .h, kernel)
+      .w <- .NW.kernel(k, (1:n_obs) / n_obs, .h, kernel)
       .w[k] <- 0
       rho[k] <- sum(x * .w * y) / sum(x * .w * x)
     }
@@ -549,7 +549,7 @@
 #' @importFrom stats pnorm
 #'
 #' @keywords internal
-.kernel_nw <- function(i,
+.NW.kernel <- function(i,
                        x,
                        h,
                        kernel = "unif") {

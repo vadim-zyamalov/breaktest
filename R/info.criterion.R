@@ -29,7 +29,7 @@
 #' https://doi.org/10.1111/1468-0262.00256.
 #'
 #' @export
-.info_criterion <- function(resids,
+.ic.values <- function(resids,
                             extra,
                             modification = FALSE,
                             alpha = 0,

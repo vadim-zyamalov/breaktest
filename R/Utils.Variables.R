@@ -16,9 +16,7 @@
 #' @return Matrix of determinant variables.
 #'
 #' @keywords internal
-trend_kpss_single <- function(model,
-                              n_obs,
-                              break_point) {
+trend.kpss.single <- function(model, n_obs, break_point) {
   if (!model %in% 1:4) {
     stop("ERROR: Try to specify the deterministic component again")
   }
@@ -61,9 +59,7 @@ trend_kpss_single <- function(model,
 #' @return Matrix of deterministic terms.
 #'
 #' @keywords internal
-trend_kpss_double <- function(model,
-                              n_obs,
-                              break_point) {
+trend.kpss.double <- function(model, n_obs, break_point) {
   if (any(!model %in% 1:7)) {
     stop("ERROR: Try to specify the deterministic component again")
   }
@@ -127,11 +123,13 @@ trend_kpss_double <- function(model,
 #' @return Matrix of deterministic terms.
 #'
 #' @keywords internal
-trend_kpss_miltiple <- function(model,
-                                n_obs,
-                                break_point,
-                                const = FALSE,
-                                trend = FALSE) {
+trend.kpss.miltiple <- function(
+  model,
+  n_obs,
+  break_point,
+  const = FALSE,
+  trend = FALSE
+) {
   n_breaks <- length(break_point)
 
   if (length(model) == 1) {
@@ -183,7 +181,7 @@ trend_kpss_miltiple <- function(model,
 #' @return A list of LHS and RHS variables.
 #'
 #' @keywords internal
-variables_dols_multiple <- function(
+variables.dols.multiple <- function(
   y,
   x,
   model,
@@ -196,8 +194,12 @@ variables_dols_multiple <- function(
   if (is.null(x)) {
     stop("ERROR! Explanatory variables needed for DOLS")
   }
-  if (!is.matrix(y)) y <- as.matrix(y)
-  if (!is.matrix(x)) x <- as.matrix(x)
+  if (!is.matrix(y)) {
+    y <- as.matrix(y)
+  }
+  if (!is.matrix(x)) {
+    x <- as.matrix(x)
+  }
 
   n_obs <- nrow(y)
 
@@ -208,14 +210,14 @@ variables_dols_multiple <- function(
   for (i in 1:n_lags) {
     .dx_lags <- cbind(
       .dx_lags,
-      lagn(.dx_step, i)
+      .lagn(.dx_step, i)
     )
   }
 
   for (i in 1:n_leads) {
     .dx_leads <- cbind(
       .dx_leads,
-      lagn(.dx_step, -i)
+      .lagn(.dx_step, -i)
     )
   }
 
@@ -236,7 +238,7 @@ variables_dols_multiple <- function(
   } else if (n_lags == 0 && n_leads == 0) {
     .lags_leads <- .dx_lags
   }
-  deter <- trend_kpss_miltiple(model, n_obs, break_point, const, trend)
+  deter <- trend.kpss.miltiple(model, n_obs, break_point, const, trend)
 
   list(
     yreg = y[(n_lags + 2):(n_obs - n_leads), 1, drop = FALSE],
@@ -257,7 +259,7 @@ variables_dols_multiple <- function(
 #' @return The matrix of values od seasonal dummies.
 #'
 #' @keywords internal
-seasonal_dummies <- function(n_obs) {
+seasonal.dummies <- function(n_obs) {
   s1 <- c(1 - 1 / 12, rep(-1 / 12, 11))
 
   result <- NULL

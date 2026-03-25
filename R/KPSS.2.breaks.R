@@ -43,28 +43,28 @@
 #' https://doi.org/10.1007/s10108-006-9017-8.
 #'
 #' @export
-kpss_double <- function(y,
+kpss.double <- function(y,
                         model,
-                        break_point,
-                        max_lag,
+                        break.point,
+                        max.lag,
                         kernel) {
   if (!is.matrix(y)) y <- as.matrix(y)
 
-  n_obs <- nrow(y)
+  n.obs <- nrow(y)
 
-  z <- trend_kpss_double(model, n_obs, break_point)
+  z <- trend.kpss.double(model, n.obs, break.point)
 
-  .model <- .estimate_ols(y, z)
+  .model <- .OLS(y, z)
 
   test <- if (!is.null(kernel)) {
-    .kpss_stat(
+    .kpss.statistic(
       .model$residuals,
-      .variance_lr_spc(.model$residuals, max_lag, kernel)
+      .lr.var.spc(.model$residuals, max.lag, kernel)
     )
   } else {
-    .kpss_stat(
+    .kpss.statistic(
       .model$residuals,
-      .variance_lr_kurozumi(.model$residuals)
+      .lr.var.kurozumi(.model$residuals)
     )
   }
 
@@ -73,7 +73,7 @@ kpss_double <- function(y,
     test        = test,
     residuals   = .model$residuals,
     t.beta      = .model$t.beta,
-    break_point = break_point
+    break_point = break.point
   )
 }
 
@@ -115,23 +115,23 @@ kpss_double <- function(y,
 #' https://doi.org/10.1111/j.1468-0084.2006.00180.x.
 #'
 #' @export
-kpss_double_unknown <- function(y,
+kpss.double.unknown <- function(y,
                                 model,
-                                max_lag = 0,
+                                max.lag = 0,
                                 kernel = "bartlett") {
   if (!is.matrix(y)) y <- as.matrix(y)
 
-  .segments <- segments_ols_double(y, model)
+  .segments <- segments.ols.double(y, model)
 
   test <- if (!is.null(kernel)) {
-    .kpss_stat(
+    .kpss.statistic(
       .segments$residuals,
-      .variance_lr_spc(.segments$residuals, max_lag, kernel)
+      .lr.var.spc(.segments$residuals, max.lag, kernel)
     )
   } else {
-    .kpss_stat(
+    .kpss.statistic(
       .segments$residuals,
-      .variance_lr_kurozumi(.segments$residuals)
+      .lr.var.kurozumi(.segments$residuals)
     )
   }
 

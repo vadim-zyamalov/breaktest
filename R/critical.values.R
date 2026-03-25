@@ -21,11 +21,11 @@
 #'
 #' @keywords internal
 #' @export
-cvalues_kpss_single <- function(model,
-                                break_point,
-                                n_obs,
-                                k) {
-  lambda <- round(break_point / n_obs, 1)
+cval.kpss.single <- function(model,
+                             break.point,
+                             n.obs,
+                             k) {
+  lambda <- round(break.point / n.obs, 1)
   i <- trunc(lambda * 10)
   if (i == 0) i <- 1
   if (i == 10) i <- 9
@@ -54,15 +54,15 @@ cvalues_kpss_single <- function(model,
 #'
 #' @keywords internal
 #' @export
-cvalues_kpss_double <- function(model,
-                                break_point,
-                                n_obs) {
-  lambda1 <- round(break_point[1] / n_obs, 1)
+cvalues.kpss.double <- function(model,
+                                break.point,
+                                n.obs) {
+  lambda1 <- round(break.point[1] / n.obs, 1)
   i <- trunc(lambda1 * 10)
   if (i == 0) i <- 1
   if (model %in% 1:4) i <- min(i, 8)
 
-  lambda2 <- round(break_point[2] / n_obs, 1)
+  lambda2 <- round(break.point[2] / n.obs, 1)
   j <- trunc(lambda2 * 10)
   if (j == 0) j <- 1
   if (model %in% 1:4) j <- max(j, 2) - 1
@@ -90,28 +90,28 @@ cvalues_kpss_double <- function(model,
 #' @param lambda Relative break point position.
 #' @param trend Whether thern is to be included.
 #' @param conf.level Confidense level.
-#' @param p_zb Number of variables with breaks.
-#' @param p_zf Number of variables without breaks.
+#' @param n.zb Number of variables with breaks.
+#' @param n.zf Number of variables without breaks.
 #'
 #' @keywords internal
 get.cv.coint.conf.sets <- function(lambda,
                                    trend,
                                    conf.level,
-                                   p_zb,
-                                   p_zf) {
+                                   n.zb,
+                                   n.zf) {
   if (conf.level == 0.9) {
-    if (p_zf == 0) {
+    if (n.zf == 0) {
       values_table <- .cval_break_date_cset[[1]][[1]]
-    } else if (p_zb %in% 0:3) {
-      values_table <- .cval_break_date_cset[[1]][[2 + p_zb]]
+    } else if (n.zb %in% 0:3) {
+      values_table <- .cval_break_date_cset[[1]][[2 + n.zb]]
     } else {
       stop("ERROR: Invalid value of variable p_zb or p_zf")
     }
   } else if (conf.level == 0.9) {
-    if (p_zf == 0) {
+    if (n.zf == 0) {
       values_table <- .cval_break_date_cset[[2]][[1]]
-    } else if (p_zb %in% 0:3) {
-      values_table <- .cval_break_date_cset[[2]][[2 + p_zb]]
+    } else if (n.zb %in% 0:3) {
+      values_table <- .cval_break_date_cset[[2]][[2 + n.zb]]
     } else {
       stop("ERROR: Invalid value of variable p_zb or p_zf")
     }
@@ -121,27 +121,27 @@ get.cv.coint.conf.sets <- function(lambda,
 
   lambda.d <- abs(lambda - 0.5)
 
-  if (p_zf == 0) {
+  if (n.zf == 0) {
     if (!trend) {
-      coef_sup <- values_table$sup_all[, p_zb]
-      coef_avg <- values_table$avg_all[, p_zb]
-      coef_exp <- values_table$exp_all[, p_zb]
+      coef_sup <- values_table$sup_all[, n.zb]
+      coef_avg <- values_table$avg_all[, n.zb]
+      coef_exp <- values_table$exp_all[, n.zb]
     } else if (trend) {
-      coef_sup <- values_table$sup_all[, (4 + p_zb)]
-      coef_avg <- values_table$avg_all[, (4 + p_zb)]
-      coef_exp <- values_table$exp_all[, (4 + p_zb)]
+      coef_sup <- values_table$sup_all[, (4 + n.zb)]
+      coef_avg <- values_table$avg_all[, (4 + n.zb)]
+      coef_exp <- values_table$exp_all[, (4 + n.zb)]
     } else {
       stop("ERROR: Invalid value of variable trend")
     }
-  } else if (p_zb %in% 0:3) {
+  } else if (n.zb %in% 0:3) {
     if (!trend) {
-      coef_sup <- values_table$sup_all[, p_zf]
-      coef_avg <- values_table$avg_all[, p_zf]
-      coef_exp <- values_table$exp_all[, p_zf]
+      coef_sup <- values_table$sup_all[, n.zf]
+      coef_avg <- values_table$avg_all[, n.zf]
+      coef_exp <- values_table$exp_all[, n.zf]
     } else if (trend) {
-      coef_sup <- values_table$sup_all[, (4 - p_zb + p_zf)]
-      coef_avg <- values_table$avg_all[, (4 - p_zb + p_zf)]
-      coef_exp <- values_table$exp_all[, (4 - p_zb + p_zf)]
+      coef_sup <- values_table$sup_all[, (4 - n.zb + n.zf)]
+      coef_avg <- values_table$avg_all[, (4 - n.zb + n.zf)]
+      coef_exp <- values_table$exp_all[, (4 - n.zb + n.zf)]
     }
   } else {
     stop("ERROR: Invalid value of variable p_zb or p_zf")
@@ -163,12 +163,10 @@ get.cv.coint.conf.sets <- function(lambda,
     coef_exp[4] * lambda.d^2 +
     coef_exp[5] * lambda.d^3
 
-  return(
-    list(
-      cval_sup = cval_sup,
-      cval_avg = cval_avg,
-      cval_exp = cval_exp
-    )
+  list(
+    cval_sup = cval_sup,
+    cval_avg = cval_avg,
+    cval_exp = cval_exp
   )
 }
 
@@ -214,5 +212,6 @@ get.p.values.SADF <- function(statistic,
   } else {
     p.value <- p.0
   }
-  return(p.value)
+
+  p.value
 }
