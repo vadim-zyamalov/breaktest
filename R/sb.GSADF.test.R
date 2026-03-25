@@ -57,9 +57,9 @@ sb.GSADF.test <- function(y,
     clusterExport(cluster, c(
         "ADF.test",
         "GSADF.test",
-        "supSBADF.statistic",
-        ".cval_GSADF_without_const",
-        ".cval_GSADF_with_const"
+        "supSBADF.statistic"
+        # ".cval_GSADF_without_const",
+        # ".cval_GSADF_with_const"
     ))
     registerDoSNOW(cluster)
 
@@ -196,6 +196,7 @@ sb.GSADF.test <- function(y,
 #' https://doi.org/10.1017/S0266466619000057.
 #'
 #' @keywords internal
+#' @export
 supSBADF.statistic <- function(y,
                                trim = 0.01 + 1.8 / sqrt(length(y)),
                                generalized = FALSE) {
@@ -208,7 +209,7 @@ supSBADF.statistic <- function(y,
     m <- 1
 
     if (!generalized) {
-        for (j in (floor(trim * n.obs)):n.obs) {
+        for (j in (floor(trim * n.obs)):(n.obs) - 2) {
             t.beta <- OLS(diff(C.t)[1:j], C.t[1:j])$t.beta
             SBADF.values[m] <- drop(t.beta)
             m <- m + 1
