@@ -16,24 +16,17 @@
 #' @return Matrix of determinant variables.
 #'
 #' @keywords internal
-trend.kpss.single <- function(model, n_obs, break_point) {
+trend.kpss.single <- function(model, N, bp) {
   if (!model %in% 1:4) {
-    stop("ERROR: Try to specify the deterministic component again")
+    stop("ERROR! kpss.single: Try to specify the deterministic component again")
   }
 
-  const <- matrix(data = 1, nrow = n_obs, ncol = 1)
-
-  trend <- if (model != 1) {
-    matrix(data = 1:n_obs, nrow = n_obs, ncol = 1)
-  } else {
-    NULL
-  }
-
-  du <- if (model != 3) .du(break_point, n_obs) else NULL
-
-  dt <- if (model %in% c(3, 4)) .dt(break_point, n_obs) else NULL
-
-  cbind(const, trend, du, dt)
+  cbind(
+    1,
+    1:N,
+    if (model != 3) .du(bp, N) else NULL,
+    if (model %in% c(3, 4)) .dt(bp, N) else NULL
+  )
 }
 
 
@@ -59,44 +52,19 @@ trend.kpss.single <- function(model, n_obs, break_point) {
 #' @return Matrix of deterministic terms.
 #'
 #' @keywords internal
-trend.kpss.double <- function(model, n_obs, break_point) {
+trend.kpss.double <- function(model, N, bp) {
   if (any(!model %in% 1:7)) {
-    stop("ERROR: Try to specify the deterministic component again")
+    stop("ERROR! kpss.double: Try to specify the deterministic component again")
   }
 
-  const <- matrix(data = 1, nrow = n_obs, ncol = 1)
-
-  trend <- if (model %in% c(2, 3, 4, 5)) {
-    matrix(data = 1:n_obs, nrow = n_obs, ncol = 1)
-  } else {
-    NULL
-  }
-
-  du1 <- if (model %in% c(1, 2, 4, 5, 6, 7)) {
-    .du(break_point[1], n_obs)
-  } else {
-    NULL
-  }
-
-  du2 <- if (model %in% c(1, 2, 4, 6)) {
-    .du(break_point[2], n_obs)
-  } else {
-    NULL
-  }
-
-  dt1 <- if (model %in% c(3, 4, 6, 7)) {
-    .dt(break_point[1], n_obs)
-  } else {
-    NULL
-  }
-
-  dt2 <- if (model %in% c(3, 4, 5, 7)) {
-    .dt(break_point[2], n_obs)
-  } else {
-    NULL
-  }
-
-  cbind(const, trend, du1, dt1, du2, dt2)
+  cbind(
+    1,
+    1:N,
+    if (model %in% c(1, 2, 4, 5, 6, 7)) .du(bp[1], N) else NULL,
+    if (model %in% c(3, 4, 6, 7)) .dt(bp[1], N) else NULL,
+    if (model %in% c(1, 2, 4, 6)) .du(bp[2], N) else NULL,
+    if (model %in% c(3, 4, 5, 7)) .dt(bp[2], N) else NULL
+  )
 }
 
 
@@ -125,39 +93,33 @@ trend.kpss.double <- function(model, n_obs, break_point) {
 #' @keywords internal
 trend.kpss.miltiple <- function(
   model,
-  n_obs,
-  break_point,
+  N,
+  bps,
   const = FALSE,
   trend = FALSE
 ) {
-  n_breaks <- length(break_point)
+  nb <- length(bps)
 
   if (length(model) == 1) {
-    model <- rep(model, n_breaks)
-  } else if (length(model) != n_breaks) {
-    stop("ERROR! Inconsistent sizes of model and break.point")
+    model <- rep(model, nb)
+  } else if (length(model) != nb) {
+    stop("ERROR! kpss.multiple: Inconsistent sizes of model and break.point")
   }
 
   if (any(!model %in% 1:3)) {
-    stop("ERROR: Try to specify the deterministic component again")
+    stop("ERROR: kpss.multiple: Try to specify the deterministic component again")
   }
 
-  xt <- NULL
-  if (const) {
-    xt <- matrix(data = 1, nrow = n_obs, ncol = 1)
-  }
-  if (trend) {
-    xt <- cbind(
-      xt,
-      matrix(data = 1:n_obs, nrow = n_obs, ncol = 1)
-    )
-  }
+  xt <- cbind(
+    if (const) 1 else NULL,
+    if (trend) 1:N else NULL
+  )
 
-  for (i in 1:n_breaks) {
+  for (i in 1:nb) {
     xt <- switch(model[i],
-      cbind(xt, .du(break_point[i], n_obs)),
-      cbind(xt, .dt(break_point[i], n_obs)),
-      cbind(xt, .du(break_point[i], n_obs), .dt(break_point[i], n_obs))
+      cbind(xt, .du(bps[i], N)),
+      cbind(xt, .dt(bps[i], N)),
+      cbind(xt, .du(bps[i], N), .dt(bps[i], N))
     )
   }
 
@@ -185,66 +147,59 @@ variables.dols.multiple <- function(
   y,
   x,
   model,
-  break_point,
+  bp,
   const = FALSE,
   trend = FALSE,
-  n_lags,
-  n_leads
+  n.lags,
+  n.leads
 ) {
   if (is.null(x)) {
-    stop("ERROR! Explanatory variables needed for DOLS")
+    stop("ERROR! dols.multiple: Explanatory variables needed for DOLS")
   }
-  if (!is.matrix(y)) {
-    y <- as.matrix(y)
-  }
-  if (!is.matrix(x)) {
-    x <- as.matrix(x)
-  }
+  if (!is.matrix(y)) y <- as.matrix(y)
+  if (!is.matrix(x)) x <- as.matrix(x)
 
-  n_obs <- nrow(y)
+  N <- nrow(y)
 
-  .dx_step <- x[2:n_obs, , drop = FALSE] - x[1:(n_obs - 1), , drop = FALSE]
+  .dx_step <- x[2:N, , drop = FALSE] - x[1:(N - 1), , drop = FALSE]
   .dx_lags <- .dx_step
   .dx_leads <- .dx_step
 
-  for (i in 1:n_lags) {
-    .dx_lags <- cbind(
-      .dx_lags,
-      .lagn(.dx_step, i)
-    )
+  for (i in 1:n.lags) {
+    .dx_lags <- cbind(.dx_lags, .lagn(.dx_step, i))
   }
 
-  for (i in 1:n_leads) {
+  for (i in 1:n.leads) {
     .dx_leads <- cbind(
       .dx_leads,
       .lagn(.dx_step, -i)
     )
   }
 
-  if (n_lags != 0 && n_leads != 0) {
+  if (n.lags != 0 && n.leads != 0) {
     lags <- .dx_lags
     leads <- .dx_leads[, (ncol(x) + 1):(ncol(.dx_leads)), drop = FALSE]
     .lags_leads <- cbind(lags, leads)
     .lags_leads <-
-      .lags_leads[(n_lags + 1):(n_obs - 1 - n_leads), , drop = FALSE]
-  } else if (n_lags != 0 && n_leads == 0) {
+      .lags_leads[(n.lags + 1):(N - 1 - n.leads), , drop = FALSE]
+  } else if (n.lags != 0 && n.leads == 0) {
     lags <- .dx_lags
-    .lags_leads <- lags[(n_lags + 1):(n_obs - 1), , drop = FALSE]
-  } else if (n_lags == 0 && n_leads != 0) {
+    .lags_leads <- lags[(n.lags + 1):(N - 1), , drop = FALSE]
+  } else if (n.lags == 0 && n.leads != 0) {
     lags <- .dx_lags
     leads <- .dx_leads[, (ncol(x) + 1):(ncol(.dx_leads)), drop = FALSE]
     .lags_leads <- cbind(lags, leads)
-    .lags_leads <- .lags_leads[1:(n_obs - 1 - n_leads), , drop = FALSE]
-  } else if (n_lags == 0 && n_leads == 0) {
+    .lags_leads <- .lags_leads[1:(N - 1 - n.leads), , drop = FALSE]
+  } else if (n.lags == 0 && n.leads == 0) {
     .lags_leads <- .dx_lags
   }
-  deter <- trend.kpss.miltiple(model, n_obs, break_point, const, trend)
+  deter <- trend.kpss.miltiple(model, N, bp, const, trend)
 
   list(
-    yreg = y[(n_lags + 2):(n_obs - n_leads), 1, drop = FALSE],
+    yreg = y[(n.lags + 2):(N - n.leads), 1, drop = FALSE],
     xreg = cbind(
-      deter[(n_lags + 2):(n_obs - n_leads), , drop = FALSE],
-      x[(n_lags + 2):(n_obs - n_leads), , drop = FALSE],
+      deter[(n.lags + 2):(N - n.leads), , drop = FALSE],
+      x[(n.lags + 2):(N - n.leads), , drop = FALSE],
       .lags_leads
     )
   )
@@ -254,12 +209,12 @@ variables.dols.multiple <- function(
 #' @title
 #' Generating monthly seasonal dummy variables
 #'
-#' @param n.obs number of observations.
+#' @param N number of observations.
 #'
 #' @return The matrix of values od seasonal dummies.
 #'
 #' @keywords internal
-seasonal.dummies <- function(n_obs) {
+seasonal.dummies <- function(N) {
   s1 <- c(1 - 1 / 12, rep(-1 / 12, 11))
 
   result <- NULL
@@ -268,7 +223,7 @@ seasonal.dummies <- function(n_obs) {
       result,
       c(
         rep(-1 / 12, i),
-        rep(s1, length.out = n_obs - i)
+        rep(s1, length.out = N - i)
       )
     )
   }
@@ -287,9 +242,10 @@ seasonal.dummies <- function(n_obs) {
 #'
 #' @keywords internal
 .du <- function(bp, n_obs) {
-  rbind(
-    matrix(data = 0, nrow = bp, ncol = 1),
-    matrix(data = 1, nrow = n_obs - bp, ncol = 1)
+  matrix(
+    as.numeric((1:n_obs) > bp),
+    nrow = n_obs,
+    ncol = 1
   )
 }
 
@@ -304,8 +260,9 @@ seasonal.dummies <- function(n_obs) {
 #'
 #' @keywords internal
 .dt <- function(bp, n_obs) {
-  rbind(
-    matrix(data = 0, nrow = bp, ncol = 1),
-    matrix(data = 1:(n_obs - bp), nrow = n_obs - bp, ncol = 1)
+  matrix(
+    as.numeric((1:n_obs) > bp) * ((1:n_obs) - bp),
+    nrow = n_obs,
+    ncol = 1
   )
 }

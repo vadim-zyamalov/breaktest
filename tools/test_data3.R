@@ -1,14 +1,16 @@
-N_sim = 456
+N_sim <- 456
 # tau_sim - Moment of volatility shift.
-tau_sim = 0.5
+tau_sim <- 0.5
 # sigma0, sigma1.
-sigma0 = 1
-sigma1 = 1
+sigma0 <- 1
+sigma1 <- 1
 # delta_b1_sim - Bubble size.
-delta_b1_sim = 0.02
+delta_b1_sim <- 0.02
 
-Y <- hbm.sim(N = N_sim, tau = tau_sim, sigma0 = sigma0, sigma1 = sigma1,
-             tau.break = c(0.4, 0.6, 1), delta.break = c(delta_b1_sim, 0))$y
+Y <- hbm.sim(
+  N = N_sim, tau = tau_sim, sigma0 = sigma0, sigma1 = sigma1,
+  tau.break = c(0.4, 0.6, 1), delta.break = c(delta_b1_sim, 0)
+)$y
 Z <- cumsum(rnorm(N_sim))
 
 res.Y.sadf <- SADF.test(Y)

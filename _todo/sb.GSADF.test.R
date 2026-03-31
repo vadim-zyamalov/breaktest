@@ -42,134 +42,134 @@ sb.GSADF.test <- function(y,
                           iter = 999,
                           urs = TRUE,
                           seed = round(10^4 * sd(y))) {
-    n.obs <- length(y)
+  n.obs <- length(y)
 
-    ## Find supSBADF_value.
-    supSBADF.model <- supSBADF.statistic(y, trim)
+  ## Find supSBADF_value.
+  supSBADF.model <- supSBADF.statistic(y, trim)
 
-    ## Do parallel.
-    cores <- detectCores()
+  ## Do parallel.
+  cores <- detectCores()
 
-    progress.bar <- txtProgressBar(max = iter, style = 3)
-    progress <- function(n) setTxtProgressBar(progress.bar, n)
+  progress.bar <- txtProgressBar(max = iter, style = 3)
+  progress <- function(n) setTxtProgressBar(progress.bar, n)
 
-    cluster <- makeCluster(max(cores - 1, 1))
-    clusterExport(cluster, c(
-        "ADF.test",
-        "GSADF.test",
-        "supSBADF.statistic",
-        ".cval_GSADF_without_const",
-        ".cval_GSADF_with_const"
-    ))
-    registerDoSNOW(cluster)
+  cluster <- makeCluster(max(cores - 1, 1))
+  clusterExport(cluster, c(
+    "ADF.test",
+    "GSADF.test",
+    "supSBADF.statistic",
+    ".cval_GSADF_without_const",
+    ".cval_GSADF_with_const"
+  ))
+  registerDoSNOW(cluster)
 
-    GSADF.supSBADF.bootstrap.values <- foreach( # nolint
-        step = 1:iter,
-        .combine = rbind,
-        .options.snow = list(progress = progress)
-    ) %dopar% {
-        y.star <- cumsum(c(0, rnorm(n.obs - 1) * diff(y)))
-        tmp.GSADF.value <- NA
-        supSBADF.value <- NA
-        if (urs == TRUE) {
-            gsadf.model <- GSADF.test(y.star, trim, const)
-            tmp.GSADF.value <- gsadf.model$sadf.value
-        }
-        supSBADF.model <- supSBADF.statistic(y.star, trim)
-        tmp.supSBADF.value <- supSBADF.model$supSBADF.value
-        c(tmp.GSADF.value, tmp.supSBADF.value)
+  GSADF.supSBADF.bootstrap.values <- foreach( # nolint
+    step = 1:iter,
+    .combine = rbind,
+    .options.snow = list(progress = progress)
+  ) %dopar% {
+    y.star <- cumsum(c(0, rnorm(n.obs - 1) * diff(y)))
+    tmp.GSADF.value <- NA
+    supSBADF.value <- NA
+    if (urs == TRUE) {
+      gsadf.model <- GSADF.test(y.star, trim, const)
+      tmp.GSADF.value <- gsadf.model$sadf.value
     }
+    supSBADF.model <- supSBADF.statistic(y.star, trim)
+    tmp.supSBADF.value <- supSBADF.model$supSBADF.value
+    c(tmp.GSADF.value, tmp.supSBADF.value)
+  }
 
-    stopCluster(cluster)
+  stopCluster(cluster)
+
+  ## Get sadf_supSBADF_bootstrap_values
+  supSBADF.bootstrap.values <- GSADF.supSBADF.bootstrap.values[, 2]
+
+  ## Find critical value.
+  supSBADF.cr.value <- as.numeric(quantile(
+    supSBADF.bootstrap.values,
+    1 - alpha
+  ))
+
+  ## A union of rejections strategy.
+  if (urs == TRUE) {
+    ## Find sadf_value.
+    gsadf.model <- GSADF.test(y, trim, const)
+    t.values <- gsadf.model$t.values
+    GSADF.value <- gsadf.model$GSADF.value
 
     ## Get sadf_supSBADF_bootstrap_values
-    supSBADF.bootstrap.values <- GSADF.supSBADF.bootstrap.values[, 2]
+    GSADF.bootstrap.values <- GSADF.supSBADF.bootstrap.values[, 1]
 
     ## Find critical value.
-    supSBADF.cr.value <- as.numeric(quantile(
-        supSBADF.bootstrap.values,
-        1 - alpha
+    GSADF.cr.value <- as.numeric(quantile(
+      GSADF.bootstrap.values,
+      1 - alpha
     ))
 
-    ## A union of rejections strategy.
-    if (urs == TRUE) {
-        ## Find sadf_value.
-        gsadf.model <- GSADF.test(y, trim, const)
-        t.values <- gsadf.model$t.values
-        GSADF.value <- gsadf.model$GSADF.value
-
-        ## Get sadf_supSBADF_bootstrap_values
-        GSADF.bootstrap.values <- GSADF.supSBADF.bootstrap.values[, 1]
-
-        ## Find critical value.
-        GSADF.cr.value <- as.numeric(quantile(
-            GSADF.bootstrap.values,
-            1 - alpha
-        ))
-
-        ## Calculate U value.
-        U.value <- max(
-            GSADF.value,
-            GSADF.cr.value / supSBADF.cr.value * supSBADF.value
-        )
-
-        ## Find U_bootstrap_values.
-        U.bootstrap.values <- c()
-        for (b in 1:iter) {
-            U.bootstrap.values[b] <- max(
-                GSADF.bootstrap.values[b],
-                GSADF.cr.value /
-                    supSBADF.cr.value * supSBADF.bootstrap.values[b]
-            )
-        }
-
-        ## Find critical value.
-        U.cr.value <- as.numeric(quantile(U.bootstrap.values, 1 - alpha))
-
-        p.value <- round(sum(U.bootstrap.values > U.value) / iter, 4)
-
-        is.explosive <- ifelse(U.value > U.cr.value, 1, 0)
-    } else {
-        p.value <- round(sum(supSBADF.bootstrap.values > supSBADF.value) /
-            iter, 4)
-
-        is.explosive <- ifelse(supSBADF.value > supSBADF.cr.value, 1, 0)
-    }
-
-    result <- c(
-        list(
-            y = y,
-            trim = trim,
-            const = const,
-            alpha = alpha,
-            iter = iter,
-            urs = urs,
-            seed = seed,
-            SBADF.values = supSBADF.model$SBADF.values,
-            supSBADF.value = supSBADF.model$supSBADF_value,
-            supSBADF.bootstrap.values = supSBADF.bootstrap.values,
-            supSBADF.cr.value = supSBADF.cr.value,
-            p.value = p.value,
-            is.explosive = is.explosive
-        ),
-        if (urs) {
-            list(
-                t.values = t.values,
-                GSADF.value = GSADF.value,
-                GSADF.bootstrap.values = GSADF.bootstrap.values,
-                GSADF.cr.value = GSADF.cr.value,
-                U.value = U.value,
-                U.bootstrap.values = U.bootstrap.values,
-                U.cr.value = U.cr.value
-            )
-        } else {
-            NULL
-        }
+    ## Calculate U value.
+    U.value <- max(
+      GSADF.value,
+      GSADF.cr.value / supSBADF.cr.value * supSBADF.value
     )
 
-    class(result) <- "sadf"
+    ## Find U_bootstrap_values.
+    U.bootstrap.values <- c()
+    for (b in 1:iter) {
+      U.bootstrap.values[b] <- max(
+        GSADF.bootstrap.values[b],
+        GSADF.cr.value /
+          supSBADF.cr.value * supSBADF.bootstrap.values[b]
+      )
+    }
 
-    return(result)
+    ## Find critical value.
+    U.cr.value <- as.numeric(quantile(U.bootstrap.values, 1 - alpha))
+
+    p.value <- round(sum(U.bootstrap.values > U.value) / iter, 4)
+
+    is.explosive <- ifelse(U.value > U.cr.value, 1, 0)
+  } else {
+    p.value <- round(sum(supSBADF.bootstrap.values > supSBADF.value) /
+      iter, 4)
+
+    is.explosive <- ifelse(supSBADF.value > supSBADF.cr.value, 1, 0)
+  }
+
+  result <- c(
+    list(
+      y = y,
+      trim = trim,
+      const = const,
+      alpha = alpha,
+      iter = iter,
+      urs = urs,
+      seed = seed,
+      SBADF.values = supSBADF.model$SBADF.values,
+      supSBADF.value = supSBADF.model$supSBADF_value,
+      supSBADF.bootstrap.values = supSBADF.bootstrap.values,
+      supSBADF.cr.value = supSBADF.cr.value,
+      p.value = p.value,
+      is.explosive = is.explosive
+    ),
+    if (urs) {
+      list(
+        t.values = t.values,
+        GSADF.value = GSADF.value,
+        GSADF.bootstrap.values = GSADF.bootstrap.values,
+        GSADF.cr.value = GSADF.cr.value,
+        U.value = U.value,
+        U.bootstrap.values = U.bootstrap.values,
+        U.cr.value = U.cr.value
+      )
+    } else {
+      NULL
+    }
+  )
+
+  class(result) <- "sadf"
+
+  return(result)
 }
 
 
@@ -199,39 +199,39 @@ sb.GSADF.test <- function(y,
 supSBADF.statistic <- function(y,
                                trim = 0.01 + 1.8 / sqrt(length(y)),
                                generalized = FALSE) {
-    n.obs <- length(y)
+  n.obs <- length(y)
 
-    ## Calculate C.t.
-    C.t <- cumsum(sign(diff(y)))
+  ## Calculate C.t.
+  C.t <- cumsum(sign(diff(y)))
 
-    SBADF.values <- c()
-    m <- 1
+  SBADF.values <- c()
+  m <- 1
 
-    if (!generalized) {
-        for (j in (floor(trim * n.obs)):n.obs) {
-            t.beta <- .estimate_ols(diff(C.t)[1:j], C.t[1:j])$t.beta
-            SBADF.values[m] <- drop(t.beta)
-            m <- m + 1
-        }
-    } else {
-        for (i in 1:(n.obs - floor(trim * n.obs) + 1)) {
-            for (j in (i + floor(trim * n.obs) - 1):n.obs) {
-                t.beta <- .estimate_ols(diff(C.t)[i:j], C.t[i:j])$t.beta
-                SBADF.values[m] <- drop(t.beta)
-                m <- m + 1
-            }
-        }
+  if (!generalized) {
+    for (j in (floor(trim * n.obs)):n.obs) {
+      t.beta <- .OLS(diff(C.t)[1:j], C.t[1:j])$t.beta
+      SBADF.values[m] <- drop(t.beta)
+      m <- m + 1
     }
+  } else {
+    for (i in 1:(n.obs - floor(trim * n.obs) + 1)) {
+      for (j in (i + floor(trim * n.obs) - 1):n.obs) {
+        t.beta <- .OLS(diff(C.t)[i:j], C.t[i:j])$t.beta
+        SBADF.values[m] <- drop(t.beta)
+        m <- m + 1
+      }
+    }
+  }
 
-    supSBADF.value <- max(SBADF.values)
+  supSBADF.value <- max(SBADF.values)
 
-    return(
-        list(
-            y = y,
-            trim = trim,
-            C.t = C.t,
-            SBADF.values = SBADF.values,
-            supSBADF.value = supSBADF.value
-        )
+  return(
+    list(
+      y = y,
+      trim = trim,
+      C.t = C.t,
+      SBADF.values = SBADF.values,
+      supSBADF.value = supSBADF.value
     )
+  )
 }

@@ -8,24 +8,20 @@
 #' @return Lagged or leaded vector.
 #'
 #' @keywords internal
-.lagn <- function(x,
-                  i,
-                  na = NA) {
-  if (!is.matrix(x)) x <- as.matrix(x)
-  n_obs <- nrow(x)
-  n_var <- ncol(x)
+.lagn <- function(x, i, na = NA) {
+  .lag <- function(x, i, na) {
+    N <- length(x)
 
-  if (i > 0) {
-    rbind(
-      matrix(data = na, nrow = i, ncol = n_var),
-      x[1:(n_obs - i), , drop = FALSE]
-    )
-  } else {
-    rbind(
-      x[(1 + abs(i)):n_obs, , drop = FALSE],
-      matrix(data = na, nrow = abs(i), ncol = n_var)
-    )
+    if (i > 0) {
+      c(rep(na, i), x)[1:N]
+    } else {
+      i <- abs(i)
+      c(x, rep(na, i))[(i + 1):(N + i)]
+    }
   }
+
+  if (!is.matrix(x)) x <- as.matrix(x)
+  apply(x, 2, (function(col) .lag(col, i, na)))
 }
 
 
@@ -44,19 +40,14 @@
                    lag = 1,
                    differences = 1,
                    na = NA) {
-  if (!is.matrix(x)) x <- as.matrix(x)
-  n_obs <- nrow(x)
-  n_var <- ncol(x)
-  .diff <- diff(x, lag = lag, differences = differences)
+  .diff <- function(x, l, d, na) {
+    N <- length(x)
+    tmp <- diff(x, lag = l, differences = d)
+    c(rep(na, N - length(tmp)), tmp)
+  }
 
-  rbind(
-    matrix(
-      data = na,
-      nrow = n_obs - nrow(.diff),
-      ncol = n_var
-    ),
-    .diff
-  )
+  if (!is.matrix(x)) x <- as.matrix(x)
+  apply(x, 2, (function(col) .diff(col, lag, differences, na)))
 }
 
 
@@ -70,10 +61,9 @@
 .kpss.statistic <- function(resids,
                             variance) {
   if (!is.matrix(resids)) resids <- as.matrix(resids)
-  n_obs <- nrow(resids)
+  N <- nrow(resids)
   s_t <- apply(resids, 2, cumsum)
-
-  drop(t(s_t) %*% s_t) / (n_obs^2 * variance)
+  drop(t(s_t) %*% s_t) / (N^2 * variance)
 }
 
 

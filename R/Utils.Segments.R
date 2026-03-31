@@ -155,7 +155,7 @@ segments.ols.mulitiple <- function(
   if (!is.matrix(y)) y <- as.matrix(y)
   if (!is.matrix(x)) x <- as.matrix(x)
 
-  n.obs <- nrow(y)
+  N <- nrow(y)
 
   if (is.null(SSR.data)) {
     SSR.data <- SSR.matrix(y, x, width)
@@ -163,32 +163,32 @@ segments.ols.mulitiple <- function(
 
   if (m == 1) {
     .segments <- segments.ols.single(
-      1, n.obs,
-      width, n.obs - width,
-      n.obs, SSR.data
+      1, N,
+      width, N - width,
+      N, SSR.data
     )
-    .rss_final <- .segments$SSR
-    .bp_final <- .segments$break.point
+    final.rss <- .segments$SSR
+    final.bp <- .segments$break.point
   } else {
-    n_variants <- n.obs - (m + 1) * width + 1
-    .rss <- matrix(
+    N.variants <- N - (m + 1) * width + 1
+    rss.values <- matrix(
       data = Inf,
-      nrow = n_variants,
+      nrow = N.variants,
       ncol = 1
     )
-    .bp <- matrix(
+    bp.values <- matrix(
       data = 0,
-      nrow = n_variants,
+      nrow = N.variants,
       ncol = m
     )
     for (step in 1:m) {
-      .rss_loop <- matrix(
+      loop.rss <- matrix(
         data = Inf,
-        nrow = n_variants,
+        nrow = N.variants,
         ncol = 1
       )
       if (step == 1) {
-        for (v in 1:n_variants) {
+        for (v in 1:N.variants) {
           .last_step <- 2 * width + v - 1
           .segments <- segments.ols.single(
             1,
@@ -197,49 +197,48 @@ segments.ols.mulitiple <- function(
             .last_step - width,
             .last_step, SSR.data
           )
-          .rss[v, 1] <- .segments$SSR
-          .bp[v, 1] <- .segments$break.point
+          rss.values[v, 1] <- .segments$SSR
+          bp.values[v, 1] <- .segments$break.point
         }
       } else if (step == m) {
-        for (v in 1:n_variants) {
-          .rss_loop[v, 1] <- .rss[v, 1] +
-            SSR.data[step * width + v, n.obs]
+        for (v in 1:N.variants) {
+          loop.rss[v, 1] <- rss.values[v, 1] + SSR.data[step * width + v, N]
         }
-        .rss_final <- min(.rss_loop)
-        .idx_final <- which.min(.rss_loop)
-        .bp_final <- .bp[.idx_final, ]
-        .bp_final[m] <- step * width + .idx_final - 1
+        final.rss <- min(loop.rss)
+        final.index <- which.min(loop.rss)
+        final.bp <- bp.values[final.index, ]
+        final.bp[m] <- step * width + final.index - 1
       } else {
-        .rss_new <- matrix(
+        new.rss.values <- matrix(
           data = Inf,
-          nrow = n_variants,
+          nrow = N.variants,
           ncol = 1
         )
-        .bp_new <- matrix(
+        new.bp.values <- matrix(
           data = 0,
-          nrow = n_variants,
+          nrow = N.variants,
           ncol = m
         )
-        for (.last_step in ((step + 1) * width):(n.obs - (m - step) * width)) {
-          .v_new <- .last_step - (step + 1) * width + 1
-          for (v in 1:n_variants) {
-            .rss_loop[v, 1] <- .rss[v, 1] +
+        for (.last_step in ((step + 1) * width):(N - (m - step) * width)) {
+          new.v <- .last_step - (step + 1) * width + 1
+          for (v in 1:N.variants) {
+            loop.rss[v, 1] <- rss.values[v, 1] +
               SSR.data[step * width + v, .last_step]
           }
-          .rss_new[.v_new, 1] <- min(.rss_loop)
-          .idx_new <- which.min(.rss_loop)
-          .bp_new[.v_new, 1:m] <- .bp[.idx_new, ]
-          .bp_new[.v_new, step] <- step * width + .idx_new - 1
+          new.rss.values[new.v, 1] <- min(loop.rss)
+          new.index <- which.min(loop.rss)
+          new.bp.values[new.v, 1:m] <- bp.values[new.index, ]
+          new.bp.values[new.v, step] <- step * width + new.index - 1
         }
-        .rss <- .rss_new
-        .bp <- .bp_new
+        rss.values <- new.rss.values
+        bp.values <- new.bp.values
       }
     }
   }
 
   list(
-    SSR         = .rss_final,
-    break.point = .bp_final
+    SSR         = final.rss,
+    break.point = final.bp
   )
 }
 

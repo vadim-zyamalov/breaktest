@@ -53,44 +53,37 @@ SSR.recursive <- function(y,
   if (!is.matrix(y)) y <- as.matrix(y)
   if (!is.matrix(x)) x <- as.matrix(x)
 
-  n.obs <- nrow(y)
+  N <- nrow(y)
 
   beg <- max(beg, 1)
-  end <- min(end, n.obs)
+  end <- min(end, N)
 
-  result <- matrix(data = Inf, nrow = n.obs, ncol = 1)
+  result <- matrix(data = Inf, nrow = N, ncol = 1)
 
   y0 <- y[beg:(beg + width - 1), , drop = FALSE]
   x0 <- x[beg:(beg + width - 1), , drop = FALSE]
 
-  xx.inv0 <- qr.solve(t(x0) %*% x0)
+  xx.inv <- qr.solve(t(x0) %*% x0)
   .model <- .OLS(y0, x0)
-  beta0 <- .model$beta
-  resid0 <- .model$residuals
+  beta <- .model$beta
+  residl <- .model$residuals
   rm(.model)
 
-  result[beg + width - 1, 1] <- drop(t(resid0) %*% resid0)
+  result[beg + width - 1, 1] <- drop(t(residl) %*% residl)
 
   for (step in (beg + width):end) {
     if (step > end) break
 
-    .x.loop <- x[step, , drop = FALSE]
+    xl <- x[step, , drop = FALSE]
+    residl <- drop(y[step, , drop = FALSE] - xl %*% beta)
 
-    .resid_loop <- drop(y[step, , drop = FALSE] - .x.loop %*% beta0)
+    denom <- drop(1 + xl %*% xx.inv %*% t(xl))
 
-    denom <- 1 + .x.loop %*% xx.inv0 %*% t(.x.loop)
-    denom <- drop(denom)
+    result[step, 1] <- result[step - 1, 1] + residl^2 / denom
 
-    xx.inv1 <- xx.inv0 -
-      (xx.inv0 %*% t(.x.loop) %*% .x.loop %*% xx.inv0) / denom
-
-    beta1 <- beta0 + xx.inv1 %*% t(.x.loop) * .resid_loop
-
-    result[step, 1] <- result[step - 1, 1] + .resid_loop^2 / denom
-
-    xx.inv0 <- xx.inv1
-
-    beta0 <- beta1
+    beta <- beta + xx.inv %*% t(xl) * residl
+    xx.inv <- xx.inv -
+      (xx.inv %*% t(xl) %*% xl %*% xx.inv) / denom
   }
 
   result

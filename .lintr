@@ -1,4 +1,3 @@
-linters: with_defaults(
-    cyclocomp_linter = NULL,
+linters: linters_with_defaults(
     object_name_linter = NULL
-    )
+  )
