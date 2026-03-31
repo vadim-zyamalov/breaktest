@@ -4,7 +4,7 @@
 \alias{get.cv.coint.conf.sets}
 \title{Critical values for break point confidence intervals}
 \usage{
-get.cv.coint.conf.sets(lambda, trend, conf.level, p_zb, p_zf)
+get.cv.coint.conf.sets(lambda, trend, conf.level, n.zb, n.zf)
 }
 \arguments{
 \item{lambda}{Relative break point position.}
@@ -13,9 +13,9 @@ get.cv.coint.conf.sets(lambda, trend, conf.level, p_zb, p_zf)
 
 \item{conf.level}{Confidense level.}
 
-\item{p_zb}{Number of variables with breaks.}
+\item{n.zb}{Number of variables with breaks.}
 
-\item{p_zf}{Number of variables without breaks.}
+\item{n.zf}{Number of variables without breaks.}
 }
 \description{
 Auxiliary function returning pre-calculated critical values for
