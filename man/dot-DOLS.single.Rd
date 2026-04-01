@@ -4,7 +4,7 @@
 \alias{.DOLS.single}
 \title{Estimating DOLS regression for a single known break point}
 \usage{
-.DOLS.single(y, x, model, tb, k_lags, k_leads)
+.DOLS.single(y, x, model, bp, n.lags, n.leads)
 }
 \arguments{
 \item{y}{A time series of interest.}
@@ -21,9 +21,9 @@
 \item 6: for model E.
 }}
 
-\item{break.point}{A position of the break point.}
+\item{bp}{A position of the break point.}
 
-\item{k.lags, k.leads}{A number of lags and leads in DOLS regression.}
+\item{n.lags, n.leads}{A number of lags and leads in DOLS regression.}
 }
 \value{
 A list of:

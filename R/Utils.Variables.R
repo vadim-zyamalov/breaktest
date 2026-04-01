@@ -1,5 +1,5 @@
 #' @title
-#' Construct determinant variables for [kpss_single]
+#' Construct determinant variables for [kpss.1br]
 #'
 #' @details
 #' Procedure to compute deterministic terms
@@ -31,7 +31,7 @@ trend.kpss.single <- function(model, N, bp) {
 
 
 #' @title
-#' Construct determinant variables for [kpss_double]
+#' Construct determinant variables for [kpss.2br]
 #'
 #' @details
 #' Procedure to compute deterministic terms
@@ -69,7 +69,7 @@ trend.kpss.double <- function(model, N, bp) {
 
 
 #' @title
-#' Deterministic terms for [kpss_multiple]
+#' Deterministic terms for [kpss.mlt]
 #'
 #' @description
 #' Procedure to compute deterministic terms for KPSS with \eqn{m}

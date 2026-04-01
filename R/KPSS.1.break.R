@@ -19,7 +19,7 @@
 #' * 4: for model C,
 #' * 5: for model D,
 #' * 6: for model E.
-#' @param break.point A position of the break point.
+#' @param bp A position of the break point.
 #' @param weakly.exog Exogeneity of the stochastic regressors
 #' * `TRUE`: if the regressors are weakly exogenous,
 #' * `FALSE`: if the regressors are not weakly exogenous
@@ -41,64 +41,50 @@
 #' https://doi.org/10.1111/j.1468-0084.2006.00180.x.
 #'
 #' @export
-kpss.single <- function(y,
-                        x,
-                        model,
-                        t.break,
-                        weakly.exog = TRUE,
-                        n.lag.lead) {
+KPSS.1br <- function(y,
+                     x,
+                     model,
+                     bp,
+                     weakly.exog = TRUE,
+                     ll.init) {
   if (!is.matrix(y)) y <- as.matrix(y)
-  if (!is.null(x)) {
-    if (!is.matrix(x)) x <- as.matrix(x)
-  }
+  if (!is.null(x) && !is.matrix(x)) x <- as.matrix(x)
 
-  n.obs <- nrow(y)
+  N <- nrow(y)
+  dmodel <- c(1, 2, 3, 4, 1, 4)
 
   if (model < 0 && model > 6) {
-    stop("ERROR: Try to specify the deterministic component again")
+    stop("ERROR! kpss.single: try to specify the deterministic component again")
   }
 
   if (weakly.exog) {
-    if (model == 0) {
-      xt <- x
-    } else if (1 <= model && model <= 4) {
-      deter <- trend.kpss.single(model, n.obs, t.break)
-      xt <- cbind(deter, x)
-    } else if (model == 5) {
-      deter <- trend.kpss.single(1, n.obs, t.break)
-      xdu <- sweep(x, 1, deter[, 2, drop = FALSE], `*`)
-      xt <- cbind(deter, x, xdu)
-    } else if (model == 6) {
-      deter <- trend.kpss.single(4, n.obs, t.break)
-      xdu <- sweep(x, 1, deter[, 2, drop = FALSE], `*`)
-      xt <- cbind(deter, x, xdu)
-    }
+    deter <- if (model != 0) trend.kpss.single(dmodel[model], N, bp) else NULL
+    xdu <- if (model %in% c(5, 6)) sweep(x, 1, deter[, 2, drop = FALSE], `*`) else NULL
+    xt <- cbind(deter, x, xdu)
 
-    .res_ols <- .OLS(y, xt)
-    beta <- .res_ols$beta
-    resids <- .res_ols$residuals
-    t_beta <- .res_ols$t.beta
+    model.est <- .OLS(y, xt)
+    beta <- model.est$beta
+    resids <- model.est$residuals
+    t.beta <- model.est$t.beta
   } else {
     bic <- Inf
-    for (i in n.lag.lead:1) {
-      .res_dols <- .DOLS.single(y, x, model, t.break, i, i)
-      if (.res_dols$bic < bic) {
-        bic <- .res_dols$bic
-        beta <- .res_dols$beta
-        t_beta <- .res_dols$t.beta
-        resids <- .res_dols$residuals
+    for (i in ll.init:1) {
+      model.est <- .DOLS.single(y, x, model, bp, i, i)
+      if (model.est$bic < bic) {
+        bic <- model.est$bic
+        beta <- model.est$beta
+        t.beta <- model.est$t.beta
+        resids <- model.est$residuals
       }
     }
   }
 
-  test <- .kpss.statistic(resids, .lr.var.kurozumi(resids))
-
   list(
     beta = beta,
-    test = test,
+    statistic = .kpss.statistic(resids, .lr.var.kurozumi(resids)),
     residuals = resids,
-    t.beta = t_beta,
-    break.point = t.break
+    t.beta = t.beta,
+    break.point = bp
   )
 }
 
@@ -147,24 +133,24 @@ kpss.single <- function(y,
 #' https://doi.org/10.1111/j.1468-0084.2006.00180.x.
 #'
 #' @export
-kpss.single.unknown <- function(y,
-                                x,
-                                model,
-                                weakly.exog,
-                                ll.init) {
+kpss.1br.unknown <- function(y,
+                             x,
+                             model,
+                             weakly.exog,
+                             ll.init) {
   if (!is.matrix(y)) y <- as.matrix(y)
-  if (!is.matrix(x)) x <- as.matrix(x)
+  if (!is.null(x) && !is.matrix(x)) x <- as.matrix(x)
 
-  n.obs <- nrow(y)
+  N <- nrow(y)
 
   min.test <- Inf
   idx.test <- NULL
   min.rss <- Inf
   idx.rss <- NULL
 
-  for (i in 3:(n.obs - 3)) {
-    if (ll.init + 2 < i && i < n.obs - 5 - ll.init) {
-      .result <- kpss.single(y, x, model, i, weakly.exog, ll.init)
+  for (i in 3:(N - 3)) {
+    if (ll.init + 2 < i && i < N - 5 - ll.init) {
+      .result <- KPSS.1br(y, x, model, i, weakly.exog, ll.init)
       .rss <- drop(t(.result$residuals) %*% .result$residuals)
 
       if (.result$test < min.test) {
@@ -182,5 +168,6 @@ kpss.single.unknown <- function(y,
   result <- matrix(c(min.test, min.rss, idx.test, idx.rss), ncol = 2)
   colnames(result) <- c("stat", "tb")
   rownames(result) <- c("min(stat)", "min(RSS)")
+
   result
 }

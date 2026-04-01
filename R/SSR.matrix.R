@@ -14,13 +14,13 @@ SSR.matrix <- function(y,
   if (!is.matrix(y)) y <- as.matrix(y)
   if (!is.matrix(x)) x <- as.matrix(x)
 
-  n.obs <- nrow(y)
+  N <- nrow(y)
 
-  result <- matrix(data = Inf, nrow = n.obs, ncol = n.obs)
+  result <- matrix(data = Inf, nrow = N, ncol = N)
 
-  for (i in 1:(n.obs - width + 1)) {
-    result[i, 1:n.obs] <- SSR.recursive(
-      y, x, i, n.obs, width
+  for (i in 1:(N - width + 1)) {
+    result[i, 1:N] <- SSR.recursive(
+      y, x, i, N, width
     )
   }
 

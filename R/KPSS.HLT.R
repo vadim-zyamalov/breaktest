@@ -14,7 +14,7 @@
 #' Journal of Econometrics 167, no. 1 (2012): 140–67.
 #'
 #' @export
-kpss.HLT <- function(y,
+KPSS.HLT <- function(y,
                      const = FALSE,
                      trim = 0.15) {
   if (!is.matrix(y)) y <- as.matrix(y)

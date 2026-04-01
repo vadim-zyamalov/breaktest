@@ -2,6 +2,10 @@
 % Please edit documentation in R/lr.var.R
 \name{.lr.variance}
 \alias{.lr.variance}
+\alias{.lr.var.bartlett}
+\alias{.lr.var.quad}
+\alias{.lr.var.kurozumi}
+\alias{.lr.var.spc}
 \title{Calculating long-run variance or covariance matrix}
 \usage{
 .lr.variance(
@@ -16,6 +20,14 @@
   max.lag = 0,
   criterion = "bic"
 )
+
+.lr.var.bartlett(y)
+
+.lr.var.quad(y)
+
+.lr.var.kurozumi(y)
+
+.lr.var.spc(y, max.lag = 0, kernel = "bartlett", criterion = "bic")
 }
 \arguments{
 \item{y}{A time series of interest.}

@@ -2,7 +2,7 @@
 % Please edit documentation in R/Utils.Variables.R
 \name{trend.kpss.miltiple}
 \alias{trend.kpss.miltiple}
-\title{Deterministic terms for \link{kpss_multiple}}
+\title{Deterministic terms for \link{kpss.mlt}}
 \usage{
 trend.kpss.miltiple(model, N, bps, const = FALSE, trend = FALSE)
 }

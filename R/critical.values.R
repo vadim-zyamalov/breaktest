@@ -3,7 +3,7 @@
 #'
 #' @description
 #' Auxiliary function returning pre-calculated critical values for
-#' [kpss_single]
+#' [kpss.1br]
 #'
 #' @details
 #' The function is not intended to be used directly so it's not exported.
@@ -38,7 +38,7 @@ cval.kpss.single <- function(model,
 #'
 #' @description
 #' Auxiliary function returning pre-calculated critical values for
-#' [kpss_double]
+#' [kpss.2br]
 #'
 #' @details
 #' The function is not intended to be used directly so it's not exported.

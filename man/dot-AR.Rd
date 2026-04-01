@@ -4,16 +4,16 @@
 \alias{.AR}
 \title{Custom AR with extra information}
 \usage{
-.AR(y, x, max_lag, criterion = "aic")
+.AR(y, x, max.lag, criterion = "aic")
 }
 \arguments{
 \item{y}{A dependent variable.}
 
 \item{x}{Explanatory variables.}
 
-\item{criterion}{A criterion for lag number estimation.}
-
 \item{max.lag}{The maximum number of lags.}
+
+\item{criterion}{A criterion for lag number estimation.}
 }
 \value{
 A list of:

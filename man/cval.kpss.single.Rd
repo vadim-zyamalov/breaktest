@@ -25,7 +25,7 @@ cval.kpss.single(model, break.point, n.obs, k)
 }
 \description{
 Auxiliary function returning pre-calculated critical values for
-\link{kpss_single}
+\link{kpss.1br}
 }
 \details{
 The function is not intended to be used directly so it's not exported.

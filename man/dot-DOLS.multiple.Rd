@@ -4,16 +4,7 @@
 \alias{.DOLS.multiple}
 \title{Estimating DOLS regression for multiple known break points}
 \usage{
-.DOLS.multiple(
-  y,
-  x,
-  model,
-  break_point,
-  const = FALSE,
-  trend = FALSE,
-  n_lags,
-  n_leads
-)
+.DOLS.multiple(y, x, model, bp, const = FALSE, trend = FALSE, n.lags, n.leads)
 }
 \arguments{
 \item{y}{A time series of interest.}

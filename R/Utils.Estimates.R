@@ -46,8 +46,8 @@
 #' * 4: for model C,
 #' * 5: for model D,
 #' * 6: for model E.
-#' @param break.point A position of the break point.
-#' @param k.lags,k.leads A number of lags and leads in DOLS regression.
+#' @param bp A position of the break point.
+#' @param n.lags,n.leads A number of lags and leads in DOLS regression.
 #'
 #' @return A list of:
 #' * Estimates of coefficients,
@@ -65,89 +65,49 @@
 .DOLS.single <- function(y,
                          x,
                          model,
-                         tb,
-                         k_lags,
-                         k_leads) {
+                         bp,
+                         n.lags,
+                         n.leads) {
   if (is.null(x)) {
-    stop("ERROR! Explanatory variables needed for DOLS")
+    stop("ERROR! DOLS.single: explanatory variables needed for DOLS")
   }
   if (!is.matrix(y)) y <- as.matrix(y)
   if (!is.matrix(x)) x <- as.matrix(x)
 
-  n_obs <- nrow(y)
+  N <- nrow(y)
+  rows <- (n.lags + 2):(N - n.leads)
+  dmodel <- c(1, 2, 3, 4, 1, 4)
 
-  .diff_x <- diff(x)
-  .diff_x_lag <- .diff_x
-  .diff_x_lead <- .diff_x
+  d.x <- .diffn(x)
 
-  for (i in 1:k_lags) {
-    .diff_x_lag <- cbind(
-      .diff_x_lag,
-      .lagn(.diff_x, i)
-    )
+  Ld.x <- if (n.lags != 0) {
+    apply(as.array(1:n.lags), 1, function(l) .lagn(d.x, l))
+  } else {
+    NULL
   }
 
-  for (i in 1:k_leads) {
-    .diff_x_lead <- cbind(
-      .diff_x_lead,
-      .lagn(.diff_x, -i)
-    )
+  Fd.x <- if (n.leads != 0) {
+    apply(as.array(1:n.leads), 1, function(l) .lagn(d.x, -l))
+  } else {
+    NULL
   }
 
-  if (k_lags != 0 && k_leads != 0) {
-    lags <- .diff_x_lag
-    leads <- .diff_x_lead[, (ncol(x) + 1):(ncol(.diff_x_lead)), drop = FALSE]
-    lags_leads <- cbind(lags, leads)
-    lags_leads <-
-      lags_leads[(k_lags + 1):(n_obs - 1 - k_leads), , drop = FALSE]
-  } else if (k_lags != 0 && k_leads == 0) {
-    lags <- .diff_x_lag
-    lags_leads <- lags[(k_lags + 1):(n_obs - 1), , drop = FALSE]
-  } else if (k_lags == 0 && k_leads != 0) {
-    lags <- .diff_x_lag
-    leads <- .diff_x_lead[, (ncol(x) + 1):(ncol(.diff_x_lead)), drop = FALSE]
-    lags_leads <- cbind(lags, leads)
-    lags_leads <- lags_leads[1:(n_obs - 1 - k_leads), , drop = FALSE]
-  } else if (k_lags == 0 && k_leads == 0) {
-    lags_leads <- .diff_x_lag
+  deter <- if (model != 0) {
+    trend.kpss.single(dmodel[model], N, bp)
+  } else {
+    NULL
   }
 
-  if (model == 0) {
-    xreg <- cbind(
-      x[(k_lags + 2):(n_obs - k_leads), , drop = FALSE],
-      lags_leads
-    )
-  } else if (model >= 1 && model <= 4) {
-    deter <- trend.kpss.single(model, n_obs, tb)
-    xreg <- cbind(
-      deter[(k_lags + 2):(n_obs - k_leads), , drop = FALSE],
-      x[(k_lags + 2):(n_obs - k_leads), , drop = FALSE],
-      lags_leads
-    )
-  } else if (model == 5) {
-    deter <- trend.kpss.single(1, n_obs, tb)
-    xdu <- sweep(x, 1, deter[, 2, drop = FALSE], `*`)
-    xreg <- cbind(
-      deter[(k_lags + 2):(n_obs - k_leads), , drop = FALSE],
-      x[(k_lags + 2):(n_obs - k_leads), , drop = FALSE],
-      xdu[(k_lags + 2):(n_obs - k_leads), , drop = FALSE],
-      lags_leads
-    )
-  } else if (model == 6) {
-    deter <- trend.kpss.single(4, n_obs, tb)
-    xdu <- sweep(x, 1, deter[, 2, drop = FALSE], `*`)
-    xreg <- cbind(
-      deter[(k_lags + 2):(n_obs - k_leads), , drop = FALSE],
-      x[(k_lags + 2):(n_obs - k_leads), , drop = FALSE],
-      xdu[(k_lags + 2):(n_obs - k_leads), , drop = FALSE],
-      lags_leads
-    )
+  xdu <- if (model %in% c(5, 6)) {
+    sweep(x, 1, deter[, 2, drop = FALSE], `*`)
+  } else {
+    NULL
   }
 
-  .res_ols <- .OLS(
-    y[(k_lags + 2):(n_obs - k_leads), 1, drop = FALSE],
-    xreg
-  )
+  xreg <- cbind(deter, x, xdu, d.x, Ld.x, Fd.x)[rows, , drop = FALSE]
+  y <- y[rows, 1, drop = FALSE]
+
+  .res_ols <- .OLS(y, xreg)
 
   bic <- log(drop(t(.res_ols$residuals) %*% .res_ols$residuals) / nrow(xreg)) +
     ncol(xreg) * log(nrow(xreg)) / nrow(xreg)
@@ -185,23 +145,23 @@
   y,
   x,
   model,
-  break_point,
+  bp,
   const = FALSE,
   trend = FALSE,
-  n_lags,
-  n_leads
+  n.lags,
+  n.leads
 ) {
   if (!is.matrix(y)) y <- as.matrix(y)
   if (is.null(x)) {
-    stop("ERROR! Explanatory variables needed for DOLS")
+    stop("ERROR! DOLS.multiple: explanatory variables needed for DOLS")
   }
   if (!is.matrix(x)) x <- as.matrix(x)
 
   .vars_dols <- variables.dols.multiple(
     y, x,
-    model, break_point,
+    model, bp,
     const, trend,
-    n_lags, n_leads
+    n.lags, n.leads
   )
 
   .model <- .OLS(.vars_dols$yreg, .vars_dols$xreg)
@@ -238,10 +198,10 @@
   if (!is.matrix(y)) y <- as.matrix(y)
   if (!is.matrix(z)) z <- as.matrix(z)
 
-  n_obs <- nrow(y)
-  n_var <- ncol(y)
+  N <- nrow(y)
+  Nc <- ncol(y)
 
-  rho <- 1 + c / n_obs
+  rho <- 1 + c / N
 
   y_hat <- y - rho * .lagn(y, 1)
   y_hat[1, ] <- y[1, ]
@@ -254,7 +214,7 @@
   fitted <- NULL
   t.betas <- NULL
 
-  for (i in 1:n_var) {
+  for (i in 1:Nc) {
     .model <- .OLS(y_hat[, i, drop = FALSE], z_hat)
     betas <- cbind(betas, .model$beta)
     t.betas <- cbind(t.betas, .model$t.beta)
@@ -290,40 +250,39 @@
 .AR <- function(
   y,
   x,
-  max_lag,
+  max.lag,
   criterion = "aic"
 ) {
   if (!is.null(criterion)) {
     if (!criterion %in% c("bic", "aic", "lwz", "hq")) {
-      stop("WARNING! Unknown criterion, none is used")
+      stop("ERROR! .AR: Unknown criterion")
     }
   }
 
   if (!is.matrix(y)) y <- as.matrix(y)
-  n_obs <- nrow(y)
-  .lhs <- y[(1 + max_lag):n_obs, , drop = FALSE]
+  if (!is.null(x) && !is.matrix(x)) x <- as.matrix(x)
+
+  N <- nrow(y)
+  rows <- (1 + max.lag):N
+
+  .lhs <- y[rows, , drop = FALSE]
 
   if (!is.null(x)) {
-    if (!is.null(x) && !is.matrix(x)) x <- as.matrix(x)
-    k <- ncol(x)
-    .rhs <- x[(1 + max_lag):n_obs, , drop = FALSE]
+    Nx <- ncol(x)
+    .rhs <- x
   } else {
-    k <- 0
+    Nx <- 0
     .rhs <- NULL
   }
 
-  for (l in 1:max_lag) {
-    if (l <= max_lag) {
-      .rhs <- cbind(
-        .rhs,
-        .lagn(y, l)[(1 + max_lag):n_obs, , drop = FALSE]
-      )
-    }
-  }
+  .rhs <- cbind(
+    .rhs,
+    apply(as.array(1:max.lag), 1, function(x) .lagn(y, l))
+  )[rows, , drop = FALSE]
 
   if (is.null(criterion)) {
-    .lag <- max_lag
-    .model <- .OLS(.lhs, .rhs[, 1:(k + .lag), drop = FALSE])
+    .lag <- max.lag
+    .model <- .OLS(.lhs, .rhs[, 1:(Nx + .lag), drop = FALSE])
     .beta <- .model$beta
     .resid <- .model$residuals
     .predict <- .model$predict
@@ -331,30 +290,24 @@
   } else {
     .lag <- 0
 
-    if (!is.null(x)) {
-      .model <- .OLS(.lhs, .rhs[, 1:k, drop = FALSE])
-      .beta <- .model$beta
-      .resid <- .model$residuals
-      .predict <- .model$predict
-      .t_beta <- .model$t.beta
-      .ic <- log(drop(t(.resid) %*% .resid) / (n_obs - max_lag))
-    } else {
-      .ic <- Inf
-    }
+    .model <- NULL
+    .beta <- NULL
+    .resid <- NULL
+    .predict <- NULL
+    .t_beta <- NULL
+    .ic <- Inf
 
-    for (l in 1:max_lag) {
-      if (l <= max_lag) {
-        .model <- .OLS(.lhs, .rhs[, 1:(k + l), drop = FALSE])
-        .model_ic <- .ic.values(.model$residuals, l)[[criterion]]
+    for (l in 0:max.lag) {
+      .model <- .OLS(.lhs, .rhs[, 1:(Nx + l), drop = FALSE])
+      .model_ic <- .ic.values(.model$residuals, l)[[criterion]]
 
-        if (.model_ic < .ic) {
-          .ic <- .model_ic
-          .beta <- .model$beta
-          .resid <- .model$residuals
-          .predict <- .model$predict
-          .t_beta <- .model$t.beta
-          .lag <- l
-        }
+      if (.model_ic < .ic) {
+        .ic <- .model_ic
+        .beta <- .model$beta
+        .resid <- .model$residuals
+        .predict <- .model$predict
+        .t_beta <- .model$t.beta
+        .lag <- l
       }
     }
   }
@@ -400,14 +353,15 @@
   kernel = "unif"
 ) {
   if (!kernel %in% c("unif", "gauss")) {
-    stop("WARNING! Unknown kernel, unif is used instead")
+    stop("ERROR! NW.reg: unknown kernel")
   }
 
-  n_obs <- length(y)
+  N <- length(y)
 
-  rho <- rep(0, n_obs)
-  for (k in 1:n_obs) {
-    .w <- .NW.kernel(k, (1:n_obs) / n_obs, h, kernel)
+  rho <- numeric(N)
+
+  for (k in 1:N) {
+    .w <- .NW.kernel(k, (1:N) / N, h, kernel)
     rho[k] <- sum(x * .w * y) / sum(x * .w * x)
   }
 
@@ -456,15 +410,15 @@
   kernel = "unif"
 ) {
   if (!kernel %in% c("unif", "gauss")) {
-    stop("WARNING! Unknown kernel, unif is used instead")
+    stop("ERROR! NW.variance: unknown kernel")
   }
 
-  n_obs <- length(e)
+  N <- length(e)
 
-  omega2 <- rep(0, n_obs)
+  omega2 <- numeric(N)
 
-  for (k in 1:n_obs) {
-    .w <- .NW.kernel(k, (1:n_obs) / n_obs, h, kernel)
+  for (k in 1:N) {
+    .w <- .NW.kernel(k, (1:N) / N, h, kernel)
     omega2[k] <- sum(.w * e^2) / sum(.w)
   }
 
@@ -501,18 +455,19 @@
 #' @keywords internal
 .NW.bandwidth <- function(y, x, kernel = "unif") {
   if (!kernel %in% c("unif", "gauss")) {
-    stop("WARNING! Unknown kernel, unif is used instead")
+    stop("ERROR! NW.bandwidth: unknown kernel")
   }
 
-  n_obs <- length(y)
+  N <- length(y)
 
-  h_candidates <- seq(n_obs^(-0.5), n_obs^(-0.3), by = 0.01)
+  h_candidates <- seq(N^(-0.5), N^(-0.3), by = 0.01)
   rss <- Inf
+  h <- NULL
 
   for (.h in h_candidates) {
-    rho <- rep(0, n_obs)
-    for (k in 1:n_obs) {
-      .w <- .NW.kernel(k, (1:n_obs) / n_obs, .h, kernel)
+    rho <- numeric(N)
+    for (k in 1:N) {
+      .w <- .NW.kernel(k, (1:N) / N, .h, kernel)
       .w[k] <- 0
       rho[k] <- sum(x * .w * y) / sum(x * .w * x)
     }

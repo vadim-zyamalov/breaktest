@@ -14,7 +14,7 @@
 #' * 1: for the break in const,
 #' * 2: for the break in trend,
 #' * 3: for the break in const and trend.
-#' @param break.point Array of structural breaks.
+#' @param bp Array of structural breaks.
 #' @param const,trend Whether a constant or trend should be included.
 #' @param weakly.exog Boolean where we specify
 #' whether the stochastic regressors are exogenous or not
@@ -53,11 +53,11 @@
 #' https://doi.org/10.1007/s10108-006-9017-8.
 #'
 #' @export
-kpss.multiple <- function(
+KPSS.mlt <- function(
   y,
   x,
   model,
-  break_point,
+  bp,
   const = FALSE,
   trend = FALSE,
   weakly.exog = TRUE,
@@ -68,49 +68,45 @@ kpss.multiple <- function(
   criterion = "bic"
 ) {
   if (!is.matrix(y)) y <- as.matrix(y)
-  if (!is.null(x)) {
-    if (!is.matrix(x)) x <- as.matrix(x)
-  }
+  if (!is.null(x) && !is.matrix(x)) x <- as.matrix(x)
 
-  n_obs <- nrow(y)
+  N <- nrow(y)
 
   if (weakly.exog) {
     xt <- cbind(
       x,
-      trend.kpss.miltiple(model, n_obs, break_point, const, trend)
+      trend.kpss.miltiple(model, N, bp, const, trend)
     )
 
-    .model <- .OLS(y, xt)
-    beta <- .model$beta
-    resids <- .model$residuals
-    t_beta <- .model$t.beta
-    .lags_dols <- 0
-    .leads_dols <- 0
+    model.est <- .OLS(y, xt)
+
+    beta <- model.est$beta
+    resids <- model.est$residuals
+    t.beta <- model.est$t.beta
+    dols.lags <- 0
+    dols.leads <- 0
   } else {
-    .ic.min <- Inf
-    for (.lags in lags.init:1) {
-      for (.leads in leads.init:1) {
-        .model <- .DOLS.multiple(
-          y, x, model, break_point, const, trend, .lags, .leads
+    min.ic <- Inf
+    for (nL in lags.init:1) {
+      for (nF in leads.init:1) {
+        model.est <- .DOLS.multiple(
+          y, x, model, bp, const, trend, nL, nF
         )
-        beta <- .model$beta
-        resids <- .model$residuals
-        t.beta <- .model$t.beta
-        .ic <- .model$criterions
-        if (.ic[[criterion]] < .ic.min) {
-          .ic.min <- .ic[[criterion]]
-          .beta <- beta
-          .t_beta <- t.beta
-          .resids <- resids
-          .lags_dols <- .lags
-          .leads_dols <- .leads
+        .ic <- model.est$criterions
+        if (.ic[[criterion]] < min.ic) {
+          min.ic <- .ic[[criterion]]
+          .beta <- model.est$beta
+          .t_beta <- model.est$t.beta
+          .resids <- model.est$residuals
+          dols.lags <- nL
+          dols.leads <- nF
         }
-        rm(.model)
+        rm(model.est)
       }
     }
     resids <- .resids
     beta <- .beta
-    t_beta <- .t_beta
+    t.beta <- .t_beta
   }
 
   test <- ifelse(is.null(kernel),
@@ -119,13 +115,13 @@ kpss.multiple <- function(
   )
 
   list(
-    beta = beta,
-    test = test,
-    residuals = resids,
-    t.beta = t_beta,
-    DOLS.lags = .lags_dols,
-    DOLS.leads = .leads_dols,
-    break.point = break_point
+    beta        = beta,
+    statistic   = test,
+    residuals   = resids,
+    t.beta      = t.beta,
+    DOLS.lags   = dols.lags,
+    DOLS.leads  = dols.leads,
+    break.point = bp
   )
 }
 
@@ -181,50 +177,48 @@ kpss.multiple <- function(
 #' @importFrom utils setTxtProgressBar
 #'
 #' @export
-kpss.multiple.bootstrap <- function(y,
-                                    x,
-                                    model,
-                                    break.point,
-                                    const = FALSE,
-                                    trend = FALSE,
-                                    weakly.exog = TRUE,
-                                    lags.init,
-                                    leads.init,
-                                    max.lag,
-                                    kernel,
-                                    iter = 9999,
-                                    bootstrap = "sample",
-                                    criterion = "bic") {
+kpss.mlt.bootstrap <- function(y,
+                               x,
+                               model,
+                               bp,
+                               const = FALSE,
+                               trend = FALSE,
+                               weakly.exog = TRUE,
+                               lags.init,
+                               leads.init,
+                               max.lag,
+                               kernel,
+                               iter = 9999,
+                               bootstrap = "sample",
+                               criterion = "bic") {
   if (!is.matrix(y)) y <- as.matrix(y)
-  if (!is.null(x)) {
-    if (!is.matrix(x)) x <- as.matrix(x)
-  }
+  if (!is.null(x) && !is.matrix(x)) x <- as.matrix(x)
 
-  n.obs <- nrow(y)
+  N <- nrow(y)
 
-  .kpss.stat <- kpss.multiple(
+  kpss.result <- KPSS.mlt(
     y, x,
-    model, break.point,
+    model, bp,
     const, trend,
     weakly.exog,
     lags.init, leads.init,
     max.lag, kernel,
     criterion
   )
-  test <- .kpss.stat$test
-  u <- .kpss.stat$residuals
-  .lags.dols <- .kpss.stat$DOLS.lags
-  .leads.dols <- .kpss.stat$DOLS.leads
+  test <- kpss.result$statistic
+  u <- kpss.result$residuals
+  .lags.dols <- kpss.result$DOLS.lags
+  .leads.dols <- kpss.result$DOLS.leads
 
   if (weakly.exog) {
     xreg <- cbind(
       x,
-      trend.kpss.miltiple(model, n.obs, break.point, const, trend)
+      trend.kpss.miltiple(model, N, bp, const, trend)
     )
   } else {
     xreg <- variables.dols.multiple(
       y, x,
-      model, break.point,
+      model, bp,
       const, trend,
       .lags.dols, .leads.dols
     )$xreg
@@ -243,27 +237,27 @@ kpss.multiple.bootstrap <- function(y,
     .combine = rbind,
     .options.snow = list(progress = progress)
   ) %dopar% {
-    .y.loop <- switch(bootstrap,
+    y.loop <- switch(bootstrap,
       sample = sample(u, length(u), replace = TRUE),
       "Cavaliere-Taylor" = rnorm(length(u)) * u,
       "Rademacher" = sample(c(-1, 1), length(u), replace = TRUE) * u
     )
 
-    resids <- .OLS(.y.loop, xreg)$residuals
+    resids <- .OLS(y.loop, xreg)$residuals
 
     ifelse(is.null(kernel),
-      .kpss.stat(resids, .lr.var.kurozumi(resids)),
-      .kpss.stat(resids, .lr.var.spc(resids, max.lag, kernel))
+      kpss.result(resids, .lr.var.kurozumi(resids)),
+      kpss.result(resids, .lr.var.spc(resids, max.lag, kernel))
     )
   }
 
   stopCluster(cluster)
 
-  .p.value <- (1 / iter) * sum(I(test <= result))
+  p.value <- (1 / iter) * sum(I(test <= result))
 
   list(
-    test = test,
-    p.value = .p.value,
+    statistic    = test,
+    p.value      = p.value,
     bootstrapped = result
   )
 }

@@ -43,37 +43,37 @@
 #' https://doi.org/10.1007/s10108-006-9017-8.
 #'
 #' @export
-kpss.double <- function(y,
-                        model,
-                        break.point,
-                        max.lag,
-                        kernel) {
+kpss.2br <- function(y,
+                     model,
+                     bp,
+                     max.lag,
+                     kernel) {
   if (!is.matrix(y)) y <- as.matrix(y)
 
   n.obs <- nrow(y)
 
-  z <- trend.kpss.double(model, n.obs, break.point)
+  z <- trend.kpss.double(model, n.obs, bp)
 
-  .model <- .OLS(y, z)
+  model.est <- .OLS(y, z)
 
   test <- if (!is.null(kernel)) {
     .kpss.statistic(
-      .model$residuals,
-      .lr.var.spc(.model$residuals, max.lag, kernel)
+      model.est$residuals,
+      .lr.var.spc(model.est$residuals, max.lag, kernel)
     )
   } else {
     .kpss.statistic(
-      .model$residuals,
-      .lr.var.kurozumi(.model$residuals)
+      model.est$residuals,
+      .lr.var.kurozumi(model.est$residuals)
     )
   }
 
   list(
-    beta        = .model$beta,
-    test        = test,
-    residuals   = .model$residuals,
-    t.beta      = .model$t.beta,
-    break_point = break.point
+    beta        = model.est$beta,
+    statistic   = test,
+    residuals   = model.est$residuals,
+    t.beta      = model.est$t.beta,
+    break.point = bp
   )
 }
 
@@ -115,10 +115,10 @@ kpss.double <- function(y,
 #' https://doi.org/10.1111/j.1468-0084.2006.00180.x.
 #'
 #' @export
-kpss.double.unknown <- function(y,
-                                model,
-                                max.lag = 0,
-                                kernel = "bartlett") {
+KPSS.2br.unknown <- function(y,
+                             model,
+                             max.lag = 0,
+                             kernel = "bartlett") {
   if (!is.matrix(y)) y <- as.matrix(y)
 
   .segments <- segments.ols.double(y, model)
@@ -136,8 +136,7 @@ kpss.double.unknown <- function(y,
   }
 
   list(
-    test = test,
-    tb1  = .segments$tb1,
-    tb2  = .segments$tb2
+    statistic   = test,
+    break.point = c(.segments$bp1, .segments$bp2)
   )
 }

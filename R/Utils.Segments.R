@@ -31,12 +31,12 @@ segments.ols.single <- function(beg,
     .rss[bp] <- SSR.data[beg, bp] + SSR.data[bp + 1, end]
   }
 
-  .rss.min <- min(.rss[bp.min:bp.max])
-  .bp <- (bp.min - 1) + which.min(.rss[bp.min:bp.max])
+  final.rss <- min(.rss[bp.min:bp.max])
+  final.bp <- (bp.min - 1) + which.min(.rss[bp.min:bp.max])
 
   list(
-    SSR         = .rss.min,
-    break.point = .bp
+    SSR         = final.rss,
+    break.point = final.bp
   )
 }
 
@@ -69,10 +69,10 @@ segments.ols.double <- function(y, model) {
 
   n.obs <- nrow(y)
 
-  .resids <- 0
+  .resids <- NULL
   .rss <- Inf
-  .bp1 <- 0
-  .bp2 <- 0
+  .bp1 <- NULL
+  .bp2 <- NULL
 
   if (1 <= model && model <= 4) {
     for (bp1 in 2:(n.obs - 4)) {
