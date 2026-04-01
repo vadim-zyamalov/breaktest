@@ -21,10 +21,10 @@
 #'
 #' @keywords internal
 #' @export
-cval.kpss.single <- function(model,
-                             break.point,
-                             n.obs,
-                             k) {
+cval.kpss.1br <- function(model,
+                          break.point,
+                          n.obs,
+                          k) {
   lambda <- round(break.point / n.obs, 1)
   i <- trunc(lambda * 10)
   if (i == 0) i <- 1
@@ -54,9 +54,9 @@ cval.kpss.single <- function(model,
 #'
 #' @keywords internal
 #' @export
-cvalues.kpss.double <- function(model,
-                                break.point,
-                                n.obs) {
+cvalues.kpss.2br <- function(model,
+                             break.point,
+                             n.obs) {
   lambda1 <- round(break.point[1] / n.obs, 1)
   i <- trunc(lambda1 * 10)
   if (i == 0) i <- 1

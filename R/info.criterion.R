@@ -30,10 +30,10 @@
 #'
 #' @export
 .ic.values <- function(resids,
-                            extra,
-                            modification = FALSE,
-                            alpha = 0,
-                            y = NULL) {
+                       extra,
+                       modification = FALSE,
+                       alpha = 0,
+                       y = NULL) {
   if (!is.matrix(resids)) resids <- as.matrix(resids)
 
   n_obs <- nrow(resids)

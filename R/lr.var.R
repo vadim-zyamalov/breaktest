@@ -228,7 +228,7 @@
 ) {
   .lr.variance(
     y,
-    max_lag = max.lag,
+    max.lag = max.lag,
     kernel = kernel,
     criterion = criterion,
     recolor = TRUE

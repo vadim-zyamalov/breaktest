@@ -6,6 +6,11 @@ source("tools/cvals_coint_gh.R")
 source("tools/cvals_break_date_cset.R")
 source("tools/cvals_PY_single.R")
 source("tools/cvals_PY_sequential.R")
+source("tools/cvals_VECM.R")
+source("tools/cvals_MDF_single.R")
+source("tools/cvals_MDF_multiple.R")
+source("tools/cvals_MDF_CHLT.R")
+source("tools/cbar_PR.R")
 
 save(.cval_kpss_1p,
   .cval_kpss_2p,
@@ -18,6 +23,11 @@ save(.cval_kpss_1p,
   .cval_break_date_cset,
   .cval_PY_single,
   .cval_PY_sequential,
+  .cval_VECM,
+  .cval_MDF_single,
+  .cval_MDF_multiple,
+  .cval_MDF_CHLT,
+  .cbar_PR,
   file = "sysdata.rda",
   compress = "xz"
 )

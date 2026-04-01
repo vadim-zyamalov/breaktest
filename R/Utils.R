@@ -89,10 +89,10 @@
 #' Kennedy School of Government, Harvard University, 1990.
 #'
 #' @keywords internal
-.mz_stats <- function(y,
-                      l,
-                      const = FALSE,
-                      trend = FALSE) {
+.mz.statistics <- function(y,
+                           l,
+                           const = FALSE,
+                           trend = FALSE) {
   n_obs <- nrow(y)
   .adf <- ADF.test(y, const, trend, l, criterion = NULL)
 
