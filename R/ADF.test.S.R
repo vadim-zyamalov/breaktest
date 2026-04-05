@@ -69,15 +69,12 @@ ADF.test.S <- function(y,
                        iter = 999) {
   if (!is.matrix(y)) y <- as.matrix(y)
 
-  n.obs <- nrow(y)
+  N <- nrow(y)
 
-  x <- NULL
-  if (const) {
-    x <- cbind(x, rep(1, n.obs))
-  }
-  if (trend) {
-    x <- cbind(x, 1:n.obs)
-  }
+  x <- cbind(
+    if (const) .const(N) else NULL,
+    if (trend) .trend(N) else NULL,
+  )
 
   yd <- detrend.recursively(y, x, c, gamma, trim)
 
@@ -107,24 +104,24 @@ ADF.test.S <- function(y,
     .packages = c("breaktest"),
     .options.snow = list(progress = progress)
   ) %dopar% {
-    u <- rep(0, res.lag + n.obs)
-    eps <- sample(e, n.obs, replace = TRUE)
+    u <- rep(0, res.lag + N)
+    eps <- sample(e, N, replace = TRUE)
 
     if (res.lag > 0) {
-      for (s in 1:n.obs) {
+      for (s in 1:N) {
         u[res.lag + s] <- u[(res.lag + s - 1):s] %*% res.beta + eps[s]
       }
       u <- u[-(1:res.lag)]
     } else {
-      for (s in 1:n.obs) {
+      for (s in 1:N) {
         u[s] <- eps[s]
       }
     }
 
-    tmp.y <- as.matrix(rep(0, n.obs))
+    tmp.y <- as.matrix(rep(0, N))
 
     tmp.y[1] <- u[1]
-    for (s in 2:n.obs) {
+    for (s in 2:N) {
       tmp.y[s] <- tmp.y[s - 1] + u[s]
     }
 

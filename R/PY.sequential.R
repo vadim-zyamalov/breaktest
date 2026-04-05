@@ -41,10 +41,10 @@ PY.sequential <- function(y,
   if (breaks == 0) {
     date.vec <- c(1, N + 1)
   } else {
-    SSR.data <- SSR.matrix(y, cbind(1, 1:N), h)
-    dates <- segments.OLS.N.breaks(
+    SSR.data <- SSR.matrix(y, cbind(.const(N), .trend(N)), h)
+    dates <- segments.OLS.mlt(
       y,
-      cbind(1, 1:N),
+      cbind(.const(N), .trend(N)),
       breaks,
       h,
       SSR.data
@@ -66,7 +66,7 @@ PY.sequential <- function(y,
         lambda <- (tb - 1) / (date.vec[i + 1] - 1)
 
         x <- cbind(
-          1,
+          .const(N),
           if (const) .du(tb, N) else NULL,
           (1:N) - date.vec[i] + 1,
           .dt(tb, N)
@@ -183,9 +183,9 @@ PY.sequential <- function(y,
               BETAS <- matrix(0, nrow = k.hat - 1, ncol = 4)
               for (k.i in 1:(k.hat - 1)) {
                 x.ki <- cbind(
-                  1,
+                  .const(N),
                   .du(tb - k.i, N),
-                  1:N,
+                  .trend(N),
                   .dt(tb - k.i, N)
                 )
                 x.g.ki <- rbind(
@@ -204,7 +204,7 @@ PY.sequential <- function(y,
           }
 
           if (abs(a.hat.M) < 1) {
-            h0 <- lr.var.quadratic(g.resid)
+            h0 <- .lr.var.quadratic(g.resid)
           }
         }
 

@@ -22,7 +22,7 @@ robust.tests.single <- function(y,
 
   if (season) {
     SEAS <- cbind(
-      1,
+      .const(N),
       seasonal.dummies(N)
     )
     y <- .OLS(y, SEAS)$residuals
@@ -68,7 +68,7 @@ robust.tests.multiple <- function(y,
 
   if (season) {
     SEAS <- cbind(
-      1,
+      .const(N),
       seasonal.dummies(N)
     )
     y <- .OLS(y, SEAS)$residuals

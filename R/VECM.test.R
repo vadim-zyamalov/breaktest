@@ -123,7 +123,7 @@ VECM.logl <- function(y,
   d.y <- .diffn(y)
 
   z0 <- d.y[-seq_len(p), , drop = FALSE]
-  z1 <- cbind(.lagn(y, 1), 1:N)[-seq_len(p), , drop = FALSE]
+  z1 <- cbind(.lagn(y, 1), .trend(N))[-seq_len(p), , drop = FALSE]
 
   Xp <- as.matrix(rep(1, N))
   if (p > 0) {

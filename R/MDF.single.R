@@ -62,8 +62,8 @@ MDF.1br <- function(y,
   result$break.time <- tb
 
   x <- cbind(
-    1,
-    1:N,
+    .const(N),
+    .trend(N),
     if (const) .du(tb, N) else NULL,
     if (trend) .dt(tb, N) else NULL
   )
@@ -136,8 +136,8 @@ MDF.1br <- function(y,
   MDF.GLS <- Inf
   for (tb1 in first.break:last.break) {
     z <- cbind(
-      1,
-      1:N,
+      .const(N),
+      .trend(N),
       if (const) .du(tb1, N) else NULL,
       if (trend) .dt(tb1, N) else NULL
     )
@@ -164,8 +164,8 @@ MDF.1br <- function(y,
   MDF.t <- Inf
   for (tb1 in first.break:last.break) {
     z <- cbind(
-      1,
-      1:N,
+      .const(N),
+      .trend(N),
       .dt(tb1, N)
     )
 

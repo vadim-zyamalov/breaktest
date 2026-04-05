@@ -177,7 +177,7 @@ KPSS.mlt <- function(
 #' @importFrom utils setTxtProgressBar
 #'
 #' @export
-kpss.mlt.bootstrap <- function(y,
+KPSS.mlt.bootstrap <- function(y,
                                x,
                                model,
                                bp,
@@ -246,8 +246,8 @@ kpss.mlt.bootstrap <- function(y,
     resids <- .OLS(y.loop, xreg)$residuals
 
     ifelse(is.null(kernel),
-      kpss.result(resids, .lr.var.kurozumi(resids)),
-      kpss.result(resids, .lr.var.spc(resids, max.lag, kernel))
+      .kpss.statistic(resids, .lr.var.kurozumi(resids)),
+      .kpss.statistic(resids, .lr.var.spc(resids, max.lag, kernel))
     )
   }
 

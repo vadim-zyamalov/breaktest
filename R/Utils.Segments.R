@@ -19,12 +19,12 @@
 #' https://doi.org/10.1111/j.1468-0084.2006.00180.x.
 #'
 #' @keywords internal
-segments.ols.single <- function(beg,
-                                end,
-                                bp.min,
-                                bp.max,
-                                len,
-                                SSR.data) {
+segments.OLS.1br <- function(beg,
+                             end,
+                             bp.min,
+                             bp.max,
+                             len,
+                             SSR.data) {
   .rss <- matrix(data = Inf, nrow = len, ncol = 1)
 
   for (bp in bp.min:bp.max) {
@@ -64,7 +64,7 @@ segments.ols.single <- function(beg,
 #' https://doi.org/10.1007/s10108-006-9017-8.
 #'
 #' @keywords internal
-segments.ols.double <- function(y, model) {
+segments.OLS.2br <- function(y, model) {
   if (!is.matrix(y)) y <- as.matrix(y)
 
   n.obs <- nrow(y)
@@ -145,7 +145,7 @@ segments.ols.double <- function(y, model) {
 #' https://doi.org/10.1002/jae.659.
 #'
 #' @keywords internal
-segments.ols.mulitiple <- function(
+segments.OLS.mlt <- function(
   y,
   x,
   m = 1,
@@ -162,7 +162,7 @@ segments.ols.mulitiple <- function(
   }
 
   if (m == 1) {
-    .segments <- segments.ols.single(
+    .segments <- segments.OLS.1br(
       1, N,
       width, N - width,
       N, SSR.data
@@ -190,7 +190,7 @@ segments.ols.mulitiple <- function(
       if (step == 1) {
         for (v in 1:N.variants) {
           .last_step <- 2 * width + v - 1
-          .segments <- segments.ols.single(
+          .segments <- segments.OLS.1br(
             1,
             .last_step,
             width,
@@ -264,7 +264,7 @@ segments.ols.mulitiple <- function(
 #' https://doi.org/10.1515/jtse-2016-0014.
 #'
 #' @keywords internal
-segments.gls <- function(y,
+segments.GLS <- function(y,
                          const = FALSE,
                          trend = FALSE,
                          breaks = 1,
@@ -280,12 +280,10 @@ segments.gls <- function(y,
     stop("More than three breaks are not supported at the moment!")
   }
 
-  n.obs <- nrow(y)
-  const <- rep(1, n.obs)
-  trend <- 1:n.obs
+  N <- nrow(y)
 
-  if (is.null(bp_min)) bp_min <- floor(trim * n.obs) + 1
-  if (is.null(bp_max)) bp_max <- floor((1 - trim) * n.obs) + 1
+  if (is.null(bp_min)) bp_min <- floor(trim * N) + 1
+  if (is.null(bp_max)) bp_max <- floor((1 - trim) * N) + 1
   width <- bp_min - 1
 
   steps <- c(0, 0.2, 0.4, 0.6, 0.8, 0.9, 0.95, 0.975, 1)
@@ -300,13 +298,13 @@ segments.gls <- function(y,
         dt1 <- du1 * (trend - bp1)
 
         x <- cbind(
-          const,
-          trend,
+          .const(N),
+          .trend(N),
           if (const) du1 else NULL,
           if (trend) dt1 else NULL
         )
 
-        c_bar <- n.obs * (alpha - 1)
+        c_bar <- N * (alpha - 1)
         resids <- .GLS(y, x, c_bar)$residuals
 
         .rss_loop <- drop(t(resids) %*% resids)
@@ -325,15 +323,15 @@ segments.gls <- function(y,
           dt2 <- du2 * (trend - bp2)
 
           x <- cbind(
-            const,
-            trend,
+            .const(N),
+            .trend(N),
             if (const) du1 else NULL,
             if (trend) dt1 else NULL,
             if (const) du2 else NULL,
             if (trend) dt2 else NULL
           )
 
-          c_bar <- n.obs * (alpha - 1)
+          c_bar <- N * (alpha - 1)
           resids <- .GLS(y, x, c_bar)$residuals
 
           .rss_loop <- drop(t(resids) %*% resids)
@@ -356,8 +354,8 @@ segments.gls <- function(y,
             dt3 <- du3 * (trend - bp3)
 
             x <- cbind(
-              const,
-              trend,
+              .const(N),
+              .trend(N),
               if (const) du1 else NULL,
               if (trend) dt1 else NULL,
               if (const) du2 else NULL,
@@ -366,7 +364,7 @@ segments.gls <- function(y,
               if (trend) dt3 else NULL
             )
 
-            c_bar <- n.obs * (alpha - 1)
+            c_bar <- N * (alpha - 1)
             resids <- .GLS(y, x, c_bar)$residuals
 
             .rss_loop <- drop(t(resids) %*% resids)

@@ -22,8 +22,8 @@ trend.kpss.single <- function(model, N, bp) {
   }
 
   cbind(
-    1,
-    1:N,
+    .const(N),
+    .trend(N),
     if (model != 3) .du(bp, N) else NULL,
     if (model %in% c(3, 4)) .dt(bp, N) else NULL
   )
@@ -31,7 +31,7 @@ trend.kpss.single <- function(model, N, bp) {
 
 
 #' @title
-#' Construct determinant variables for [kpss.2br]
+#' Construct determinant variables for [KPSS.2br]
 #'
 #' @details
 #' Procedure to compute deterministic terms
@@ -58,8 +58,8 @@ trend.kpss.double <- function(model, N, bp) {
   }
 
   cbind(
-    1,
-    1:N,
+    .const(N),
+    .trend(N),
     if (model %in% c(1, 2, 4, 5, 6, 7)) .du(bp[1], N) else NULL,
     if (model %in% c(3, 4, 6, 7)) .dt(bp[1], N) else NULL,
     if (model %in% c(1, 2, 4, 6)) .du(bp[2], N) else NULL,
@@ -111,8 +111,8 @@ trend.kpss.miltiple <- function(
   }
 
   xt <- cbind(
-    if (const) 1 else NULL,
-    if (trend) 1:N else NULL
+    if (const) .const(N) else NULL,
+    if (trend) .trend(N) else NULL
   )
 
   for (i in 1:nb) {
@@ -231,6 +231,12 @@ seasonal.dummies <- function(N) {
   result
 }
 
+#' @title
+#' Generating const and trend
+#' @keywords internal
+.const <- function(N) rep(1, N)
+.trend <- function(N) 1:N
+
 
 #' @title
 #' Generating break in constant
@@ -241,10 +247,10 @@ seasonal.dummies <- function(N) {
 #' @return The matrix of values od seasonal dummies.
 #'
 #' @keywords internal
-.du <- function(bp, n_obs) {
+.du <- function(bp, N) {
   matrix(
-    as.numeric((1:n_obs) > bp),
-    nrow = n_obs,
+    as.numeric((1:N) > bp),
+    nrow = N,
     ncol = 1
   )
 }
@@ -259,10 +265,10 @@ seasonal.dummies <- function(N) {
 #' @return The matrix of values od seasonal dummies.
 #'
 #' @keywords internal
-.dt <- function(bp, n_obs) {
+.dt <- function(bp, N) {
   matrix(
-    as.numeric((1:n_obs) > bp) * ((1:n_obs) - bp),
-    nrow = n_obs,
+    as.numeric((1:N) > bp) * ((1:N) - bp),
+    nrow = N,
     ncol = 1
   )
 }

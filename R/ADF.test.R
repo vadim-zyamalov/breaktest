@@ -59,11 +59,11 @@ ADF.test <- function(y,
   if (!is.matrix(y)) y <- as.matrix(y)
 
   N <- nrow(y)
-  rows <- (2 + max.lag):N
+  rows <- (1 + max.lag):N
 
   deter <- cbind(
-    if (const) 1 else NULL,
-    if (trend) 1:N else NULL
+    if (const) .const(N) else NULL,
+    if (trend) .trend(N) else NULL
   )
 
   ## Detrending
@@ -74,13 +74,13 @@ ADF.test <- function(y,
   }
 
   d.y <- .diffn(yd)
-  d.y[1] <- yd[1]
+  # d.y[1] <- yd[1]
 
-  x <- .lagn(yd, 1, na = 0)
+  x <- .lagn(yd, 1)
   if (max.lag > 0) {
     x <- cbind(
       x,
-      apply(as.array(1:max.lag), 1, function(l) .lagn(d.y, l, na = 0))
+      apply(as.array(1:max.lag), 1, function(l) .lagn(d.y, l))
     )
   }
 
@@ -147,8 +147,8 @@ ADF.test <- function(y,
   }
 
   res.OLS <- .OLS(
-    d.y[(2 + res.lag):N, , drop = FALSE],
-    x[(2 + res.lag):N, 1:(1 + res.lag), drop = FALSE]
+    d.y[rows, , drop = FALSE],
+    x[rows, 1:(1 + res.lag), drop = FALSE]
   )
 
   Z.stat <- (N - res.lag - 1) * drop(res.OLS$beta[1] - 1)
@@ -206,7 +206,7 @@ rescale.CPST <- function(d.y,
     .NW.bandwidth(e^2, rep(1, nrow(e)))$h
   )$se
 
-  yr <- cumsum(d.y / NW.se)
+  yr <- cumsum(d.y[-1] / NW.se)
 
   if (!is.null(deter)) {
     yr <- .OLS(yr, deter)$residuals
@@ -216,9 +216,10 @@ rescale.CPST <- function(d.y,
 
   xr <- .lagn(yr, 1, na = 0)
   if (max.lag > 0) {
-    for (l in 1:max.lag) {
-      xr <- cbind(xr, .lagn(d.yr, l, na = 0))
-    }
+    xr <- cbind(
+      xr,
+      apply(as.array(1:max.lag), 1, function(l) .lagn(d.yr, l, na = 0))
+    )
   }
 
   list(

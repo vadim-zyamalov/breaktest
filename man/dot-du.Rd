@@ -4,7 +4,7 @@
 \alias{.du}
 \title{Generating break in constant}
 \usage{
-.du(bp, n_obs)
+.du(bp, N)
 }
 \arguments{
 \item{bp}{index of break point.}

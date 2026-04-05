@@ -38,7 +38,7 @@ cval.kpss.1br <- function(model,
 #'
 #' @description
 #' Auxiliary function returning pre-calculated critical values for
-#' [kpss.2br]
+#' [KPSS.2br]
 #'
 #' @details
 #' The function is not intended to be used directly so it's not exported.
@@ -54,7 +54,7 @@ cval.kpss.1br <- function(model,
 #'
 #' @keywords internal
 #' @export
-cvalues.kpss.2br <- function(model,
+cvalues.KPSS.2br <- function(model,
                              break.point,
                              n.obs) {
   lambda1 <- round(break.point[1] / n.obs, 1)

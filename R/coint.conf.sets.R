@@ -50,8 +50,8 @@ coint.conf.sets <- function(y,
   rows <- (z.lag + 2):(N - z.lead)
 
   wb <- cbind(
-    1,
-    if (trend) 1:N / N else NULL,
+    .const(N),
+    if (trend) .trend(N) / N else NULL,
     zb
   )
   z <- cbind(zb, zf)
@@ -335,8 +335,8 @@ select.lead.lag.KS <- function(y,
   last.break <- trunc((1 - 2 * trim) * N)
 
   wb <- cbind(
-    rep(1, N),
-    if (trend) (1:N) / N else NULL,
+    .const(N),
+    if (trend) .trend(N) / N else NULL,
     zb
   )
 

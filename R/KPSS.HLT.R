@@ -19,12 +19,12 @@ KPSS.HLT <- function(y,
                      trim = 0.15) {
   if (!is.matrix(y)) y <- as.matrix(y)
 
-  n.obs <- nrow(y)
+  N <- nrow(y)
   m.ksi <- ifelse(const, 1.052, 0.853)
-  dy <- diff(y)
+  dy <- .diffn(y)
 
-  bp.min <- trunc(trim * n.obs)
-  bp.max <- trunc((1 - trim) * n.obs)
+  bp.min <- trunc(trim * N)
+  bp.max <- trunc((1 - trim) * N)
 
   t0 <- -Inf
   t1 <- -Inf
@@ -33,14 +33,13 @@ KPSS.HLT <- function(y,
   var.dy <- NA
 
   for (bp in bp.min:bp.max) {
-    du <- c(rep(0, bp), rep(1, n.obs - bp))
-    dt <- du * (1:n.obs - bp)
+    du <- du(bp, N)
 
     x <- cbind(
-      rep(1, n.obs),
-      1:n.obs,
+      .const(N),
+      .trend(N),
       if (const) du else NULL,
-      dt
+      .dt(bp, N)
     )
 
     .model <- .OLS(y, x)
@@ -52,9 +51,9 @@ KPSS.HLT <- function(y,
       sqrt(.y.lr.var * .xx.inv[ncol(x), ncol(x)]))
 
     x <- cbind(
-      rep(1, n.obs - 1),
-      if (const) diff(du) else NULL,
-      du[2:n.obs]
+      .const(N),
+      if (const) .diffn(du) else NULL,
+      du
     )
 
     .model <- .OLS(dy, x)

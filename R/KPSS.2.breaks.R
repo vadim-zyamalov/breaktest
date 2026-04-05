@@ -43,7 +43,7 @@
 #' https://doi.org/10.1007/s10108-006-9017-8.
 #'
 #' @export
-kpss.2br <- function(y,
+KPSS.2br <- function(y,
                      model,
                      bp,
                      max.lag,
@@ -121,7 +121,7 @@ KPSS.2br.unknown <- function(y,
                              kernel = "bartlett") {
   if (!is.matrix(y)) y <- as.matrix(y)
 
-  .segments <- segments.ols.double(y, model)
+  .segments <- segments.OLS.2br(y, model)
 
   test <- if (!is.null(kernel)) {
     .kpss.statistic(

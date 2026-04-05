@@ -2,7 +2,7 @@
 % Please edit documentation in R/Utils.Variables.R
 \name{trend.kpss.double}
 \alias{trend.kpss.double}
-\title{Construct determinant variables for \link{kpss.2br}}
+\title{Construct determinant variables for \link{KPSS.2br}}
 \usage{
 trend.kpss.double(model, N, bp)
 }
@@ -27,7 +27,7 @@ trend.kpss.double(model, N, bp)
 Matrix of deterministic terms.
 }
 \description{
-Construct determinant variables for \link{kpss.2br}
+Construct determinant variables for \link{KPSS.2br}
 }
 \details{
 Procedure to compute deterministic terms

@@ -84,12 +84,12 @@ MDF.CHLT <- function(y,
 
   z <- cumsum(y)
   x <- cbind(
-    1:N,
-    cumsum(1:N),
+    .trend(N),
+    cumsum(.trend(N)),
     cumsum(DT.tb.dy)
   )
   u.resid <- .OLS(z, x)$residuals
-  x <- cbind(1:N, cumsum(1:N))
+  x <- cbind(.trend(N), cumsum(.trend(N)))
   r.resid <- .OLS(z, x)$residuals
   W.stat.dy <- drop(t(r.resid) %*% r.resid) /
     drop(t(u.resid) %*% u.resid) - 1
@@ -101,7 +101,7 @@ MDF.CHLT <- function(y,
   tau.lam.ADF <- (1 - lam.ADF.brk.tau.dy) * tau.dy
 
   ## Unit root test
-  x <- cbind(1, 1:N)
+  x <- cbind(.const(N), .trend(N))
 
   resid.GLS <- .GLS(y, x, -13.5)$residuals
   resid.OLS <- .OLS(y, x)$residuals
@@ -183,7 +183,7 @@ MDF.CHLT <- function(y,
     tb.lam.MZ <- trunc(tau.lam.MZ * N)
     resid.OLS.bt <- .OLS(
       y,
-      cbind(1, 1:N, .dt(tb.lam.MZ, N))
+      cbind(.const(N), .trend(N), .dt(tb.lam.MZ, N))
     )$residuals
 
     k.bt <- ADF.test(
@@ -252,7 +252,7 @@ MDF.CHLT <- function(y,
     tb.lam.ADF <- trunc(tau.lam.ADF * N)
     resid.OLS.bt <- .OLS(
       y,
-      cbind(1, 1:N, .dt(tb.lam.ADF, N))
+      cbind(.const(N), .trend(N), .dt(tb.lam.ADF, N))
     )$residuals
 
     k.bt <- ADF.test(
@@ -283,7 +283,7 @@ MDF.CHLT <- function(y,
   ## Bootstrap
   eps <- .OLS(
     d.y,
-    cbind(1, .du(tb.dy, N))
+    cbind(.const(N), .du(tb.dy, N))
   )$residuals
   eps <- as.matrix(eps)
   eps[1] <- 0
@@ -308,7 +308,7 @@ MDF.CHLT <- function(y,
     if (tau.lam.MZ < trim) {
       resid.wb <- .GLS(
         y.wb,
-        cbind(1, 1:N),
+        cbind(.const(N), .trend(N)),
         -13.5
       )$residuals
       MZ.wb <- .mz.statistics(resid.wb, 0)
@@ -328,7 +328,7 @@ MDF.CHLT <- function(y,
     if (tau.lam.ADF < trim) {
       resid.wb <- .GLS(
         y.wb,
-        cbind(1, 1:N),
+        cbind(.const(N), .trend(N)),
         -13.5
       )$residuals
       ers.ADF.wb <- ADF.test(
@@ -402,6 +402,6 @@ GLS.bt <- function(y,
                    c) {
   N <- nrow(y)
   tb <- trunc(lambda * N)
-  x <- cbind(1, .dt(tb, N))
+  x <- cbind(.const(N), .dt(tb, N))
   .GLS(y, x, c)
 }

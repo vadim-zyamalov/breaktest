@@ -72,7 +72,7 @@ MDF.mlt <- function(y,
   width <- first.break - 1
   last.break <- trunc((1 - trim) * N) + 1
 
-  x <- cbind(1, 1:N)
+  x <- cbind(.const(N), .trend(N))
 
   ## GLS case
   resid.GLS.t <- .GLS(y, x, -13.5)$residuals
@@ -108,8 +108,8 @@ MDF.mlt <- function(y,
 
   for (tb1 in first.break:last.break) {
     x <- cbind(
-      1,
-      1:N,
+      .const(N),
+      .trend(N),
       if (const) .du(tb1, N) else NULL,
       .dt(tb1, N)
     )
@@ -158,8 +158,8 @@ MDF.mlt <- function(y,
       DT2 <- DU2 * (1:N - tb2)
 
       x <- cbind(
-        1,
-        1:N,
+        .const(N),
+        .trend(N),
         if (const) .du(tb1, N) else NULL,
         .dt(tb1, N),
         if (const) .du(tb2, N) else NULL,
@@ -207,8 +207,8 @@ MDF.mlt <- function(y,
     for (tb2 in (tb1 + width):(last.break - width)) {
       for (tb3 in (tb2 + width):last.break) {
         x <- cbind(
-          1,
-          1:N,
+          .const(N),
+          .trend(N),
           if (const) .du(tb1, N) else NULL,
           .dt(tb1, N),
           if (const) .du(tb2, N) else NULL,
@@ -256,8 +256,8 @@ MDF.mlt <- function(y,
     tbs <- segments.GLS(y, const, TRUE, 2)
 
     x <- cbind(
-      1,
-      1:N,
+      .const(N),
+      .trend(N),
       if (const) .du(tbs[1], N) else NULL,
       .dt(tbs[1], N),
       if (const) .du(tbs[2], N) else NULL,
@@ -275,8 +275,8 @@ MDF.mlt <- function(y,
     tbs <- segments.GLS(y, const, TRUE, 3)
 
     x <- cbind(
-      1,
-      1:N,
+      .const(N),
+      .trend(N),
       if (const) .du(tbs[1], N) else NULL,
       .dt(tbs[1], N),
       if (const) .du(tbs[2], N) else NULL,

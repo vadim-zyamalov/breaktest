@@ -1,5 +1,5 @@
-source("d:/YandexDisk/_РАБОТА_/10. R/Код/BP2003-master/R/Utilities.R", echo = FALSE)
-source("d:/YandexDisk/_РАБОТА_/10. R/Код/BP2003-master/R/EstDate.R", echo = FALSE)
+source("d:/git/breaktest/_origin/_other/BP2003-master/R/Utilities.R", echo = FALSE)
+source("d:/git/breaktest/_origin/_other/BP2003-master/R/EstDate.R", echo = FALSE)
 
 alpha_0 <- 5
 alpha_1 <- 6
@@ -87,10 +87,10 @@ data2 <- data.frame(
 #################
 # Tests 1 break #
 #################
-SSR.1 <- breaktest:::ssr_matrix(data$Y_ab, cbind(data$C, data$dY_ab), width = 4)
+SSR.1 <- breaktest:::SSR.matrix(data$Y_ab, cbind(data$C, data$dY_ab), width = 4)
 
 res.1.1 <- dating(as.matrix(data$Y_ab), as.matrix(cbind(data$C, data$dY_ab)), 4, 1, 1, 1005)
-res.1.2 <- breaktest:::segments_ols_mulitiple(data$Y_ab, cbind(data$C, data$dY_ab), 1, width = 4, rss_values = SSR.1)
+res.1.2 <- breaktest:::segments.OLS.mlt(data$Y_ab, cbind(data$C, data$dY_ab), 1, width = 4, SSR.data = SSR.1)
 
 res.1.1$datevec
 res.1.1$glb
@@ -99,28 +99,29 @@ res.1.2$break.point
 res.1.2$SSR
 
 # Carrion-i-Silvestre and Sansó 2006 OBES
-KPSS.1.2 <- kpss_single(data$Y_ab, data$dY_ab, 1, res.1.2$break.point, FALSE, 4)
-KPSS.1.2b <- kpss_multiple(data$Y_ab,
+KPSS.1.2 <- KPSS.1br(data$Y_ab, data$dY_ab, 1, res.1.2$break.point, FALSE, 4)
+KPSS.1.2b <- KPSS.mlt(data$Y_ab,
   data$dY_ab,
   model = 1,
-  break_point = res.1.2$break.point,
+  bp = res.1.2$break.point,
   const = TRUE,
   trend = FALSE,
-  lags_init = 4,
-  leads_init = 4,
-  kernel = NULL,
-  weakly_exog = FALSE
-)
-KPSS.1.2boot <- KPSS.N.breaks.bootstrap(data$Y_ab,
-  data$dY_ab,
-  model = 1,
-  break.point = res.1.2$break.point,
-  const = TRUE,
-  trend = FALSE,
-  ll.init = 4,
-  corr.max = 0,
+  lags.init = 4,
+  leads.init = 4,
   kernel = NULL,
   weakly.exog = FALSE
+)
+KPSS.1.2boot <- KPSS.mlt.bootstrap(data$Y_ab,
+  data$dY_ab,
+  model = 1,
+  bp = res.1.2$break.point,
+  const = TRUE,
+  trend = FALSE,
+  lags.init = 4,
+  leads.init = 4,
+  kernel = NULL,
+  weakly.exog = FALSE,
+  max.lag = 0
 )
 
 ##################
@@ -128,7 +129,7 @@ KPSS.1.2boot <- KPSS.N.breaks.bootstrap(data$Y_ab,
 ##################
 
 res.2.1 <- dating(as.matrix(data$Y_ab), as.matrix(cbind(data$C, data$dY_ab)), 4, 2, 1, 1005)
-res.2.2 <- breaktest:::segments_ols_mulitiple(data2$Y_ab, cbind(data2$C, data2$dY_ab), 2, width = 4, rss_values = SSR.1)
+res.2.2 <- breaktest:::segments.OLS.mlt(data2$Y_ab, cbind(data2$C, data2$dY_ab), 2, width = 4, SSR.data = SSR.1)
 
 res.2.1$datevec
 res.2.1$glb
@@ -137,26 +138,27 @@ res.2.2$break.point
 res.2.2$SSR
 
 # Carrion-i-Silvestre and Sansó 2007
-KPSS.2.2 <- kpss_double(as.matrix(data$Y_ab), 1, res.2.2$break.point, 4, NULL)
-KPSS.2.2b <- kpss_multiple(data2$Y_ab,
+KPSS.2.2 <- KPSS.2br(as.matrix(data$Y_ab), 1, res.2.2$break.point, 4, NULL)
+KPSS.2.2b <- KPSS.mlt(data2$Y_ab,
   data2$dY_ab,
   model = c(1, 1),
-  break_point = res.2.2$break.point,
+  bp = res.2.2$break.point,
   const = FALSE,
   trend = TRUE,
-  lags_init = 4,
-  leads_init = 4,
-  kernel = NULL,
-  weakly_exog = FALSE
-)
-KPSS.2.2boot <- KPSS.N.breaks.bootstrap(data$Y_ab,
-  data$dY_ab,
-  model = c(1, 1),
-  break.point = res.2.2$break.point,
-  const = FALSE,
-  trend = TRUE,
-  ll.init = 4,
-  corr.max = 0,
+  lags.init = 4,
+  leads.init = 4,
   kernel = NULL,
   weakly.exog = FALSE
+)
+KPSS.2.2boot <- KPSS.mlt.bootstrap(data$Y_ab,
+  data$dY_ab,
+  model = c(1, 1),
+  bp = res.2.2$break.point,
+  const = FALSE,
+  trend = TRUE,
+  lags.init = 4,
+  leads.init = 4,
+  kernel = NULL,
+  weakly.exog = FALSE,
+  max.lag = 0
 )

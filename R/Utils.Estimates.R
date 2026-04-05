@@ -20,14 +20,27 @@
   if (!is.matrix(y)) y <- as.matrix(y)
   if (!is.matrix(x)) x <- as.matrix(x)
 
-  .model <- lm(y ~ x - 1)
-  s.sq <- drop(t(.model$residuals) %*% .model$residuals) /
-    (nrow(x) - ncol(x))
-  t.beta <- .model$coefficients / sqrt(diag(s.sq * qr.solve(t(x) %*% x)))
+  N <- length(y)
+
+  yrows <- apply(y, 1, function(r) any(is.na(r)))
+  xrows <- apply(x, 1, function(r) any(is.na(r)))
+  rows <- !yrows & !xrows
+
+  y <- y[rows, , drop = FALSE]
+  x <- x[rows, , drop = FALSE]
+
+  .model <- .lm.fit(x, y)
+  r <- .model$residuals
+  cf <- .model$coefficients
+  s.sq <- sum(r^2) / (nrow(x) - ncol(x))
+  t.beta <- cf / sqrt(diag(s.sq * qr.solve(t(x) %*% x)))
+
+  resid <- rep(NA, N)
+  resid[rows] <- r
 
   list(
-    beta = as.matrix(.model$coefficients),
-    residuals = .model$residuals,
+    beta = as.matrix(cf),
+    residuals = resid,
     predict = .model$fitted.values,
     t.beta = t.beta
   )
@@ -413,14 +426,17 @@
     stop("ERROR! NW.variance: unknown kernel")
   }
 
-  N <- length(e)
-
+  .e <- na.omit(e)
+  N <- length(.e)
   omega2 <- numeric(N)
 
   for (k in 1:N) {
     .w <- .NW.kernel(k, (1:N) / N, h, kernel)
     omega2[k] <- sum(.w * e^2) / sum(.w)
   }
+
+  dN <- length(e) - length(.e)
+  omega2 <- c(rep(NA, dN), omega2)
 
   list(
     me       = e,
@@ -458,7 +474,9 @@
     stop("ERROR! NW.bandwidth: unknown kernel")
   }
 
-  N <- length(y)
+  .y <- na.omit(y)
+  .x <- x[!is.na(y)]
+  N <- length(.y)
 
   h_candidates <- seq(N^(-0.5), N^(-0.3), by = 0.01)
   rss <- Inf
@@ -469,7 +487,7 @@
     for (k in 1:N) {
       .w <- .NW.kernel(k, (1:N) / N, .h, kernel)
       .w[k] <- 0
-      rho[k] <- sum(x * .w * y) / sum(x * .w * x)
+      rho[k] <- sum(.x * .w * .y) / sum(.x * .w * .x)
     }
 
     .rss <- sum((y - rho * x)^2)
@@ -509,7 +527,7 @@
                        h,
                        kernel = "unif") {
   switch(kernel,
-    unif  = if (abs((x - x[i]) / h) <= 1) 1 else 0,
+    unif  = ifelse((abs((x - x[i]) / h) <= 1), 1, 0),
     gauss = pnorm((x - x[i]) / h)
   )
 }

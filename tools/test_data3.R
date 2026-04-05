@@ -1,3 +1,5 @@
+source("tools/hbm.sim.R")
+
 N_sim <- 456
 # tau_sim - Moment of volatility shift.
 tau_sim <- 0.5

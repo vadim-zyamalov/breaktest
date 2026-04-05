@@ -113,11 +113,11 @@
 
   N <- nrow(y)
 
-  funcs <- ifelse(
-    Nc == 1,
-    .lr.var.kernel(kernel, .lr.alpha.single, N),
+  funcs <- if (Nc == 1) {
+    .lr.var.kernel(kernel, .lr.alpha.single, N)
+  } else {
     .lr.var.kernel(kernel, .lr.alpha.multi, N)
-  )
+  }
 
   if (recolor) {
     min.ic <- log(drop(t(y) %*% y) / (N - max.lag))

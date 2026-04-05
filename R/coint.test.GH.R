@@ -77,11 +77,11 @@ coint.test.GH <- function(...,
     phi <- .du(tb, N)
 
     if (shift == "level") {
-      x <- cbind(1, phi, y2)
+      x <- cbind(.const(N), phi, y2)
     } else if (shift == "level-trend") {
-      x <- cbind(1, phi, 1:N, y2)
+      x <- cbind(.const(N), phi, .trend(N), y2)
     } else if (shift == "regime") {
-      x <- cbind(1, phi, y2, phi * y2)
+      x <- cbind(.const(N), phi, y2, phi * y2)
     }
 
     e <- .OLS(y1, x)$residuals
@@ -92,7 +92,7 @@ coint.test.GH <- function(...,
 
     nu <- e - rho * .lagn(e, 1, na = 0)
 
-    lrv <- lr.var.bartlett(nu)
+    lrv <- .lr.var.bartlett(nu)
     lambda <- (lrv - drop(t(nu) %*% nu) / N) / 2
 
     rho.star <- sum(e * Le - lambda, na.rm = TRUE) /

@@ -68,7 +68,6 @@ SADF.bootstrap.test <- function(y,
   progress <- function(n) setTxtProgressBar(progress.bar, n)
 
   cluster <- makeCluster(max(cores - 1, 1))
-  clusterExport(cluster, c("SADF.test", ".diffn"))
   registerDoSNOW(cluster)
 
   SADF.bootstrap.values <- foreach(

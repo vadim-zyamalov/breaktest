@@ -39,15 +39,15 @@ coint.test.PR <- function(y,
   max.lag <- round(4 * (N / 100)^(1 / 4))
 
   zy <- if (deter == 1 || deter == 3) {
-    as.matrix(rep(1, N))
+    .const(N)
   } else if (deter == 2) {
-    cbind(1, 1:N)
+    cbind(.const(N), .trend(N))
   }
 
   zx <- if (deter == 1) {
-    as.matrix(rep(1, N))
+    .const(N)
   } else if (deter == 2 || deter == 3) {
-    cbind(1, 1:N)
+    cbind(.const(N), .trend(N))
   }
 
   y.d <- .GLS(y, zy, opt.cbar)$residuals

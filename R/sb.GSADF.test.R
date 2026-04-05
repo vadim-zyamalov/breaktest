@@ -46,6 +46,7 @@ sb.GSADF.test <- function(y,
 
   ## Find supSBADF_value.
   supSBADF.model <- supSBADF.statistic(y, trim)
+  supSBADF.value <- supSBADF.model$supSBADF.value
 
   ## Do parallel.
   cores <- detectCores()
@@ -53,36 +54,32 @@ sb.GSADF.test <- function(y,
   progress.bar <- txtProgressBar(max = iter, style = 3)
   progress <- function(n) setTxtProgressBar(progress.bar, n)
 
-  cluster <- makeCluster(max(cores - 1, 1))
-  clusterExport(cluster, c(
-    "ADF.test",
-    "GSADF.test",
-    "supSBADF.statistic",
-    ".cval_GSADF_without_const",
-    ".cval_GSADF_with_const",
-    ".diffn"
-  ))
-  registerDoSNOW(cluster)
+  # cluster <- makeCluster(max(cores - 1, 1))
+  # clusterExport(cluster, c(
+  #  "ADF.test",
+  #  "GSADF.test",
+  #  # "supSBADF.statistic",
+  #  ".cval_GSADF_without_const",
+  #  ".cval_GSADF_with_const",
+  #  ".diffn"
+  # ))
+  # registerDoSNOW(cluster)
 
-  GSADF.supSBADF.bootstrap.values <- foreach( # nolint
-    step = 1:iter,
-    .combine = rbind,
-    .options.snow = list(progress = progress)
-  ) %dopar% {
-    y.star <- cumsum(rnorm(N - 1) * .diffn(y))
-    tmp.GSADF.value <- NA
-    supSBADF.value <- NA
+  GSADF.supSBADF.bootstrap.values <- NULL
+  for (step in 1:iter) {
+    y.star <- cumsum(rnorm(N) * .diffn(y, na = 0))
+    res <- c(NA, NA)
     if (urs) {
       gsadf.model <- GSADF.test(y.star, trim, const)
-      tmp.GSADF.value <- gsadf.model$sadf.value
+      res[1] <- gsadf.model$GSADF.value
     }
-    supSBADF.model <- supSBADF.statistic(y.star, trim)
-    tmp.supSBADF.value <- supSBADF.model$supSBADF.value
-    c(tmp.GSADF.value, tmp.supSBADF.value)
+    res[2] <- supSBADF.statistic(y.star, trim) |> _$supSBADF.value
+    progress(step)
+    GSADF.supSBADF.bootstrap.values <- rbind(GSADF.supSBADF.bootstrap.values, res)
   }
 
-  stopCluster(cluster)
-
+  # stopCluster(cluster)
+  print(GSADF.supSBADF.bootstrap.values)
   ## Get sadf_supSBADF_bootstrap_values
   supSBADF.bootstrap.values <- GSADF.supSBADF.bootstrap.values[, 2]
 
@@ -202,7 +199,7 @@ supSBADF.statistic <- function(y,
   N <- length(y)
 
   ## Calculate C.t.
-  C.t <- cumsum(sign(diff(y)))
+  C.t <- cumsum(sign(.diffn(y, na = 0)))
 
   SBADF.values <- c()
   m <- 1

@@ -4,7 +4,7 @@
 \alias{.dt}
 \title{Generating break in trend}
 \usage{
-.dt(bp, n_obs)
+.dt(bp, N)
 }
 \arguments{
 \item{bp}{index of break point.}

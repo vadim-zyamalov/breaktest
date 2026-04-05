@@ -133,7 +133,7 @@ KPSS.1br <- function(y,
 #' https://doi.org/10.1111/j.1468-0084.2006.00180.x.
 #'
 #' @export
-kpss.1br.unknown <- function(y,
+KPSS.1br.unknown <- function(y,
                              x,
                              model,
                              weakly.exog,

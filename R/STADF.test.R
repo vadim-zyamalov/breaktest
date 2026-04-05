@@ -83,8 +83,8 @@ STADF.test <- function(y,
   y.0 <- y - y[1]
   my <- diff(y.0)
   mx <- y.0[1:(n.obs - 1)]
-  nw.model.cv <- .bandwidth_nw(my, mx)
-  nw.model <- .estimate_nw(my, mx, h = nw.model.cv$h)
+  nw.model.cv <- .NW.bandwidth(my, mx)
+  nw.model <- .NW.reg(my, mx, h = nw.model.cv$h)
 
   h.est <- hc * nw.model.cv$h
   u.hat <- nw.model$u.hat
@@ -230,8 +230,8 @@ GSTADF.test <- function(y,
   y.0 <- y - y[1]
   my <- diff(y.0)
   mx <- y.0[1:(n.obs - 1)]
-  nw.model.cv <- .bandwidth_nw(my, mx)
-  nw.model <- .estimate_nw(my, mx, h = nw.model.cv$h)
+  nw.model.cv <- .NW.bandwidth(my, mx)
+  nw.model <- .NW.reg(my, mx, h = nw.model.cv$h)
 
   h.est <- hc * nw.model.cv$h
   u.hat <- nw.model$u.hat
@@ -379,29 +379,29 @@ GSTADF.test <- function(y,
 #'
 #' @keywords internal
 reindex.CT <- function(u) {
-  n.obs <- length(u)
-  u.2 <- as.numeric(u^2)
+  N <- length(u)
+  u.sq <- as.numeric(u^2)
 
-  s <- (0:n.obs) / n.obs
+  s <- (0:N) / N
 
-  eta.hat <- rep(0, (n.obs + 1))
-  for (i in 2:(n.obs + 1)) {
-    sT <- floor(s[i] * n.obs)
-    eta.hat[i] <- (sum(u.2[1:sT]) + (s[i] * n.obs - sT) * u.2[sT + 1]) /
-      sum(u.2)
+  eta.hat <- rep(0, (N + 1))
+  for (i in 2:(N + 1)) {
+    sT <- floor(s[i] * N)
+    eta.hat[i] <- (sum(u.sq[1:sT]) + (s[i] * N - sT) * u.sq[sT + 1]) /
+      sum(u.sq)
   }
-  eta.hat[n.obs + 1] <- 1
+  eta.hat[N + 1] <- 1
 
-  eta.hat.inv <- rep(0, (n.obs + 1))
-  for (i in 2:(n.obs + 1)) {
+  eta.hat.inv <- rep(0, (N + 1))
+  for (i in 2:(N + 1)) {
     k <- length(eta.hat[eta.hat < s[i]])
-    s0 <- (k - 1) / n.obs
+    s0 <- (k - 1) / N
     eta.hat.inv[i] <- s0 +
-      (s[i] - eta.hat[k]) / (eta.hat[k + 1] - eta.hat[k]) / n.obs
+      (s[i] - eta.hat[k]) / (eta.hat[k + 1] - eta.hat[k]) / N
   }
-  eta.hat.inv[n.obs + 1] <- 1
+  eta.hat.inv[N + 1] <- 1
 
-  new.index <- floor(eta.hat.inv * n.obs)
+  new.index <- floor(eta.hat.inv * N)
 
   return(
     list(

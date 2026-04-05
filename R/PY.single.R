@@ -43,27 +43,27 @@ PY.single <- function(y,
   v.t <- .cval_PY_single[[model]]$v.t
   c.v <- .cval_PY_single[[model]]$c.v
 
-  n.obs <- nrow(y)
-  first.break <- max(trunc(trim * n.obs), max.lag + 2) + 1
-  last.break <- trunc((1 - trim) * n.obs) + 1
+  N <- nrow(y)
+  first.break <- max(trunc(trim * N), max.lag + 2) + 1
+  last.break <- trunc((1 - trim) * N) + 1
 
-  vect1 <- matrix(0, nrow = trunc((1 - 2 * trim) * n.obs) + 2, ncol = 1)
+  vect1 <- matrix(0, nrow = trunc((1 - 2 * trim) * N) + 2, ncol = 1)
 
   for (tb in first.break:last.break) {
-    lambda <- tb / n.obs
+    lambda <- tb / N
 
     x <- cbind(
-      1,
-      1:n.obs,
-      if (const) .du(tb, n.obs) else NULL,
-      if (trend) .dt(tb, n.obs) else NULL
+      .const(N),
+      .trend(N),
+      if (const) .du(tb, N) else NULL,
+      if (trend) .dt(tb, N) else NULL
     )
 
     k.hat <- max(1, .AR(y, x, max.lag, criterion)$lag)
     resids <- .OLS(y, x)$residuals
     d.resid <- .diffn(resids)
 
-    y.u <- resids[k.hat:n.obs, , drop = FALSE]
+    y.u <- resids[k.hat:N, , drop = FALSE]
     x.u <- .lagn(resids, 1, na = 0)
     if (k.hat > 1) {
       x.u <- cbind(
@@ -75,7 +75,7 @@ PY.single <- function(y,
         )
       )
     }
-    x.u <- x.u[k.hat:n.obs, , drop = FALSE]
+    x.u <- x.u[k.hat:N, , drop = FALSE]
 
     tmp.OLS <- .OLS(y.u, x.u)
     beta.u <- tmp.OLS$beta
@@ -96,16 +96,16 @@ PY.single <- function(y,
     k <- 10
     k.x <- ncol(x)
 
-    c1 <- sqrt((1 + k.x) * n.obs)
-    c2 <- ((1 + k.x) * n.obs - tau05^2 * (IP + n.obs)) /
-      (tau05 * (tau05 + k) * (IP + n.obs))
+    c1 <- sqrt((1 + k.x) * N)
+    c2 <- ((1 + k.x) * N - tau05^2 * (IP + N)) /
+      (tau05 * (tau05 + k) * (IP + N))
 
     if (tau > tau05) {
       c.tau <- -tau
     } else if (tau <= tau05 && tau > -k) {
-      c.tau <- IP * tau / n.obs - (k.x + 1) / (tau + c2 * (tau + k))
+      c.tau <- IP * tau / N - (k.x + 1) / (tau + c2 * (tau + k))
     } else if (tau <= -k && tau > -c1) {
-      c.tau <- IP * tau / n.obs - (k.x + 1) / tau
+      c.tau <- IP * tau / N - (k.x + 1) / tau
     } else if (tau <= -c1) {
       c.tau <- 0
     }
@@ -117,18 +117,18 @@ PY.single <- function(y,
       a.hat.M <- -0.99
     }
 
-    CR <- sqrt(n.obs) * abs(a.hat.M - 1)
+    CR <- sqrt(N) * abs(a.hat.M - 1)
     if (CR <= 1) a.hat.M <- 1
 
     y.g <- rbind(
       y[1, , drop = FALSE],
-      y[2:n.obs, , drop = FALSE] -
-        a.hat.M * y[1:(n.obs - 1), , drop = FALSE]
+      y[2:N, , drop = FALSE] -
+        a.hat.M * y[1:(N - 1), , drop = FALSE]
     )
     x.g <- rbind(
       x[1, , drop = FALSE],
-      x[2:n.obs, , drop = FALSE] -
-        a.hat.M * x[1:(n.obs - 1), , drop = FALSE]
+      x[2:N, , drop = FALSE] -
+        a.hat.M * x[1:(N - 1), , drop = FALSE]
     )
 
     tmp.OLS <- .OLS(y.g, x.g)
@@ -156,21 +156,21 @@ PY.single <- function(y,
         if (const && !trend) {
           BETAS <- matrix(0, nrow = k.hat - 1, ncol = 3)
           for (k.i in 1:(k.hat - 1)) {
-            DU.ki <- .dt(tb - k.i, n.obs)
-            x.ki <- cbind(1, DU.ki, 1:n.obs)
+            DU.ki <- .dt(tb - k.i, N)
+            x.ki <- cbind(.const(N), DU.ki, .trend(N))
             x.g.ki <- rbind(
               x.ki[1, ],
-              x.ki[2:n.obs, ] - a.hat.M * x.ki[1:(n.obs - 1), ]
+              x.ki[2:N, ] - a.hat.M * x.ki[1:(N - 1), ]
             )
             beta.ki <- .OLS(y.g, x.g.ki)$beta
             BETAS[k.i, ] <- drop(beta.ki)
           }
           beta.g[2] <- beta.g[2] - drop(t(BETAS[, 2]) %*% beta.v)
-          h0 <- drop(t(v.resid) %*% v.resid) / (n.obs - k.hat)
+          h0 <- drop(t(v.resid) %*% v.resid) / (N - k.hat)
         }
 
         if (!const && trend) {
-          h0 <- (drop(t(v.resid) %*% v.resid) / (n.obs - k.hat)) /
+          h0 <- (drop(t(v.resid) %*% v.resid) / (N - k.hat)) /
             ((1 - sum(beta.v))^2)
         }
 
@@ -178,20 +178,20 @@ PY.single <- function(y,
           BETAS <- matrix(0, nrow = k.hat - 1, ncol = 4)
           for (k.i in 1:(k.hat - 1)) {
             x.ki <- cbind(
-              1,
-              1:n.obs,
-              .du(tb - k.i, n.obs),
-              .dt(tb - k.i, n.obs)
+              .const(N),
+              .trend(N),
+              .du(tb - k.i, N),
+              .dt(tb - k.i, N)
             )
             x.g.ki <- rbind(
               x.ki[1, ],
-              x.ki[2:n.obs, ] - a.hat.M * x.ki[1:(n.obs - 1), ]
+              x.ki[2:N, ] - a.hat.M * x.ki[1:(N - 1), ]
             )
             beta.ki <- .OLS(y.g, x.g.ki)$beta
             BETAS[k.i, ] <- drop(beta.ki)
           }
 
-          sig.e <- drop(t(v.resid) %*% v.resid) / (n.obs - k.hat)
+          sig.e <- drop(t(v.resid) %*% v.resid) / (N - k.hat)
 
           beta.g[2] <- (sqrt(h0) / sqrt(sig.e)) *
             (beta.g[2] - drop(t(BETAS[, 2]) %*% beta.v))
@@ -209,7 +209,7 @@ PY.single <- function(y,
       qr.solve(VR %*% VCV %*% t(VR)) %*% (VR %*% beta.g)
   }
 
-  wald <- log(sum(exp(vect1 / 2)) / n.obs)
+  wald <- log(sum(exp(vect1 / 2)) / N)
 
   if (trim == 0.01) cv <- c.v[1, ]
   if (trim == 0.05) cv <- c.v[2, ]
