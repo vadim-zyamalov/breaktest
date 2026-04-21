@@ -36,21 +36,24 @@
                        y = NULL) {
   if (!is.matrix(resids)) resids <- as.matrix(resids)
 
-  n_obs <- nrow(resids)
+  rows <- !is.na(resids)
+  if (!is.null(y)) rows <- rows & !is.na(y)
+
+  cN <- sum(rows)
 
   if (modification) {
-    s2 <- drop(t(resids) %*% resids) / n_obs
-    tau <- (alpha^2) * drop(t(y) %*% y) / s2
+    s2 <- sum(resids[rows]^2) / cN
+    tau <- (alpha^2) * sum(y[rows]^2) / s2
   } else {
     tau <- 0
   }
 
-  .log_rss <- log(drop(t(resids) %*% resids) / n_obs)
+  .log_rss <- log(sum(resids[rows]^2) / cN)
 
   list(
-    aic = .log_rss + 2 * (tau + extra) / n_obs,
-    bic = .log_rss + (tau + extra) * log(n_obs) / n_obs,
-    hq  = .log_rss + 2 * (tau + extra) * log(log(n_obs)) / n_obs,
-    lwz = .log_rss + 0.299 * (tau + extra) * (log(n_obs))^2.1
+    aic = .log_rss + 2 * (tau + extra) / cN,
+    bic = .log_rss + (tau + extra) * log(cN) / cN,
+    hq  = .log_rss + 2 * (tau + extra) * log(log(cN)) / cN,
+    lwz = .log_rss + 0.299 * (tau + extra) * (log(cN))^2.1
   )
 }

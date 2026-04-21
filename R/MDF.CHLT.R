@@ -88,9 +88,9 @@ MDF.CHLT <- function(y,
     cumsum(.trend(N)),
     cumsum(DT.tb.dy)
   )
-  u.resid <- .OLS(z, x)$residuals
+  u.resid <- OLS.reg(z, x)$residuals
   x <- cbind(.trend(N), cumsum(.trend(N)))
-  r.resid <- .OLS(z, x)$residuals
+  r.resid <- OLS.reg(z, x)$residuals
   W.stat.dy <- drop(t(r.resid) %*% r.resid) /
     drop(t(u.resid) %*% u.resid) - 1
 
@@ -103,8 +103,8 @@ MDF.CHLT <- function(y,
   ## Unit root test
   x <- cbind(.const(N), .trend(N))
 
-  resid.GLS <- .GLS(y, x, -13.5)$residuals
-  resid.OLS <- .OLS(y, x)$residuals
+  resid.GLS <- GLS.reg(y, x, -13.5)$residuals
+  resid.OLS <- OLS.reg(y, x)$residuals
   k.t <- ADF.test(
     resid.OLS,
     const = FALSE, trend = FALSE,
@@ -181,7 +181,7 @@ MDF.CHLT <- function(y,
     resid.GLS.bt <- GLS.bt(y, tau.lam.MZ, cbar.tau.lam.MZ)$residuals
 
     tb.lam.MZ <- trunc(tau.lam.MZ * N)
-    resid.OLS.bt <- .OLS(
+    resid.OLS.bt <- OLS.reg(
       y,
       cbind(.const(N), .trend(N), .dt(tb.lam.MZ, N))
     )$residuals
@@ -250,7 +250,7 @@ MDF.CHLT <- function(y,
     resid.GLS.bt <- GLS.bt(y, tau.lam.ADF, cbar.tau.lam.ADF)$residuals
 
     tb.lam.ADF <- trunc(tau.lam.ADF * N)
-    resid.OLS.bt <- .OLS(
+    resid.OLS.bt <- OLS.reg(
       y,
       cbind(.const(N), .trend(N), .dt(tb.lam.ADF, N))
     )$residuals
@@ -281,7 +281,7 @@ MDF.CHLT <- function(y,
   }
 
   ## Bootstrap
-  eps <- .OLS(
+  eps <- OLS.reg(
     d.y,
     cbind(.const(N), .du(tb.dy, N))
   )$residuals
@@ -306,7 +306,7 @@ MDF.CHLT <- function(y,
 
 
     if (tau.lam.MZ < trim) {
-      resid.wb <- .GLS(
+      resid.wb <- GLS.reg(
         y.wb,
         cbind(.const(N), .trend(N)),
         -13.5
@@ -326,7 +326,7 @@ MDF.CHLT <- function(y,
     }
 
     if (tau.lam.ADF < trim) {
-      resid.wb <- .GLS(
+      resid.wb <- GLS.reg(
         y.wb,
         cbind(.const(N), .trend(N)),
         -13.5
@@ -403,5 +403,5 @@ GLS.bt <- function(y,
   N <- nrow(y)
   tb <- trunc(lambda * N)
   x <- cbind(.const(N), .dt(tb, N))
-  .GLS(y, x, c)
+  GLS.reg(y, x, c)
 }

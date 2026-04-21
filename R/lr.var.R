@@ -122,7 +122,7 @@
   if (recolor) {
     min.ic <- log(drop(t(y) %*% y) / (N - max.lag))
 
-    model.est <- .AR(y, NULL, max.lag, criterion)
+    model.est <- AR.reg(y, NULL, max.lag, criterion)
     ic.values <- .ic.values(model.est$residuals, model.est$lag)[[criterion]]
 
     if (min.ic < ic.values) {

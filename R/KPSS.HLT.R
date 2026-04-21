@@ -33,7 +33,7 @@ KPSS.HLT <- function(y,
   var.dy <- NA
 
   for (bp in bp.min:bp.max) {
-    du <- du(bp, N)
+    du <- .du(bp, N)
 
     x <- cbind(
       .const(N),
@@ -42,7 +42,7 @@ KPSS.HLT <- function(y,
       .dt(bp, N)
     )
 
-    .model <- .OLS(y, x)
+    .model <- OLS.reg(y, x)
 
     .y.lr.var <- .lr.var.bartlett(.model$residuals)
     .xx.inv <- qr.solve(t(x) %*% x)
@@ -56,7 +56,7 @@ KPSS.HLT <- function(y,
       du
     )
 
-    .model <- .OLS(dy, x)
+    .model <- OLS.reg(dy, x)
 
     .dy.lr.var <- .lr.var.bartlett(.model$residuals)
     .xx.inv <- qr.solve(t(x) %*% x)

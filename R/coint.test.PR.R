@@ -50,10 +50,10 @@ coint.test.PR <- function(y,
     cbind(.const(N), .trend(N))
   }
 
-  y.d <- .GLS(y, zy, opt.cbar)$residuals
-  x.d <- .GLS(x, zx, opt.cbar)$residuals
+  y.d <- GLS.reg(y, zy, opt.cbar)$residuals
+  x.d <- GLS.reg(x, zx, opt.cbar)$residuals
 
-  model <- .OLS(y.d, x.d)
+  model <- OLS.reg(y.d, x.d)
   ud.hat <- cbind(model$residuals)
 
   resid.tests.PR(ud.hat, min.lag, max.lag, opt.cbar, deter)
@@ -93,7 +93,7 @@ resid.tests.PR <- function(ud,
   d.ud <- .diffn(ud)
   sum.ud.sq <- sum(.lagn(ud, 1)^2, na.rm = TRUE)
 
-  model.1 <- .OLS(ud, .lagn(ud, 1))
+  model.1 <- OLS.reg(ud, .lagn(ud, 1))
 
   rho.hat <- as.matrix(model.1$beta)
   omega <- as.matrix(model.1$residuals)
@@ -116,7 +116,7 @@ resid.tests.PR <- function(ud,
     # tmp.reg <-
     #   tmp.reg[(lag.bic + 2):N, , drop = FALSE]
 
-    model.2 <- .OLS(d.ud, tmp.reg)
+    model.2 <- OLS.reg(d.ud, tmp.reg)
 
     eta <- cbind(model.2$residuals)
     s2.eta <- c(t(eta) %*% eta) / (nrow(eta) - ncol(tmp.reg))

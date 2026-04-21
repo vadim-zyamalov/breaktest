@@ -54,7 +54,7 @@ KPSS.2br <- function(y,
 
   z <- trend.kpss.double(model, n.obs, bp)
 
-  model.est <- .OLS(y, z)
+  model.est <- OLS.reg(y, z)
 
   test <- if (!is.null(kernel)) {
     .kpss.statistic(

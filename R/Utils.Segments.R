@@ -305,7 +305,7 @@ segments.GLS <- function(y,
         )
 
         c_bar <- N * (alpha - 1)
-        resids <- .GLS(y, x, c_bar)$residuals
+        resids <- GLS.reg(y, x, c_bar)$residuals
 
         .rss_loop <- drop(t(resids) %*% resids)
 
@@ -332,7 +332,7 @@ segments.GLS <- function(y,
           )
 
           c_bar <- N * (alpha - 1)
-          resids <- .GLS(y, x, c_bar)$residuals
+          resids <- GLS.reg(y, x, c_bar)$residuals
 
           .rss_loop <- drop(t(resids) %*% resids)
 
@@ -365,7 +365,7 @@ segments.GLS <- function(y,
             )
 
             c_bar <- N * (alpha - 1)
-            resids <- .GLS(y, x, c_bar)$residuals
+            resids <- GLS.reg(y, x, c_bar)$residuals
 
             .rss_loop <- drop(t(resids) %*% resids)
 

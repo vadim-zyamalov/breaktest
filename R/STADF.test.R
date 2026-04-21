@@ -83,8 +83,8 @@ STADF.test <- function(y,
   y.0 <- y - y[1]
   my <- diff(y.0)
   mx <- y.0[1:(n.obs - 1)]
-  nw.model.cv <- .NW.bandwidth(my, mx)
-  nw.model <- .NW.reg(my, mx, h = nw.model.cv$h)
+  nw.model.cv <- NW.bandwidth(my, mx)
+  nw.model <- NW.reg(my, mx, h = nw.model.cv$h)
 
   h.est <- hc * nw.model.cv$h
   u.hat <- nw.model$u.hat
@@ -230,8 +230,8 @@ GSTADF.test <- function(y,
   y.0 <- y - y[1]
   my <- diff(y.0)
   mx <- y.0[1:(n.obs - 1)]
-  nw.model.cv <- .NW.bandwidth(my, mx)
-  nw.model <- .NW.reg(my, mx, h = nw.model.cv$h)
+  nw.model.cv <- NW.bandwidth(my, mx)
+  nw.model <- NW.reg(my, mx, h = nw.model.cv$h)
 
   h.est <- hc * nw.model.cv$h
   u.hat <- nw.model$u.hat

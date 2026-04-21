@@ -92,7 +92,7 @@ coint.conf.sets <- function(y,
   cset.bls <- numeric(N2)
 
   w <- cbind(wb, wf)
-  u.hat <- .OLS(y, w)$residuals
+  u.hat <- OLS.reg(y, w)$residuals
   ssr.0 <- c(t(u.hat) %*% u.hat)
   est.date <- N2
 
@@ -103,7 +103,7 @@ coint.conf.sets <- function(y,
     )
     w <- cbind(wb, wb1, wf)
     ww.inv <- solve(t(w) %*% w)
-    u.hat <- .OLS(y, w)$residuals
+    u.hat <- OLS.reg(y, w)$residuals
     ssr.1 <- c(t(u.hat) %*% u.hat)
     if (ssr.1 < ssr.0) {
       ssr.0 <- ssr.1
@@ -158,7 +158,7 @@ coint.conf.sets <- function(y,
 
     w <- cbind(wb, wb1, wf)
 
-    y.hat <- .OLS(y, w)$residuals
+    y.hat <- OLS.reg(y, w)$residuals
 
     if (abs(tb - est.date) > ncol(wb)) {
       we <- cbind(w, wb1e)
@@ -346,14 +346,14 @@ select.lead.lag.KS <- function(y,
 
   wf <- cbind(zf, d.z)
 
-  u.hat <- .OLS(y, w)$residuals
+  u.hat <- OLS.reg(y, w)$residuals
   ssr.0 <- drop(t(u.hat) %*% u.hat)
   est.date <- N
 
   for (t in first.break:last.break) {
-    wb1 <- rbind(0, wb[(t + 1):N, , drop = FALSE])
+    wb1 <- rbind(rep(0, t), wb[(t + 1):N, , drop = FALSE])
     w <- cbind(wb, wb1, zf)
-    u.hat <- .OLS(y, w)$residuals
+    u.hat <- OLS.reg(y, w)$residuals
     ssr.1 <- drop(t(u.hat) %*% u.hat)
 
     if (ssr.1 < ssr.0) {
@@ -383,7 +383,7 @@ select.lead.lag.KS <- function(y,
     as.matrix(wf[(max.lead.lag + 1):(N - max.lead.lag), ])
   )
 
-  u.hat <- .OLS(y.0, w.0)$residuals
+  u.hat <- OLS.reg(y.0, w.0)$residuals
   min.ic <- info.criterion(u.hat, ncol(w.0))[[criterion]]
   est.lead <- 0
   est.lag <- 0
@@ -408,7 +408,7 @@ select.lead.lag.KS <- function(y,
         )
       }
 
-      u.hat <- .OLS(y.0, w.1)$residuals
+      u.hat <- OLS.reg(y.0, w.1)$residuals
 
       cur.ic <- info.criterion(u.hat, ncol(w.1))[[criterion]]
       if (cur.ic < min.ic) {

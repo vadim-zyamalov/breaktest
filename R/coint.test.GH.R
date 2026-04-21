@@ -84,7 +84,7 @@ coint.test.GH <- function(...,
       x <- cbind(.const(N), phi, y2, phi * y2)
     }
 
-    e <- .OLS(y1, x)$residuals
+    e <- OLS.reg(y1, x)$residuals
     Le <- .lagn(e, 1)
 
     rho <- sum(e * Le, na.rm = TRUE) /
@@ -103,7 +103,7 @@ coint.test.GH <- function(...,
       res.Za
     )
     res.Zt <- min(
-      (rho.star - 1) * sqrt(sum(e[1:(N - 1), ]^2) / lrv),
+      (rho.star - 1) * sqrt(sum(e[1:(N - 1)]^2) / lrv),
       res.Zt
     )
 

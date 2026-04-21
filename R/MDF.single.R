@@ -70,7 +70,7 @@ MDF.1br <- function(y,
 
   ## OLS/GLS Part ##
   ## Mean case
-  resid.OLS.m <- .OLS(y, x[, 1, drop = FALSE])$residuals
+  resid.OLS.m <- OLS.reg(y, x[, 1, drop = FALSE])$residuals
   DF.OLS.m <- ADF.test(resid.OLS.m,
     const = FALSE, trend = FALSE,
     max.lag = max.lag,
@@ -85,7 +85,7 @@ MDF.1br <- function(y,
     criterion = NULL
   )
 
-  resid.GLS.m <- .GLS(y, x[, 1, drop = FALSE], -7)$residuals
+  resid.GLS.m <- GLS.reg(y, x[, 1, drop = FALSE], -7)$residuals
   DF.GLS.m <- ADF.test(resid.GLS.m,
     const = FALSE, trend = FALSE,
     max.lag = k.m,
@@ -93,7 +93,7 @@ MDF.1br <- function(y,
   )
 
   ## Trend case
-  resid.OLS.t <- .OLS(y, x[, 1:2])$residuals
+  resid.OLS.t <- OLS.reg(y, x[, 1:2])$residuals
   DF.OLS.t <- ADF.test(resid.OLS.t,
     const = FALSE, trend = FALSE,
     max.lag = max.lag,
@@ -108,7 +108,7 @@ MDF.1br <- function(y,
     criterion = NULL
   )
 
-  resid.GLS.t <- .GLS(y, x[, 1:2], -13.5)$residuals
+  resid.GLS.t <- GLS.reg(y, x[, 1:2], -13.5)$residuals
   DF.GLS.t <- ADF.test(resid.GLS.t,
     const = FALSE, trend = FALSE,
     max.lag = k.t,
@@ -116,7 +116,7 @@ MDF.1br <- function(y,
   )
 
   ## ADF-OLS (lambda) ##
-  resid.OLS <- .OLS(y, x)$residuals
+  resid.OLS <- OLS.reg(y, x)$residuals
   DF1 <- ADF.test(resid.OLS,
     const = FALSE, trend = FALSE,
     max.lag = max.lag,
@@ -142,7 +142,7 @@ MDF.1br <- function(y,
       if (trend) .dt(tb1, N) else NULL
     )
 
-    resid.OLS <- .OLS(y, z)$residuals
+    resid.OLS <- OLS.reg(y, z)$residuals
     DF1.tb <- ADF.test(resid.OLS,
       const = FALSE, trend = FALSE,
       max.lag = max.lag,
@@ -151,7 +151,7 @@ MDF.1br <- function(y,
     )
     k.tb <- max(1, DF1.tb$lag)
 
-    resid.GLS <- .GLS(y, z, -17.6)$residuals
+    resid.GLS <- GLS.reg(y, z, -17.6)$residuals
     DF1.tb <- ADF.test(resid.GLS,
       const = FALSE, trend = FALSE,
       max.lag = k.tb,
@@ -169,7 +169,7 @@ MDF.1br <- function(y,
       .dt(tb1, N)
     )
 
-    resid.OLS <- .OLS(y, z)$residuals
+    resid.OLS <- OLS.reg(y, z)$residuals
     DF2 <- ADF.test(resid.OLS,
       const = FALSE, trend = FALSE,
       max.lag = max.lag,
@@ -194,7 +194,7 @@ MDF.1br <- function(y,
   cv.PY <- tmp.PY$critical.value
   rm(tmp.PY)
 
-  tmp.OLS <- .OLS(y, x)
+  tmp.OLS <- OLS.reg(y, x)
   t.alpha <- tmp.OLS$beta[1] /
     sqrt(drop(t(tmp.OLS$residuals) %*% tmp.OLS$residuals) / N)
   t.alpha.id <- as.numeric(abs(t.alpha) > 1)

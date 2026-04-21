@@ -75,9 +75,9 @@ MDF.mlt <- function(y,
   x <- cbind(.const(N), .trend(N))
 
   ## GLS case
-  resid.GLS.t <- .GLS(y, x, -13.5)$residuals
+  resid.GLS.t <- GLS.reg(y, x, -13.5)$residuals
 
-  resid.OLS.t <- .OLS(y, x)$residuals
+  resid.OLS.t <- OLS.reg(y, x)$residuals
   DF.OLS.t <- ADF.test(resid.OLS.t,
     const = FALSE, trend = FALSE,
     max.lag = max.lag,
@@ -114,7 +114,7 @@ MDF.mlt <- function(y,
       .dt(tb1, N)
     )
 
-    resid.OLS <- .OLS(y, x)$residuals
+    resid.OLS <- OLS.reg(y, x)$residuals
     DF1.tb <- ADF.test(resid.OLS,
       const = FALSE, trend = FALSE,
       max.lag = max.lag,
@@ -135,7 +135,7 @@ MDF.mlt <- function(y,
       stat.OLS <- DF1.tb$t.alpha
     }
 
-    resid.GLS <- .GLS(y, x, -17.6)$residuals
+    resid.GLS <- GLS.reg(y, x, -17.6)$residuals
     DF1.tb <- ADF.test(resid.GLS,
       const = FALSE, trend = FALSE,
       max.lag = k.t,
@@ -166,7 +166,7 @@ MDF.mlt <- function(y,
         .dt(tb2, N)
       )
 
-      resid.OLS <- .OLS(y, x)$residuals
+      resid.OLS <- OLS.reg(y, x)$residuals
       DF2.tb <- ADF.test(resid.OLS,
         const = FALSE, trend = FALSE,
         max.lag = max.lag,
@@ -187,7 +187,7 @@ MDF.mlt <- function(y,
         stat.OLS <- DF2.tb$t.alpha
       }
 
-      resid.GLS <- .GLS(y, x, -21.5)$residuals
+      resid.GLS <- GLS.reg(y, x, -21.5)$residuals
       DF2.tb <- ADF.test(resid.GLS,
         const = FALSE, trend = FALSE,
         max.lag = k.t,
@@ -217,7 +217,7 @@ MDF.mlt <- function(y,
           .dt(tb3, N),
         )
 
-        resid.OLS <- .OLS(y, x)$residuals
+        resid.OLS <- OLS.reg(y, x)$residuals
         DF3.tb <- ADF.test(resid.OLS,
           const = FALSE, trend = FALSE,
           max.lag = max.lag,
@@ -238,7 +238,7 @@ MDF.mlt <- function(y,
           stat.OLS <- DF3.tb$t.alpha
         }
 
-        resid.GLS <- .GLS(y, x, -25.5)$residuals
+        resid.GLS <- GLS.reg(y, x, -25.5)$residuals
         DF3.tb <- ADF.test(resid.GLS,
           const = FALSE, trend = FALSE,
           max.lag = k.t,
@@ -264,7 +264,7 @@ MDF.mlt <- function(y,
       .dt(tbs[2], N)
     )
 
-    tmp.OLS <- .OLS(y, x)
+    tmp.OLS <- OLS.reg(y, x)
     bb <- tmp.OLS$beta
     rr <- tmp.OLS$residuals
     rm(tmp.OLS)
@@ -285,7 +285,7 @@ MDF.mlt <- function(y,
       .dt(tbs[3], N)
     )
 
-    tmp.OLS <- .OLS(y, x)
+    tmp.OLS <- OLS.reg(y, x)
     bb <- tmp.OLS$beta
     rr <- tmp.OLS$residuals
     rm(tmp.OLS)

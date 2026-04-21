@@ -62,14 +62,14 @@ KPSS.1br <- function(y,
     xdu <- if (model %in% c(5, 6)) sweep(x, 1, deter[, 2, drop = FALSE], `*`) else NULL
     xt <- cbind(deter, x, xdu)
 
-    model.est <- .OLS(y, xt)
+    model.est <- OLS.reg(y, xt)
     beta <- model.est$beta
     resids <- model.est$residuals
     t.beta <- model.est$t.beta
   } else {
     bic <- Inf
     for (i in ll.init:1) {
-      model.est <- .DOLS.single(y, x, model, bp, i, i)
+      model.est <- DOLS.1br(y, x, model, bp, i, i)
       if (model.est$bic < bic) {
         bic <- model.est$bic
         beta <- model.est$beta

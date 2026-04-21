@@ -16,7 +16,7 @@
 #' @importFrom stats .lm.fit
 #'
 #' @keywords internal
-.OLS <- function(y, x) {
+OLS.reg <- function(y, x) {
   if (!is.matrix(y)) y <- as.matrix(y)
   if (!is.matrix(x)) x <- as.matrix(x)
 
@@ -75,7 +75,7 @@
 #' https://doi.org/10.1111/j.1468-0084.2006.00180.x.
 #'
 #' @keywords internal
-.DOLS.single <- function(y,
+DOLS.1br <- function(y,
                          x,
                          model,
                          bp,
@@ -120,7 +120,7 @@
   xreg <- cbind(deter, x, xdu, d.x, Ld.x, Fd.x)[rows, , drop = FALSE]
   y <- y[rows, 1, drop = FALSE]
 
-  .res_ols <- .OLS(y, xreg)
+  .res_ols <- OLS.reg(y, xreg)
 
   bic <- log(drop(t(.res_ols$residuals) %*% .res_ols$residuals) / nrow(xreg)) +
     ncol(xreg) * log(nrow(xreg)) / nrow(xreg)
@@ -154,7 +154,7 @@
 #' * \eqn{t}-statistics for the estimates of coefficients.
 #'
 #' @keywords internal
-.DOLS.multiple <- function(
+DOLS.many <- function(
   y,
   x,
   model,
@@ -177,7 +177,7 @@
     n.lags, n.leads
   )
 
-  .model <- .OLS(.vars_dols$yreg, .vars_dols$xreg)
+  .model <- OLS.reg(.vars_dols$yreg, .vars_dols$xreg)
 
   criterions <- .ic.values(.model$residuals, ncol(.vars_dols$xreg))
 
@@ -207,7 +207,7 @@
 #' * `t.beta`: \eqn{t}-statistics for `beta`.
 #'
 #' @keywords internal
-.GLS <- function(y, z, c) {
+GLS.reg <- function(y, z, c) {
   if (!is.matrix(y)) y <- as.matrix(y)
   if (!is.matrix(z)) z <- as.matrix(z)
 
@@ -228,7 +228,7 @@
   t.betas <- NULL
 
   for (i in 1:Nc) {
-    .model <- .OLS(y_hat[, i, drop = FALSE], z_hat)
+    .model <- OLS.reg(y_hat[, i, drop = FALSE], z_hat)
     betas <- cbind(betas, .model$beta)
     t.betas <- cbind(t.betas, .model$t.beta)
     fitted <- cbind(fitted, z %*% .model$beta)
@@ -260,7 +260,7 @@
 #' * `lag`: estimated number of lags.
 #'
 #' @keywords internal
-.AR <- function(
+AR.reg <- function(
   y,
   x,
   max.lag,
@@ -295,7 +295,7 @@
 
   if (is.null(criterion)) {
     .lag <- max.lag
-    .model <- .OLS(.lhs, .rhs[, 1:(Nx + .lag), drop = FALSE])
+    .model <- OLS.reg(.lhs, .rhs[, 1:(Nx + .lag), drop = FALSE])
     .beta <- .model$beta
     .resid <- .model$residuals
     .predict <- .model$predict
@@ -311,7 +311,7 @@
     .ic <- Inf
 
     for (l in 0:max.lag) {
-      .model <- .OLS(.lhs, .rhs[, 1:(Nx + l), drop = FALSE])
+      .model <- OLS.reg(.lhs, .rhs[, 1:(Nx + l), drop = FALSE])
       .model_ic <- .ic.values(.model$residuals, l)[[criterion]]
 
       if (.model_ic < .ic) {
@@ -359,7 +359,7 @@
 #' School of Economics. University of Nottingham, 2022.
 #'
 #' @keywords internal
-.NW.reg <- function(
+NW.reg <- function(
   y,
   x,
   h,
@@ -374,7 +374,7 @@
   rho <- numeric(N)
 
   for (k in 1:N) {
-    .w <- .NW.kernel(k, (1:N) / N, h, kernel)
+    .w <- NW.kernel(k, (1:N) / N, h, kernel)
     rho[k] <- sum(x * .w * y) / sum(x * .w * x)
   }
 
@@ -417,7 +417,7 @@
 #' School of Economics. University of Nottingham, 2022.
 #'
 #' @keywords internal
-.NW.variance <- function(
+NW.variance <- function(
   e,
   h,
   kernel = "unif"
@@ -431,7 +431,7 @@
   omega2 <- numeric(N)
 
   for (k in 1:N) {
-    .w <- .NW.kernel(k, (1:N) / N, h, kernel)
+    .w <- NW.kernel(k, (1:N) / N, h, kernel)
     omega2[k] <- sum(.w * e^2) / sum(.w)
   }
 
@@ -469,7 +469,7 @@
 #' @return A list of arguments as well as the estimated bandwidth `h`.
 #'
 #' @keywords internal
-.NW.bandwidth <- function(y, x, kernel = "unif") {
+NW.bandwidth <- function(y, x, kernel = "unif") {
   if (!kernel %in% c("unif", "gauss")) {
     stop("ERROR! NW.bandwidth: unknown kernel")
   }
@@ -485,7 +485,7 @@
   for (.h in h_candidates) {
     rho <- numeric(N)
     for (k in 1:N) {
-      .w <- .NW.kernel(k, (1:N) / N, .h, kernel)
+      .w <- NW.kernel(k, (1:N) / N, .h, kernel)
       .w[k] <- 0
       rho[k] <- sum(.x * .w * .y) / sum(.x * .w * .x)
     }
@@ -522,7 +522,7 @@
 #' @importFrom stats pnorm
 #'
 #' @keywords internal
-.NW.kernel <- function(i,
+NW.kernel <- function(i,
                        x,
                        h,
                        kernel = "unif") {

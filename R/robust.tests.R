@@ -25,7 +25,7 @@ robust.tests.single <- function(y,
       .const(N),
       seasonal.dummies(N)
     )
-    y <- .OLS(y, SEAS)$residuals
+    y <- OLS.reg(y, SEAS)$residuals
   }
 
   result <- MDF.1br(
@@ -71,7 +71,7 @@ robust.tests.multiple <- function(y,
       .const(N),
       seasonal.dummies(N)
     )
-    y <- .OLS(y, SEAS)$residuals
+    y <- OLS.reg(y, SEAS)$residuals
   }
 
   m.star <- KP(

@@ -64,7 +64,7 @@ SSR.recursive <- function(y,
   x0 <- x[beg:(beg + width - 1), , drop = FALSE]
 
   xx.inv <- qr.solve(t(x0) %*% x0)
-  .model <- .OLS(y0, x0)
+  .model <- OLS.reg(y0, x0)
   beta <- .model$beta
   residl <- .model$residuals
   rm(.model)

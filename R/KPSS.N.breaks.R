@@ -78,7 +78,7 @@ KPSS.mlt <- function(
       trend.kpss.miltiple(model, N, bp, const, trend)
     )
 
-    model.est <- .OLS(y, xt)
+    model.est <- OLS.reg(y, xt)
 
     beta <- model.est$beta
     resids <- model.est$residuals
@@ -89,7 +89,7 @@ KPSS.mlt <- function(
     min.ic <- Inf
     for (nL in lags.init:1) {
       for (nF in leads.init:1) {
-        model.est <- .DOLS.multiple(
+        model.est <- DOLS.many(
           y, x, model, bp, const, trend, nL, nF
         )
         .ic <- model.est$criterions
@@ -243,7 +243,7 @@ KPSS.mlt.bootstrap <- function(y,
       "Rademacher" = sample(c(-1, 1), length(u), replace = TRUE) * u
     )
 
-    resids <- .OLS(y.loop, xreg)$residuals
+    resids <- OLS.reg(y.loop, xreg)$residuals
 
     ifelse(is.null(kernel),
       .kpss.statistic(resids, .lr.var.kurozumi(resids)),

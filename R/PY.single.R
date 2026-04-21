@@ -59,8 +59,8 @@ PY.single <- function(y,
       if (trend) .dt(tb, N) else NULL
     )
 
-    k.hat <- max(1, .AR(y, x, max.lag, criterion)$lag)
-    resids <- .OLS(y, x)$residuals
+    k.hat <- max(1, AR.reg(y, x, max.lag, criterion)$lag)
+    resids <- OLS.reg(y, x)$residuals
     d.resid <- .diffn(resids)
 
     y.u <- resids[k.hat:N, , drop = FALSE]
@@ -77,7 +77,7 @@ PY.single <- function(y,
     }
     x.u <- x.u[k.hat:N, , drop = FALSE]
 
-    tmp.OLS <- .OLS(y.u, x.u)
+    tmp.OLS <- OLS.reg(y.u, x.u)
     beta.u <- tmp.OLS$beta
     u.resid <- tmp.OLS$residuals
     rm(tmp.OLS)
@@ -131,7 +131,7 @@ PY.single <- function(y,
         a.hat.M * x[1:(N - 1), , drop = FALSE]
     )
 
-    tmp.OLS <- .OLS(y.g, x.g)
+    tmp.OLS <- OLS.reg(y.g, x.g)
     beta.g <- tmp.OLS$beta
     g.resid <- tmp.OLS$residuals
     rm(tmp.OLS)
@@ -148,7 +148,7 @@ PY.single <- function(y,
         y.v <- g.resid[(k.hat - 1):nrow(g.resid), , drop = FALSE]
         x.v <- x.v[(k.hat - 1):nrow(g.resid), , drop = FALSE]
 
-        tmp.OLS <- .OLS(y.v, x.v)
+        tmp.OLS <- OLS.reg(y.v, x.v)
         beta.v <- tmp.OLS$beta
         v.resid <- tmp.OLS$residuals
         rm(tmp.OLS)
@@ -162,7 +162,7 @@ PY.single <- function(y,
               x.ki[1, ],
               x.ki[2:N, ] - a.hat.M * x.ki[1:(N - 1), ]
             )
-            beta.ki <- .OLS(y.g, x.g.ki)$beta
+            beta.ki <- OLS.reg(y.g, x.g.ki)$beta
             BETAS[k.i, ] <- drop(beta.ki)
           }
           beta.g[2] <- beta.g[2] - drop(t(BETAS[, 2]) %*% beta.v)
@@ -187,7 +187,7 @@ PY.single <- function(y,
               x.ki[1, ],
               x.ki[2:N, ] - a.hat.M * x.ki[1:(N - 1), ]
             )
-            beta.ki <- .OLS(y.g, x.g.ki)$beta
+            beta.ki <- OLS.reg(y.g, x.g.ki)$beta
             BETAS[k.i, ] <- drop(beta.ki)
           }
 

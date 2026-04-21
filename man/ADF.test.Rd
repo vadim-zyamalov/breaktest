@@ -11,7 +11,13 @@ ADF.test(
   max.lag = 0,
   criterion = NULL,
   modified.criterion = FALSE,
-  rescale.criterion = FALSE
+  rescale.criterion = FALSE,
+  recursive = FALSE,
+  cc = 0,
+  gamma = 0,
+  trim = 0.15,
+  bootstrap.p = FALSE,
+  iter = 999
 )
 }
 \arguments{
@@ -28,6 +34,22 @@ If lag selection is not needed keep this NULL.}
 
 \item{rescale.criterion}{Whether the rescaling informational criterion
 is needed. Designed to cope with heteroscedasticity in residuals.}
+
+\item{recursive}{Whether a recursive detrending should be applied.
+See Smeekes (2013) for details.}
+
+\item{cc}{A filtration parameter used to construct an autocorrelation
+coefficient.}
+
+\item{gamma}{Detrending type selection parameter. If 0 the OLS detrending
+is applied, if 1 the GLS detrending is applied, otherwise the autocorrelation
+coefficient is calculated as \eqn{1 + c^{\gamma} T^{-\gamma}}.}
+
+\item{trim}{A trimming parameter.}
+
+\item{bootstrap.p}{Whether bootstrapped p-values should be returned.}
+
+\item{iter}{The number of bootstrap iterations.}
 }
 \value{
 A list containing:
@@ -63,4 +85,25 @@ Ng, Serena, and Pierre Perron. “Lag Length Selection and the Construction of
 Unit Root Tests with Good Size and Power.”
 Econometrica 69, no. 6 (2001): 1519–54.
 https://doi.org/10.1111/1468-0262.00256.
+
+Taylor, A. M. Robert.
+“Regression-Based Unit Root Tests With Recursive Mean Adjustment for
+Seasonal and Nonseasonal Time Series.”
+Journal of Business & Economic Statistics 20, no. 2 (April 2002): 269–81.
+https://doi.org/10.1198/073500102317352001.
+
+MacKinnon, James G.
+“Critical Values for Cointegration Tests.”
+Working Paper. Economics Department, Queen’s University, January 2010.
+https://ideas.repec.org/p/qed/wpaper/1227.html.
+
+Smeekes, Stephan.
+“Detrending Bootstrap Unit Root Tests.”
+Econometric Reviews 32, no. 8 (July 2013): 869–91.
+https://doi.org/10.1080/07474938.2012.690693.
+
+Elliott, Graham, Thomas J. Rothenberg, and James H. Stock.
+“Efficient Tests for an Autoregressive Unit Root.”
+Econometrica 64, no. 4 (1996): 813–36.
+https://doi.org/10.2307/2171846.
 }

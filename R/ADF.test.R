@@ -18,6 +18,16 @@
 #' @param modified.criterion Whether the unit-root test modificaton is needed.
 #' @param rescale.criterion Whether the rescaling informational criterion
 #' is needed. Designed to cope with heteroscedasticity in residuals.
+#' @param recursive Whether a recursive detrending should be applied.
+#' See Smeekes (2013) for details.
+#' @param cc A filtration parameter used to construct an autocorrelation
+#' coefficient.
+#' @param gamma Detrending type selection parameter. If 0 the OLS detrending
+#' is applied, if 1 the GLS detrending is applied, otherwise the autocorrelation
+#' coefficient is calculated as \eqn{1 + c^{\gamma} T^{-\gamma}}.
+#' @param trim A trimming parameter.
+#' @param bootstrap.p Whether bootstrapped p-values should be returned.
+#' @param iter The number of bootstrap iterations.
 #'
 #' @return A list containing:
 #' * y,
@@ -42,6 +52,33 @@
 #' Econometrica 69, no. 6 (2001): 1519–54.
 #' https://doi.org/10.1111/1468-0262.00256.
 #'
+#' Taylor, A. M. Robert.
+#' “Regression-Based Unit Root Tests With Recursive Mean Adjustment for
+#' Seasonal and Nonseasonal Time Series.”
+#' Journal of Business & Economic Statistics 20, no. 2 (April 2002): 269–81.
+#' https://doi.org/10.1198/073500102317352001.
+#'
+#' MacKinnon, James G.
+#' “Critical Values for Cointegration Tests.”
+#' Working Paper. Economics Department, Queen’s University, January 2010.
+#' https://ideas.repec.org/p/qed/wpaper/1227.html.
+#'
+#' Smeekes, Stephan.
+#' “Detrending Bootstrap Unit Root Tests.”
+#' Econometric Reviews 32, no. 8 (July 2013): 869–91.
+#' https://doi.org/10.1080/07474938.2012.690693.
+#'
+#' Elliott, Graham, Thomas J. Rothenberg, and James H. Stock.
+#' “Efficient Tests for an Autoregressive Unit Root.”
+#' Econometrica 64, no. 4 (1996): 813–36.
+#' https://doi.org/10.2307/2171846.
+#'
+#' @import doSNOW
+#' @import foreach
+#' @import parallel
+#' @importFrom utils txtProgressBar
+#' @importFrom utils setTxtProgressBar
+#'
 #' @export
 ADF.test <- function(y,
                      const = TRUE,
@@ -49,7 +86,13 @@ ADF.test <- function(y,
                      max.lag = 0,
                      criterion = NULL,
                      modified.criterion = FALSE,
-                     rescale.criterion = FALSE) {
+                     rescale.criterion = FALSE,
+                     recursive = FALSE,
+                     cc = 0,
+                     gamma = 0,
+                     trim = 0.15,
+                     bootstrap.p = FALSE,
+                     iter = 999) {
   if (!is.null(criterion)) {
     if (!criterion %in% c("bic", "aic", "lwz", "hq")) {
       stop("ERROR! Unknown criterion, none is used")
@@ -58,113 +101,166 @@ ADF.test <- function(y,
 
   if (!is.matrix(y)) y <- as.matrix(y)
 
-  N <- nrow(y)
-  rows <- (1 + max.lag):N
+  cN <- nrow(y)
+  rows <- (1 + max.lag):cN
 
-  deter <- cbind(
-    if (const) .const(N) else NULL,
-    if (trend) .trend(N) else NULL
+  mDeter <- cbind(
+    if (const) .const(cN) else NULL,
+    if (trend) .trend(cN) else NULL
   )
 
   ## Detrending
-  if (!is.null(deter)) {
-    yd <- .OLS(y, deter)$residuals
-  } else {
-    yd <- y
+  if (!is.null(mDeter)) {
+    y <- if (recursive) {
+      detrend.recursively(y, mDeter, cc, gamma, trim)
+    } else {
+      OLS.reg(y, mDeter)$residuals
+    }
+    y <- as.matrix(y)
   }
 
-  d.y <- .diffn(yd)
-  # d.y[1] <- yd[1]
-
-  x <- .lagn(yd, 1)
+  diffY <- .diffn(y)
+  mX <- .lagn(y, 1)
   if (max.lag > 0) {
-    x <- cbind(
-      x,
-      apply(as.array(1:max.lag), 1, function(l) .lagn(d.y, l))
+    mX <- cbind(
+      mX,
+      apply(as.array(1:max.lag), 1, function(l) .lagn(diffY, l))
     )
   }
 
   if (is.null(criterion)) {
-    res.lag <- max.lag
+    rLag <- max.lag
   } else {
     if (rescale.criterion) {
-      tmp.rescale <- rescale.CPST(d.y, x, deter, 0, max.lag)
-      d.yr <- tmp.rescale$d.y
-      xr <- tmp.rescale$x
-      rm(tmp.rescale)
+      tmp.rescale <- rescale.CPST(diffY, mX, mDeter, 0, max.lag)
+      diffYr <- tmp.rescale$d.y
+      mXr <- tmp.rescale$x
     } else {
-      d.yr <- d.y
-      xr <- x
+      diffYr <- diffY
+      mXr <- mX
     }
 
-    tmp.ols <- .OLS(
-      d.yr[rows, , drop = FALSE],
-      xr[rows, 1, drop = FALSE]
+    tmp.ols <- OLS.reg(
+      diffYr[rows, , drop = FALSE],
+      mXr[rows, 1, drop = FALSE]
     )
     b <- tmp.ols$beta
     e <- tmp.ols$residuals
-    rm(tmp.ols)
 
-    res.ic <- .ic.values(
+    rIC <- .ic.values(
       e, 0,
       modification = modified.criterion,
-      alpha = b[1], y = xr[rows, 1, drop = FALSE]
+      alpha = b[1],
+      y = mXr[rows, 1, drop = FALSE]
     )[[criterion]]
-    res.lag <- 0
+    rLag <- 0
 
     for (l in 1:max.lag) {
       if (max.lag == 0) break
 
       if (rescale.criterion) {
-        tmp.rescale <- rescale.CPST(d.y, x, deter, l, max.lag)
-        d.yr <- tmp.rescale$d.y
-        xr <- tmp.rescale$x
-        rm(tmp.rescale)
+        tmp.rescale <- rescale.CPST(diffY, mX, mDeter, l, max.lag)
+        diffYr <- tmp.rescale$d.y
+        mXr <- tmp.rescale$x
       } else {
-        d.yr <- d.y
-        xr <- x
+        diffYr <- diffY
+        mXr <- mX
       }
 
-      tmp.ols <- .OLS(
-        d.yr[rows, , drop = FALSE],
-        xr[rows, 1:(1 + l), drop = FALSE]
+      tmp.ols <- OLS.reg(
+        diffYr[rows, , drop = FALSE],
+        mXr[rows, 1:(1 + l), drop = FALSE]
       )
       b <- tmp.ols$beta
       e <- tmp.ols$residuals
-      rm(tmp.ols)
 
       tmp.ic <- .ic.values(
         e, l,
         modification = modified.criterion,
-        alpha = b[1], y = xr[rows, 1, drop = FALSE]
+        alpha = b[1],
+        y = mXr[rows, 1, drop = FALSE]
       )[[criterion]]
 
-      if (tmp.ic < res.ic) {
-        res.ic <- tmp.ic
-        res.lag <- l
+      if (tmp.ic < rIC) {
+        rIC <- tmp.ic
+        rLag <- l
       }
     }
   }
 
-  res.OLS <- .OLS(
-    d.y[rows, , drop = FALSE],
-    x[rows, 1:(1 + res.lag), drop = FALSE]
+  res.OLS <- OLS.reg(
+    diffY[rows, , drop = FALSE],
+    mX[rows, 1:(1 + rLag), drop = FALSE]
   )
 
-  Z.stat <- (N - res.lag - 1) * drop(res.OLS$beta[1] - 1)
+  dZstat <- (cN - rLag - 1) * drop(res.OLS$beta[1] - 1)
 
-  list(
-    y = drop(y),
-    yd = drop(yd),
-    const = const,
-    trend = trend,
-    beta = res.OLS$beta,
-    t.beta = drop(res.OLS$t.beta),
-    alpha = drop(res.OLS$beta[1]),
-    t.alpha = drop(res.OLS$t.beta[1]),
-    Z.stat = Z.stat,
-    residuals = res.OLS$residuals,
-    lag = res.lag
+  if (bootstrap.p) {
+    res.beta <- res.OLS$beta[-1]
+    e <- res.OLS$residuals
+
+    progress.bar <- txtProgressBar(max = iter, style = 3)
+    progress <- function(n) setTxtProgressBar(progress.bar, n)
+
+    cores <- detectCores()
+    cluster <- makeCluster(max(cores - 1, 1), type = "SOCK")
+    registerDoSNOW(cluster)
+
+    tmp.stats <- foreach(
+      i = 1:iter,
+      .combine = c,
+      .inorder = FALSE,
+      .errorhandling = "remove",
+      .packages = c("breaktest"),
+      .options.snow = list(progress = progress)
+    ) %dopar% {
+      u <- rep(0, rLag + cN)
+      eps <- sample(e, cN, replace = TRUE)
+
+      if (rLag > 0) {
+        for (s in 1:cN) {
+          u[rLag + s] <- u[(rLag + s - 1):s] %*% res.beta + eps[s]
+        }
+        u <- u[-(1:rLag)]
+      } else {
+        for (s in 1:cN) {
+          u[s] <- eps[s]
+        }
+      }
+
+      tmp.y <- as.matrix(cumsum(u))
+      if (recursive) {
+        tmp.y <- detrend.recursively(tmp.y, mDeter, cc, gamma, trim)
+      }
+      tmp.res <- res.OLS <- OLS.reg(
+        tmp.y[rows, , drop = FALSE],
+        mX[rows, 1:(1 + rLag), drop = FALSE]
+      )
+
+      tmp.res$t.beta[1]
+    }
+
+    stopCluster(cluster)
+
+    p.value <- sum(tmp.stats < res.OLS$t.beta[1]) / iter
+  }
+
+  c(
+    list(
+      # y = drop(y),
+      # yd = drop(diffY),
+      const = const,
+      trend = trend,
+      model = res.OLS,
+      # coefs = res.OLS$beta,
+      # t.stats = drop(res.OLS$t.beta),
+      alpha = drop(res.OLS$beta[1]),
+      t.alpha = drop(res.OLS$t.beta[1]),
+      Z.stat = dZstat,
+      lag = rLag
+      # residuals = res.OLS$residuals,
+    ),
+    if (bootstrap.p) list(p.value = p.value) else NULL
   )
 }
 
@@ -199,31 +295,101 @@ rescale.CPST <- function(d.y,
                          deter,
                          adf.lag,
                          max.lag) {
-  e <- .OLS(d.y, x[, 1:(1 + adf.lag), drop = FALSE])$residuals
+  e <- OLS.reg(d.y, x[, 1:(1 + adf.lag), drop = FALSE])$residuals
 
-  NW.se <- .NW.variance(
+  dNWse <- NW.variance(
     e,
-    .NW.bandwidth(e^2, rep(1, nrow(e)))$h
+    NW.bandwidth(e^2, rep(1, nrow(e)))$h
   )$se
 
-  yr <- cumsum(d.y[-1] / NW.se)
+  vYresc <- cumsum(d.y[-1] / dNWse)
 
   if (!is.null(deter)) {
-    yr <- .OLS(yr, deter)$residuals
+    vYresc <- OLS.reg(vYresc, deter)$residuals
   }
 
-  d.yr <- as.matrix(c(0, diff(yr)))
+  diffYresc <- .diffn(vYresc, na = 0)
 
-  xr <- .lagn(yr, 1, na = 0)
+  xr <- .lagn(vYresc, 1, na = 0)
   if (max.lag > 0) {
     xr <- cbind(
       xr,
-      apply(as.array(1:max.lag), 1, function(l) .lagn(d.yr, l, na = 0))
+      apply(as.array(1:max.lag), 1, function(l) .lagn(diffYresc, l, na = 0))
     )
   }
 
   list(
-    d.y = d.yr,
+    d.y = diffYresc,
     x = xr
   )
+}
+
+
+#' @title
+#' Detrending the data recursively
+#'
+#' @description
+#' This procedure is aimed to provide a recursively detrended series. More or
+#' less classical approach of full-sample detrending may lead to the regressors
+#' correlated with the error term.
+#'
+#' @details
+#' Elliott et al (1996) recommend using \eqn{c = -7} for the model with only
+#' an intercept, and \eqn{c = -13.5} for the model with a linear trend.
+#'
+#' @param y A time series of interest.
+#' @param x A matrix of explanatory variables.
+#' @param c A filtration parameter used to construct an autocorrelation
+#' coefficient.
+#' @param gamma A detrending type selection parameter. If 0 the OLS detrending
+#' is applied, if 1 the GLS detrending is applied, otherwise the autocorrelation
+#' coefficient is calculated as \eqn{1 + c^{\gamma} T^{-\gamma}}.
+#' @param trim A trimming parameter. It's used to find the minimum size of
+#' subsamples while calculating recursive estimates. The ending point of the
+#' subsample for the \eqn{t} is \eqn{max(t, trim \times T)}.
+#'
+#' @return A detrended series.
+#'
+#' @references
+#' Elliott, Graham, Thomas J. Rothenberg, and James H. Stock.
+#' “Efficient Tests for an Autoregressive Unit Root.”
+#' Econometrica 64, no. 4 (1996): 813–36.
+#' https://doi.org/10.2307/2171846.
+#'
+#' Taylor, A. M. Robert.
+#' “Regression-Based Unit Root Tests With Recursive Mean Adjustment for
+#' Seasonal and Nonseasonal Time Series.”
+#' Journal of Business & Economic Statistics 20, no. 2 (April 2002): 269–81.
+#' https://doi.org/10.1198/073500102317352001.
+#'
+#' @keywords internal
+detrend.recursively <- function(y,
+                                x,
+                                cc,
+                                gamma,
+                                trim) {
+  if (is.null(x)) {
+    return(y)
+  }
+
+  n.obs <- nrow(y)
+  beg <- trunc(trim * n.obs)
+  ct <- (cc / n.obs)^gamma
+
+  yt <- y - (1 + ct) * .lagn(y, 1, na = 0)
+  xt <- x - (1 + ct) * .lagn(x, 1, na = 0)
+
+  yd <- OLS.reg(
+    yt[1:beg, , drop = FALSE],
+    xt[1:beg, , drop = FALSE]
+  )$residuals
+
+  for (lstar in (beg + 1):n.obs) {
+    ystar <- OLS.reg(
+      yt[1:lstar, , drop = FALSE],
+      xt[1:lstar, , drop = FALSE]
+    )$residuals
+    yd <- c(yd, ystar[lstar])
+  }
+  as.matrix(yd)
 }
