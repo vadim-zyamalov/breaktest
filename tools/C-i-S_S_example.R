@@ -17,7 +17,7 @@ KPSS.1u <- kpss_single_unknown(y, x, 1, TRUE, 4)
 cv.1u <- cvalues_kpss_single(1, KPSS.1u["min(stat)", "tb"], length(y), 3)
 
 KPSS.1 <- kpss_single(y, x, 1, res.1$break.point, TRUE, 4)
-cv.1 <- cvalues_kpss_single(1, KPSS.1$break.point, length(KPSS.1$residuals), length(KPSS.1$beta))
+cv.1 <- cvalues_kpss_single(1, KPSS.1$break.point, length(KPSS.1$residuals), length(KPSS.1$coefficients))
 
 #################
 # Tests 2 break #

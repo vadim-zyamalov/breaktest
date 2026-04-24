@@ -26,8 +26,8 @@
 #' is applied, if 1 the GLS detrending is applied, otherwise the autocorrelation
 #' coefficient is calculated as \eqn{1 + c^{\gamma} T^{-\gamma}}.
 #' @param trim A trimming parameter.
-#' @param bootstrap.p Whether bootstrapped p-values should be returned.
-#' @param iter The number of bootstrap iterations.
+#' @param boot.p Whether bootstrapped p-values should be returned.
+#' @param boot.iter The number of bootstrap iterations.
 #'
 #' @return A list containing:
 #' * y,
@@ -91,8 +91,8 @@ ADF.test <- function(y,
                      cc = 0,
                      gamma = 0,
                      trim = 0.15,
-                     bootstrap.p = FALSE,
-                     iter = 999) {
+                     boot.p = FALSE,
+                     boot.iter = 999) {
   if (!is.null(criterion)) {
     if (!criterion %in% c("bic", "aic", "lwz", "hq")) {
       stop("ERROR! Unknown criterion, none is used")
@@ -144,10 +144,10 @@ ADF.test <- function(y,
       diffYr[rows, , drop = FALSE],
       mXr[rows, 1, drop = FALSE]
     )
-    b <- tmp.ols$beta
+    b <- tmp.ols$coefficients
     e <- tmp.ols$residuals
 
-    rIC <- .ic.values(
+    rIC <- info.criterions(
       e, 0,
       modification = modified.criterion,
       alpha = b[1],
@@ -171,10 +171,10 @@ ADF.test <- function(y,
         diffYr[rows, , drop = FALSE],
         mXr[rows, 1:(1 + l), drop = FALSE]
       )
-      b <- tmp.ols$beta
+      b <- tmp.ols$coefficients
       e <- tmp.ols$residuals
 
-      tmp.ic <- .ic.values(
+      tmp.ic <- info.criterions(
         e, l,
         modification = modified.criterion,
         alpha = b[1],
@@ -193,75 +193,34 @@ ADF.test <- function(y,
     mX[rows, 1:(1 + rLag), drop = FALSE]
   )
 
-  dZstat <- (cN - rLag - 1) * drop(res.OLS$beta[1] - 1)
+  dZstat <- (cN - rLag - 1) * drop(res.OLS$coefficients[1] - 1)
 
-  if (bootstrap.p) {
-    res.beta <- res.OLS$beta[-1]
-    e <- res.OLS$residuals
+  result <- list(
+    # y = drop(y),
+    # yd = drop(diffY),
+    const = const,
+    trend = trend,
+    model = res.OLS,
+    # coefs = res.OLS$coefficients,
+    # t.stats = drop(res.OLS$t.stats),
+    alpha = drop(res.OLS$coefficients[1]),
+    t.alpha = drop(res.OLS$t.stats[1]),
+    Z.stat = dZstat,
+    lag = rLag,
+    recursive = recursive
+    # residuals = res.OLS$residuals,
+  )
+  class(result) <- "bt_adf"
 
-    progress.bar <- txtProgressBar(max = iter, style = 3)
-    progress <- function(n) setTxtProgressBar(progress.bar, n)
-
-    cores <- detectCores()
-    cluster <- makeCluster(max(cores - 1, 1), type = "SOCK")
-    registerDoSNOW(cluster)
-
-    tmp.stats <- foreach(
-      i = 1:iter,
-      .combine = c,
-      .inorder = FALSE,
-      .errorhandling = "remove",
-      .packages = c("breaktest"),
-      .options.snow = list(progress = progress)
-    ) %dopar% {
-      u <- rep(0, rLag + cN)
-      eps <- sample(e, cN, replace = TRUE)
-
-      if (rLag > 0) {
-        for (s in 1:cN) {
-          u[rLag + s] <- u[(rLag + s - 1):s] %*% res.beta + eps[s]
-        }
-        u <- u[-(1:rLag)]
-      } else {
-        for (s in 1:cN) {
-          u[s] <- eps[s]
-        }
-      }
-
-      tmp.y <- as.matrix(cumsum(u))
-      if (recursive) {
-        tmp.y <- detrend.recursively(tmp.y, mDeter, cc, gamma, trim)
-      }
-      tmp.res <- res.OLS <- OLS.reg(
-        tmp.y[rows, , drop = FALSE],
-        mX[rows, 1:(1 + rLag), drop = FALSE]
-      )
-
-      tmp.res$t.beta[1]
-    }
-
-    stopCluster(cluster)
-
-    p.value <- sum(tmp.stats < res.OLS$t.beta[1]) / iter
+  if (recursive) {
+    result$recursive.params <- list(cc = cc, gamma = gamma, trim = trim)
   }
 
-  c(
-    list(
-      # y = drop(y),
-      # yd = drop(diffY),
-      const = const,
-      trend = trend,
-      model = res.OLS,
-      # coefs = res.OLS$beta,
-      # t.stats = drop(res.OLS$t.beta),
-      alpha = drop(res.OLS$beta[1]),
-      t.alpha = drop(res.OLS$t.beta[1]),
-      Z.stat = dZstat,
-      lag = rLag
-      # residuals = res.OLS$residuals,
-    ),
-    if (bootstrap.p) list(p.value = p.value) else NULL
-  )
+  if (boot.p) {
+    result$p.value <- bootstrap(result, boot.iter)
+  }
+
+  result
 }
 
 

@@ -1,5 +1,7 @@
 _origin/*
+_obsolete/*
 **/*.src
 **/*.RData
 **/.Rhistory
 .Rproj.user
+.positai

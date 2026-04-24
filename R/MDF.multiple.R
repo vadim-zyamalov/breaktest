@@ -129,7 +129,7 @@ MDF.mlt <- function(y,
       criterion = NULL
     )
     if (!ZA) {
-      denom <- 1 - sum(DF1.tb$beta) + DF1.tb$alpha
+      denom <- 1 - sum(DF1.tb$coefficients) + DF1.tb$alpha
       stat.OLS <- N * DF1.tb$alpha / denom
     } else {
       stat.OLS <- DF1.tb$t.alpha
@@ -181,7 +181,7 @@ MDF.mlt <- function(y,
         criterion = NULL
       )
       if (!ZA) {
-        denom <- 1 - sum(DF2.tb$beta) + DF2.tb$alpha
+        denom <- 1 - sum(DF2.tb$coefficients) + DF2.tb$alpha
         stat.OLS <- N * DF2.tb$alpha / denom
       } else {
         stat.OLS <- DF2.tb$t.alpha
@@ -232,7 +232,7 @@ MDF.mlt <- function(y,
           criterion = NULL
         )
         if (!ZA) {
-          denom <- 1 - sum(DF3.tb$beta) + DF3.tb$alpha
+          denom <- 1 - sum(DF3.tb$coefficients) + DF3.tb$alpha
           stat.OLS <- N * DF3.tb$alpha / denom
         } else {
           stat.OLS <- DF3.tb$t.alpha
@@ -253,7 +253,7 @@ MDF.mlt <- function(y,
 
   ## Alternative break selection
   if (breaks == 2) {
-    tbs <- segments.GLS(y, const, TRUE, 2)
+    tbs <- get.m.breaks.GLS(y, const, TRUE, 2)
 
     x <- cbind(
       .const(N),
@@ -265,14 +265,14 @@ MDF.mlt <- function(y,
     )
 
     tmp.OLS <- OLS.reg(y, x)
-    bb <- tmp.OLS$beta
+    bb <- tmp.OLS$coefficients
     rr <- tmp.OLS$residuals
     rm(tmp.OLS)
     t.alpha <- bb[1] / sqrt(drop(t(rr) %*% rr) / N)
     t.alpha.2.id <- as.numeric(t.alpha > 1)
   }
   if (breaks == 3) {
-    tbs <- segments.GLS(y, const, TRUE, 3)
+    tbs <- get.m.breaks.GLS(y, const, TRUE, 3)
 
     x <- cbind(
       .const(N),
@@ -286,7 +286,7 @@ MDF.mlt <- function(y,
     )
 
     tmp.OLS <- OLS.reg(y, x)
-    bb <- tmp.OLS$beta
+    bb <- tmp.OLS$coefficients
     rr <- tmp.OLS$residuals
     rm(tmp.OLS)
     t.alpha <- bb[1] / sqrt(drop(t(rr) %*% rr) / N)
@@ -297,7 +297,7 @@ MDF.mlt <- function(y,
   if (breaks.star == 0) {
     tbb <- 0
   } else {
-    tbb <- segments.GLS(y, const, TRUE, breaks.star)
+    tbb <- get.m.breaks.GLS(y, const, TRUE, breaks.star)
   }
 
   if (breaks == 2) {

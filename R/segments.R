@@ -19,12 +19,12 @@
 #' https://doi.org/10.1111/j.1468-0084.2006.00180.x.
 #'
 #' @keywords internal
-segments.OLS.1br <- function(beg,
-                             end,
-                             bp.min,
-                             bp.max,
-                             len,
-                             SSR.data) {
+segments.CSS <- function(beg,
+                         end,
+                         bp.min,
+                         bp.max,
+                         len,
+                         SSR.data) {
   .rss <- matrix(data = Inf, nrow = len, ncol = 1)
 
   for (bp in bp.min:bp.max) {
@@ -42,97 +42,21 @@ segments.OLS.1br <- function(beg,
 
 
 #' @title
-#' Procedure to minimize the SSR for 2 break points
-#'
-#' @param y A time series of interest.
-#' @param model A scalar equal to
-#' * 1: for the AA (without trend) model,
-#' * 2: for the AA (with trend) model,
-#' * 3: for the BB model,
-#' * 4: for the CC model,
-#' * 5: for the AC-CA model.
-#'
-#' @return A list of
-#' * resid: (Tx1) vector of estimated OLS residuals,
-#' * tb1: The first break point,
-#' * tb2: The second break point.
-#'
-#' @references
-#' Carrion-i-Silvestre, Josep Lluís, and Andreu Sansó.
-#' “The KPSS Test with Two Structural Breaks.”
-#' Spanish Economic Review 9, no. 2 (May 16, 2007): 105–27.
-#' https://doi.org/10.1007/s10108-006-9017-8.
-#'
-#' @keywords internal
-segments.OLS.2br <- function(y, model) {
-  if (!is.matrix(y)) y <- as.matrix(y)
-
-  n.obs <- nrow(y)
-
-  .resids <- NULL
-  .rss <- Inf
-  .bp1 <- NULL
-  .bp2 <- NULL
-
-  if (1 <= model && model <= 4) {
-    for (bp1 in 2:(n.obs - 4)) {
-      for (bp2 in (bp1 + 2):(n.obs - 2)) {
-        z <- trend.kpss.double(model, n.obs, c(bp1, bp2))
-        resids <- .lm.fit(z, y)$residuals
-        ssr <- drop(t(resids) %*% resids)
-        if (ssr < .rss) {
-          .resids <- resids
-          .rss <- ssr
-          .bp1 <- bp1
-          .bp2 <- bp2
-        }
-      }
-    }
-  } else if (5 <= model && model <= 7) {
-    for (bp1 in 2:(n.obs - 4)) {
-      for (bp2 in (bp1 + 2):(n.obs - 2)) {
-        z <- trend.kpss.double(model, n.obs, c(bp1, bp2))
-        resids <- .lm.fit(z, y)$residuals
-        ssr <- drop(t(resids) %*% resids)
-        if (ssr < .rss) {
-          .resids <- resids
-          .rss <- ssr
-          .bp1 <- bp1
-          .bp2 <- bp2
-        }
-      }
-    }
-    for (bp2 in 2:(n.obs - 4)) {
-      for (bp1 in (bp2 + 2):(n.obs - 2)) {
-        z <- trend.kpss.double(model, n.obs, c(bp1, bp2))
-        resids <- .lm.fit(z, y)$residuals
-        ssr <- drop(t(resids) %*% resids)
-        if (ssr < .rss) {
-          .resids <- resids
-          .rss <- ssr
-          .bp1 <- bp1
-          .bp2 <- bp2
-        }
-      }
-    }
-  }
-
-  list(
-    residuals = .resids,
-    tb1       = .bp1,
-    tb2       = .bp2
-  )
-}
-
-
-#' @title
-#' Find \eqn{m + 1} optimal partitions
+#' Find \eqn{m + 1} optimal partitions using sequential procedure
 #'
 #' @param y (Tx1)-vector of the dependent variable.
 #' @param x (Txk)-vector of the explanatory stochastic regressors.
 #' @param m Number of breaks.
 #' @param width Minimum spacing between the breaks.
 #' @param SSR.data Optional matrix of recursive SSR's.
+#'
+#' @details
+#' The sequential procedure by Bai & Perron (2003) works as follows.
+#' First we find the first break point by minimizing SSR on the fraction of initial sample.
+#' The upper bound is calculated using `width` parameter ensuring that there will be
+#' enough observations for all breaks.
+#' Then we find optimal two-break segmentations for all possible upper bounds.
+#' Repeating this procedure we get an optimal \eqn{m}-breaks segmentation.
 #'
 #' @return A list of:
 #' * optimal SSR,
@@ -145,7 +69,8 @@ segments.OLS.2br <- function(y, model) {
 #' https://doi.org/10.1002/jae.659.
 #'
 #' @keywords internal
-segments.OLS.mlt <- function(
+#' @export
+segments.BP <- function(
   y,
   x,
   m = 1,
@@ -161,84 +86,80 @@ segments.OLS.mlt <- function(
     SSR.data <- SSR.matrix(y, x, width)
   }
 
+  # For one break use the procedure above
   if (m == 1) {
-    .segments <- segments.OLS.1br(
-      1, N,
-      width, N - width,
-      N, SSR.data
+    return(
+      segments.CSS(1, N, width, N - width, N, SSR.data)
     )
-    final.rss <- .segments$SSR
-    final.bp <- .segments$break.point
-  } else {
-    N.variants <- N - (m + 1) * width + 1
-    rss.values <- matrix(
-      data = Inf,
-      nrow = N.variants,
-      ncol = 1
-    )
-    bp.values <- matrix(
-      data = 0,
-      nrow = N.variants,
-      ncol = m
-    )
-    for (step in 1:m) {
-      loop.rss <- matrix(
-        data = Inf,
-        nrow = N.variants,
-        ncol = 1
-      )
-      if (step == 1) {
-        for (v in 1:N.variants) {
-          .last_step <- 2 * width + v - 1
-          .segments <- segments.OLS.1br(
-            1,
-            .last_step,
-            width,
-            .last_step - width,
-            .last_step, SSR.data
-          )
-          rss.values[v, 1] <- .segments$SSR
-          bp.values[v, 1] <- .segments$break.point
-        }
-      } else if (step == m) {
-        for (v in 1:N.variants) {
-          loop.rss[v, 1] <- rss.values[v, 1] + SSR.data[step * width + v, N]
-        }
-        final.rss <- min(loop.rss)
-        final.index <- which.min(loop.rss)
-        final.bp <- bp.values[final.index, ]
-        final.bp[m] <- step * width + final.index - 1
-      } else {
-        new.rss.values <- matrix(
-          data = Inf,
-          nrow = N.variants,
-          ncol = 1
+  }
+
+  cNvars <- N - (m + 1) * width + 1
+  vSSR <- rep(Inf, cNvars)
+  mBreaks <- matrix(
+    data = 0,
+    nrow = cNvars,
+    ncol = m
+  )
+
+  for (step in 1:m) {
+    loopSSR <- rep(Inf, cNvars)
+
+    if (step == 1) {
+      for (v in 1:cNvars) {
+        upperBorder <- 2 * width + v - 1
+        .segments <- segments.CSS(
+          1,
+          upperBorder,
+          width,
+          upperBorder - width,
+          upperBorder, SSR.data
         )
-        new.bp.values <- matrix(
-          data = 0,
-          nrow = N.variants,
-          ncol = m
-        )
-        for (.last_step in ((step + 1) * width):(N - (m - step) * width)) {
-          new.v <- .last_step - (step + 1) * width + 1
-          for (v in 1:N.variants) {
-            loop.rss[v, 1] <- rss.values[v, 1] +
-              SSR.data[step * width + v, .last_step]
-          }
-          new.rss.values[new.v, 1] <- min(loop.rss)
-          new.index <- which.min(loop.rss)
-          new.bp.values[new.v, 1:m] <- bp.values[new.index, ]
-          new.bp.values[new.v, step] <- step * width + new.index - 1
-        }
-        rss.values <- new.rss.values
-        bp.values <- new.bp.values
+        vSSR[v] <- .segments$SSR
+        mBreaks[v, 1] <- .segments$break.point
       }
+    } else if (step == m) {
+      for (v in 1:cNvars) {
+        loopSSR[v] <- vSSR[v] + SSR.data[step * width + v, N]
+      }
+      finalSSR <- min(loopSSR)
+      finalIdx <- which.min(loopSSR)
+      finalBreaks <- mBreaks[finalIdx, ]
+      finalBreaks[m] <- step * width + finalIdx - 1
+    } else {
+      vNewSSR <- rep(Inf, cNvars)
+      mNewBreaks <- matrix(
+        data = 0,
+        nrow = cNvars,
+        ncol = m
+      )
+
+      # Looping through the possible upperBounds for step-breaks segmentation.
+      for (upperBorder in ((step + 1) * width):(N - (m - step) * width)) {
+        searchIdx <- upperBorder - (step + 1) * width + 1
+
+        # For every v we calculate a new SSR value as the sum of step-1 breaks
+        # segmentation with last break at v and SSR of the rest part till upperBound.
+        for (v in 1:cNvars) {
+          loopSSR[v] <- vSSR[v] + SSR.data[step * width + v, upperBorder]
+        }
+
+        # Look for the minimum loopSSR which corresponds to the optimal step-breaks
+        # segmentation for current upper border.
+        vNewSSR[searchIdx] <- min(loopSSR)
+        minIdx <- which.min(loopSSR)
+        mNewBreaks[searchIdx, 1:m] <- mBreaks[minIdx, ]
+        mNewBreaks[searchIdx, step] <- step * width + minIdx - 1
+      }
+
+      # Update vSSR and mBreaks with optimal step-breaks segments.
+      vSSR <- vNewSSR
+      mBreaks <- mNewBreaks
     }
   }
 
   list(
-    SSR         = final.rss,
-    break.point = final.bp
+    SSR         = finalSSR,
+    break.point = finalBreaks
   )
 }
 

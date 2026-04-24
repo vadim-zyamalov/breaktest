@@ -16,8 +16,8 @@ ADF.test(
   cc = 0,
   gamma = 0,
   trim = 0.15,
-  bootstrap.p = FALSE,
-  iter = 999
+  boot.p = FALSE,
+  boot.iter = 999
 )
 }
 \arguments{
@@ -47,9 +47,9 @@ coefficient is calculated as \eqn{1 + c^{\gamma} T^{-\gamma}}.}
 
 \item{trim}{A trimming parameter.}
 
-\item{bootstrap.p}{Whether bootstrapped p-values should be returned.}
+\item{boot.p}{Whether bootstrapped p-values should be returned.}
 
-\item{iter}{The number of bootstrap iterations.}
+\item{boot.iter}{The number of bootstrap iterations.}
 }
 \value{
 A list containing:

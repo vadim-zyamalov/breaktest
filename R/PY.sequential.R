@@ -42,7 +42,7 @@ PY.sequential <- function(y,
     date.vec <- c(1, N + 1)
   } else {
     SSR.data <- SSR.matrix(y, cbind(.const(N), .trend(N)), h)
-    dates <- segments.OLS.mlt(
+    dates <- segments.BP(
       y,
       cbind(.const(N), .trend(N)),
       breaks,
@@ -95,7 +95,7 @@ PY.sequential <- function(y,
         x.u <- x.u[k.hat:nrow(x.u), , drop = FALSE]
 
         tmp.OLS <- OLS.reg(y.u, x.u)
-        beta.u <- tmp.OLS$beta
+        beta.u <- tmp.OLS$coefficients
         u.resid <- tmp.OLS$residuals
         rm(tmp.OLS)
 
@@ -153,7 +153,7 @@ PY.sequential <- function(y,
         )
 
         tmp.OLS <- OLS.reg(y.g, x.g)
-        beta.g <- tmp.OLS$beta
+        beta.g <- tmp.OLS$coefficients
         g.resid <- tmp.OLS$residuals
         rm(tmp.OLS)
 
@@ -171,7 +171,7 @@ PY.sequential <- function(y,
             x.v <- x.v[(k.hat - 1):nrow(g.resid), , drop = FALSE]
 
             tmp.OLS <- OLS.reg(y.v, x.v)
-            beta.v <- tmp.OLS$beta
+            beta.v <- tmp.OLS$coefficients
             v.resid <- tmp.OLS$residuals
             rm(tmp.OLS)
 
@@ -193,7 +193,7 @@ PY.sequential <- function(y,
                   x.ki[(date.vec[i] + 2):(date.vec[i + 1] - 1), ] - # nolint
                     a.hat.M * x.ki[(date.vec[i] + 1):(date.vec[i + 1] - 2), ] # nolint
                 )
-                beta.ki <- OLS.reg(y.g, x.g.ki)$beta
+                beta.ki <- OLS.reg(y.g, x.g.ki)$coefficients
                 BETAS[k.i, ] <- drop(beta.ki)
                 sig.e <- drop(t(v.resid) %*% v.resid) / (N.i - k.hat) # nolint
                 beta.g[2] <- (sqrt(h0) / sqrt(sig.e)) *

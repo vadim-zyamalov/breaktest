@@ -78,7 +78,7 @@ PY.single <- function(y,
     x.u <- x.u[k.hat:N, , drop = FALSE]
 
     tmp.OLS <- OLS.reg(y.u, x.u)
-    beta.u <- tmp.OLS$beta
+    beta.u <- tmp.OLS$coefficients
     u.resid <- tmp.OLS$residuals
     rm(tmp.OLS)
 
@@ -132,7 +132,7 @@ PY.single <- function(y,
     )
 
     tmp.OLS <- OLS.reg(y.g, x.g)
-    beta.g <- tmp.OLS$beta
+    beta.g <- tmp.OLS$coefficients
     g.resid <- tmp.OLS$residuals
     rm(tmp.OLS)
 
@@ -142,14 +142,14 @@ PY.single <- function(y,
       if (a.hat.M == 1) {
         x.v <- NULL
         for (k.i in 1:(k.hat - 1)) {
-          x.v <- cbind(x.v, lagn(g.resid, k.i, na = 0))
+          x.v <- cbind(x.v, .lagn(g.resid, k.i, na = 0))
         }
 
         y.v <- g.resid[(k.hat - 1):nrow(g.resid), , drop = FALSE]
         x.v <- x.v[(k.hat - 1):nrow(g.resid), , drop = FALSE]
 
         tmp.OLS <- OLS.reg(y.v, x.v)
-        beta.v <- tmp.OLS$beta
+        beta.v <- tmp.OLS$coefficients
         v.resid <- tmp.OLS$residuals
         rm(tmp.OLS)
 
@@ -162,7 +162,7 @@ PY.single <- function(y,
               x.ki[1, ],
               x.ki[2:N, ] - a.hat.M * x.ki[1:(N - 1), ]
             )
-            beta.ki <- OLS.reg(y.g, x.g.ki)$beta
+            beta.ki <- OLS.reg(y.g, x.g.ki)$coefficients
             BETAS[k.i, ] <- drop(beta.ki)
           }
           beta.g[2] <- beta.g[2] - drop(t(BETAS[, 2]) %*% beta.v)
@@ -187,7 +187,7 @@ PY.single <- function(y,
               x.ki[1, ],
               x.ki[2:N, ] - a.hat.M * x.ki[1:(N - 1), ]
             )
-            beta.ki <- OLS.reg(y.g, x.g.ki)$beta
+            beta.ki <- OLS.reg(y.g, x.g.ki)$coefficients
             BETAS[k.i, ] <- drop(beta.ki)
           }
 
@@ -200,7 +200,7 @@ PY.single <- function(y,
       }
 
       if (abs(a.hat.M) < 1) {
-        h0 <- lr.var.quadratic(g.resid)
+        h0 <- .lr.var.quad(g.resid)
       }
     }
 

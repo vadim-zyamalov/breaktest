@@ -1,5 +1,3 @@
-#' @order 1
-#' @title
 #' Calculating long-run variance or covariance matrix
 #'
 #' @details
@@ -123,15 +121,15 @@
     min.ic <- log(drop(t(y) %*% y) / (N - max.lag))
 
     model.est <- AR.reg(y, NULL, max.lag, criterion)
-    ic.values <- .ic.values(model.est$residuals, model.est$lag)[[criterion]]
+    ic.values <- info.criterions(model.est$residuals, model.est$lag)[[criterion]]
 
     if (min.ic < ic.values) {
       rho <- 0
       k <- 0
     } else {
-      rho <- model.est$beta
+      rho <- model.est$coefficients
       k <- model.est$lag
-      y <- na.omit(model.est$residuals)
+      y <- as.matrix(na.omit(model.est$residuals))
       N <- nrow(y)
     }
   } else {

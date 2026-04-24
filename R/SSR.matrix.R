@@ -65,7 +65,7 @@ SSR.recursive <- function(y,
 
   xx.inv <- qr.solve(t(x0) %*% x0)
   .model <- OLS.reg(y0, x0)
-  beta <- .model$beta
+  beta <- .model$coefficients
   residl <- .model$residuals
   rm(.model)
 

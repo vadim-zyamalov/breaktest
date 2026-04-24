@@ -29,108 +29,28 @@ OLS.reg <- function(y, x) {
   y <- y[rows, , drop = FALSE]
   x <- x[rows, , drop = FALSE]
 
-  .model <- .lm.fit(x, y)
+  .model <- lm.fit(x, y)
   r <- .model$residuals
   cf <- .model$coefficients
   s.sq <- sum(r^2) / (nrow(x) - ncol(x))
-  t.beta <- cf / sqrt(diag(s.sq * qr.solve(t(x) %*% x)))
+  se.cf <- sqrt(diag(s.sq * qr.solve(t(x) %*% x)))
+  t.beta <- cf / se.cf
 
   resid <- rep(NA, N)
   resid[rows] <- r
 
-  list(
-    beta = as.matrix(cf),
+  result <- list(
+    coefficients = as.matrix(cf),
+    se.coefs = se.cf,
+    t.stats = t.beta,
     residuals = resid,
-    predict = .model$fitted.values,
-    t.beta = t.beta
+    fitted.values = .model$fitted.values,
+    endog = y,
+    exog = x
   )
-}
 
-
-#' @title
-#' Estimating DOLS regression for a single known break point
-#'
-#' @param y A time series of interest.
-#' @param x A matrix of explanatory stochastic regressors.
-#' @param model See Carrion-i-Silvestre and Sansó (2006)
-#' * 1: for model An,
-#' * 2: for model A,
-#' * 3: for model B,
-#' * 4: for model C,
-#' * 5: for model D,
-#' * 6: for model E.
-#' @param bp A position of the break point.
-#' @param n.lags,n.leads A number of lags and leads in DOLS regression.
-#'
-#' @return A list of:
-#' * Estimates of coefficients,
-#' * Estimates of residuals,
-#' * A value of BIC,
-#' * \eqn{t}-statistics for the estimates of coefficients.
-#'
-#' @references
-#' Carrion-i-Silvestre, Josep Lluís, and Andreu Sansó.
-#' “Testing the Null of Cointegration with Structural Breaks.”
-#' Oxford Bulletin of Economics and Statistics 68, no. 5 (October 2006): 623–46.
-#' https://doi.org/10.1111/j.1468-0084.2006.00180.x.
-#'
-#' @keywords internal
-DOLS.1br <- function(y,
-                         x,
-                         model,
-                         bp,
-                         n.lags,
-                         n.leads) {
-  if (is.null(x)) {
-    stop("ERROR! DOLS.single: explanatory variables needed for DOLS")
-  }
-  if (!is.matrix(y)) y <- as.matrix(y)
-  if (!is.matrix(x)) x <- as.matrix(x)
-
-  N <- nrow(y)
-  rows <- (n.lags + 2):(N - n.leads)
-  dmodel <- c(1, 2, 3, 4, 1, 4)
-
-  d.x <- .diffn(x)
-
-  Ld.x <- if (n.lags != 0) {
-    apply(as.array(1:n.lags), 1, function(l) .lagn(d.x, l))
-  } else {
-    NULL
-  }
-
-  Fd.x <- if (n.leads != 0) {
-    apply(as.array(1:n.leads), 1, function(l) .lagn(d.x, -l))
-  } else {
-    NULL
-  }
-
-  deter <- if (model != 0) {
-    trend.kpss.single(dmodel[model], N, bp)
-  } else {
-    NULL
-  }
-
-  xdu <- if (model %in% c(5, 6)) {
-    sweep(x, 1, deter[, 2, drop = FALSE], `*`)
-  } else {
-    NULL
-  }
-
-  xreg <- cbind(deter, x, xdu, d.x, Ld.x, Fd.x)[rows, , drop = FALSE]
-  y <- y[rows, 1, drop = FALSE]
-
-  .res_ols <- OLS.reg(y, xreg)
-
-  bic <- log(drop(t(.res_ols$residuals) %*% .res_ols$residuals) / nrow(xreg)) +
-    ncol(xreg) * log(nrow(xreg)) / nrow(xreg)
-
-  list(
-    beta      = .res_ols$beta,
-    residuals = .res_ols$residuals,
-    bic       = bic,
-    t.beta    = .res_ols$t.beta
-  )
+  class(result) <- "bt_ols"
+  result
 }
 
 
@@ -157,12 +77,14 @@ DOLS.1br <- function(y,
 DOLS.many <- function(
   y,
   x,
-  model,
-  bp,
   const = FALSE,
   trend = FALSE,
+  break.type,
+  break.point,
+  break.coint = FALSE,
   n.lags,
-  n.leads
+  n.leads,
+  ...
 ) {
   if (!is.matrix(y)) y <- as.matrix(y)
   if (is.null(x)) {
@@ -170,23 +92,28 @@ DOLS.many <- function(
   }
   if (!is.matrix(x)) x <- as.matrix(x)
 
-  .vars_dols <- variables.dols.multiple(
-    y, x,
-    model, bp,
-    const, trend,
-    n.lags, n.leads
+  .vars_dols <- DOLS.mlt.regressors(
+    y,
+    x,
+    const = FALSE,
+    trend = FALSE,
+    break.type,
+    break.point,
+    break.coint = FALSE,
+    n.lags,
+    n.leads
   )
 
-  .model <- OLS.reg(.vars_dols$yreg, .vars_dols$xreg)
+  result <- OLS.reg(.vars_dols$yreg, .vars_dols$xreg)
+  result$break.type <- break.type
+  result$break.point <- break.point
+  result$break.coint <- break.coint
+  result$criterions <- info.criterions(result$residuals, ncol(.vars_dols$xreg))
+  result$lags <- n.lags
+  result$leads <- n.leads
 
-  criterions <- .ic.values(.model$residuals, ncol(.vars_dols$xreg))
-
-  list(
-    beta       = .model$beta,
-    residuals  = .model$residuals,
-    criterions = criterions,
-    t.beta     = .model$t.beta
-  )
+  class(result) <- "bt_dols"
+  result
 }
 
 
@@ -229,18 +156,20 @@ GLS.reg <- function(y, z, c) {
 
   for (i in 1:Nc) {
     .model <- OLS.reg(y_hat[, i, drop = FALSE], z_hat)
-    betas <- cbind(betas, .model$beta)
-    t.betas <- cbind(t.betas, .model$t.beta)
-    fitted <- cbind(fitted, z %*% .model$beta)
+    betas <- cbind(betas, .model$coefficients)
+    t.betas <- cbind(t.betas, .model$t.stats)
+    fitted <- cbind(fitted, z %*% .model$coefficients)
     resids <- cbind(resids, y[, i, drop = FALSE] - fitted)
   }
 
-  list(
-    beta = betas,
-    residuals = resids,
-    predict = fitted,
-    t.beta = drop(t.betas)
+  result <- list(
+    coefficients  = betas,
+    t.stats       = drop(t.betas),
+    residuals     = resids,
+    fitted.values = fitted
   )
+  class(result) <- "bt_gls"
+  result
 }
 
 
@@ -275,11 +204,6 @@ AR.reg <- function(
   if (!is.matrix(y)) y <- as.matrix(y)
   if (!is.null(x) && !is.matrix(x)) x <- as.matrix(x)
 
-  N <- nrow(y)
-  rows <- (1 + max.lag):N
-
-  .lhs <- y[rows, , drop = FALSE]
-
   if (!is.null(x)) {
     Nx <- ncol(x)
     .rhs <- x
@@ -290,49 +214,43 @@ AR.reg <- function(
 
   .rhs <- cbind(
     .rhs,
-    apply(as.array(1:max.lag), 1, function(x) .lagn(y, l))
-  )[rows, , drop = FALSE]
+    apply(as.array(1:max.lag), 1, function(l) .lagn(y, l))
+  )
+
+  yrows <- apply(y, 1, function(r) any(is.na(r)))
+  xrows <- apply(.rhs, 1, function(r) any(is.na(r)))
+  rows <- !yrows & !xrows
+
+  .lhs <- y[rows, , drop = FALSE]
+  .rhs <- .rhs[rows, , drop = FALSE]
 
   if (is.null(criterion)) {
     .lag <- max.lag
-    .model <- OLS.reg(.lhs, .rhs[, 1:(Nx + .lag), drop = FALSE])
-    .beta <- .model$beta
-    .resid <- .model$residuals
-    .predict <- .model$predict
-    .t_beta <- .model$t.beta
+    result <- OLS.reg(.lhs, .rhs[, 1:(Nx + .lag), drop = FALSE])
   } else {
     .lag <- 0
 
-    .model <- NULL
-    .beta <- NULL
-    .resid <- NULL
-    .predict <- NULL
-    .t_beta <- NULL
+    result <- NULL
     .ic <- Inf
 
     for (l in 0:max.lag) {
       .model <- OLS.reg(.lhs, .rhs[, 1:(Nx + l), drop = FALSE])
-      .model_ic <- .ic.values(.model$residuals, l)[[criterion]]
+      .model_ic <- info.criterions(.model$residuals, l)[[criterion]]
 
       if (.model_ic < .ic) {
         .ic <- .model_ic
-        .beta <- .model$beta
-        .resid <- .model$residuals
-        .predict <- .model$predict
-        .t_beta <- .model$t.beta
         .lag <- l
+        result <- .model
       }
     }
   }
 
-  list(
-    beta      = .beta,
-    residuals = .resid,
-    predict   = .predict,
-    t.beta    = .t_beta,
-    lag       = .lag,
-    criterion = .ic
-  )
+  result$lag <- .lag
+  result$criterion <- .ic
+  result$criterion.name <- criterion
+
+  class(result) <- "bt_ar"
+  result
 }
 
 
@@ -523,9 +441,9 @@ NW.bandwidth <- function(y, x, kernel = "unif") {
 #'
 #' @keywords internal
 NW.kernel <- function(i,
-                       x,
-                       h,
-                       kernel = "unif") {
+                      x,
+                      h,
+                      kernel = "unif") {
   switch(kernel,
     unif  = ifelse((abs((x - x[i]) / h) <= 1), 1, 0),
     gauss = pnorm((x - x[i]) / h)

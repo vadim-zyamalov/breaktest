@@ -53,7 +53,7 @@ MDF.1br <- function(y,
   first.break <- trunc(trim * N) + 1
   last.break <- trunc((1 - trim) * N) + 1
 
-  tb <- segments.GLS(
+  tb <- get.m.breaks.GLS(
     y, const, trend, 1,
     first.break, last.break,
     trim
@@ -182,20 +182,20 @@ MDF.1br <- function(y,
       max.lag = k.tb,
       criterion = NULL
     )
-    DF2.tb <- N * DF2$alpha / (1 - sum(DF2$beta) + DF2$alpha)
+    DF2.tb <- N * DF2$alpha / (1 - sum(DF2$coefficients) + DF2$alpha)
 
     ######### TODO: Проверить!!!
     if (DF2$t.alpha < MDF.t) MDF.t <- DF2$t.alpha
   }
 
-  t.HLT <- KPSS.HLT(y, const, trim)
+  t.HLT <- ur.KPSS.HLT(y, const, trim)
   tmp.PY <- PY.single(y, const, trend, "aic", trim, max.lag)
   t.PY <- tmp.PY$wald
   cv.PY <- tmp.PY$critical.value
   rm(tmp.PY)
 
   tmp.OLS <- OLS.reg(y, x)
-  t.alpha <- tmp.OLS$beta[1] /
+  t.alpha <- tmp.OLS$coefficients[1] /
     sqrt(drop(t(tmp.OLS$residuals) %*% tmp.OLS$residuals) / N)
   t.alpha.id <- as.numeric(abs(t.alpha) > 1)
 

@@ -96,7 +96,7 @@
   n_obs <- nrow(y)
   .adf <- ADF.test(y, const, trend, l, criterion = NULL)
 
-  denom <- 1 - sum(.adf$beta) + .adf$alpha
+  denom <- 1 - sum(.adf$coefficients) + .adf$alpha
   s_2 <- drop(t(.adf$residuals) %*% .adf$residuals) /
     (nrow(.adf$residuals) - (1 + l)) / denom^2
   sum_y2 <- sum(.adf$yd[1:(n_obs - 1)]^2)

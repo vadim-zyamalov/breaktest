@@ -1,7 +1,7 @@
 #' @title
 #' Custom functions for printing results in a nice way.
 #'
-#' @param x An jbject containing results.
+#' @param x An object containing results.
 #' @param ... Any additional arguments for [print] function.
 #'
 #' @keywords internal

@@ -1,75 +1,5 @@
 #' @title
-#' Construct determinant variables for [kpss.1br]
-#'
-#' @details
-#' Procedure to compute deterministic terms
-#' for KPSS with 1 structural break.
-#'
-#' @param model A scalar equal to
-#' * 1: Model with trend, break in const,
-#' * 2: Model with const and trend, break in const,
-#' * 3: Model with const and trend, break in trend,
-#' * 4: Model with const and trend, break in const and trend.
-#' @param n.obs Number of observations.
-#' @param break.point Break point.
-#'
-#' @return Matrix of determinant variables.
-#'
-#' @keywords internal
-trend.kpss.single <- function(model, N, bp) {
-  if (!model %in% 1:4) {
-    stop("ERROR! kpss.single: Try to specify the deterministic component again")
-  }
-
-  cbind(
-    .const(N),
-    .trend(N),
-    if (model != 3) .du(bp, N) else NULL,
-    if (model %in% c(3, 4)) .dt(bp, N) else NULL
-  )
-}
-
-
-#' @title
-#' Construct determinant variables for [KPSS.2br]
-#'
-#' @details
-#' Procedure to compute deterministic terms
-#' for KPSS with 2 structural breaks.
-#'
-#' @param model A scalar equal to
-#' * 1: for the AA (without trend) model,
-#' * 2: for the AA (with trend) model,
-#' * 3: for the BB model,
-#' * 4: for the CC model,
-#' * 5: for the AC-CA model,
-#' * 6: for the AC-CA model,
-#' * 7: for the AC-CA model.
-#' @param n.obs Number of observations.
-#' @param break.point Positions for the first and second structural breaks
-#'            (respective to the origin which is 1).
-#'
-#' @return Matrix of deterministic terms.
-#'
-#' @keywords internal
-trend.kpss.double <- function(model, N, bp) {
-  if (any(!model %in% 1:7)) {
-    stop("ERROR! kpss.double: Try to specify the deterministic component again")
-  }
-
-  cbind(
-    .const(N),
-    .trend(N),
-    if (model %in% c(1, 2, 4, 5, 6, 7)) .du(bp[1], N) else NULL,
-    if (model %in% c(3, 4, 6, 7)) .dt(bp[1], N) else NULL,
-    if (model %in% c(1, 2, 4, 6)) .du(bp[2], N) else NULL,
-    if (model %in% c(3, 4, 5, 7)) .dt(bp[2], N) else NULL
-  )
-}
-
-
-#' @title
-#' Deterministic terms for [kpss.mlt]
+#' Deterministic terms for [coint.CSS]
 #'
 #' @description
 #' Procedure to compute deterministic terms for KPSS with \eqn{m}
@@ -91,23 +21,19 @@ trend.kpss.double <- function(model, N, bp) {
 #' @return Matrix of deterministic terms.
 #'
 #' @keywords internal
-trend.kpss.miltiple <- function(
-  model,
+trend.variables <- function(
+  break.type,
   N,
-  bps,
+  break.point,
   const = FALSE,
   trend = FALSE
 ) {
-  nb <- length(bps)
+  Nb <- length(break.point)
 
-  if (length(model) == 1) {
-    model <- rep(model, nb)
-  } else if (length(model) != nb) {
+  if (length(break.type) == 1) {
+    break.type <- rep(break.type, Nb)
+  } else if (length(break.type) != Nb) {
     stop("ERROR! kpss.multiple: Inconsistent sizes of model and break.point")
-  }
-
-  if (any(!model %in% 1:3)) {
-    stop("ERROR: kpss.multiple: Try to specify the deterministic component again")
   }
 
   xt <- cbind(
@@ -115,11 +41,12 @@ trend.kpss.miltiple <- function(
     if (trend) .trend(N) else NULL
   )
 
-  for (i in 1:nb) {
-    xt <- switch(model[i],
-      cbind(xt, .du(bps[i], N)),
-      cbind(xt, .dt(bps[i], N)),
-      cbind(xt, .du(bps[i], N), .dt(bps[i], N))
+  for (i in seq_len(Nb)) {
+    xt <- switch(break.type[i],
+      "c"  = cbind(xt, .du(break.point[i], N)),
+      "t"  = cbind(xt, .dt(break.point[i], N)),
+      "ct" = cbind(xt, .du(break.point[i], N), .dt(break.point[i], N)),
+      stop("ERROR: kpss.multiple: unknown break value '", break.type[i], "'")
     )
   }
 
@@ -143,13 +70,14 @@ trend.kpss.miltiple <- function(
 #' @return A list of LHS and RHS variables.
 #'
 #' @keywords internal
-variables.dols.multiple <- function(
+DOLS.mlt.regressors <- function(
   y,
   x,
-  model,
-  bp,
   const = FALSE,
   trend = FALSE,
+  break.type,
+  break.point,
+  break.coint = FALSE,
   n.lags,
   n.leads
 ) {
@@ -161,47 +89,43 @@ variables.dols.multiple <- function(
 
   N <- nrow(y)
 
-  .dx_step <- x[2:N, , drop = FALSE] - x[1:(N - 1), , drop = FALSE]
-  .dx_lags <- .dx_step
-  .dx_leads <- .dx_step
+  mDeter <- trend.variables(break.type, N, break.point, const, trend)
 
-  for (i in 1:n.lags) {
-    .dx_lags <- cbind(.dx_lags, .lagn(.dx_step, i))
+  mXdu <- NULL
+  if (break.coint) {
+    for (bp in break.point) {
+      mXdu <- cbind(mXdu, sweep(x, 1, .du(bp, N), `*`))
+    }
   }
 
-  for (i in 1:n.leads) {
-    .dx_leads <- cbind(
-      .dx_leads,
-      .lagn(.dx_step, -i)
-    )
+  mDx <- .diffn(x)
+  mLagLead <- mDx
+
+  if (n.lags > 0) {
+    for (i in 1:n.lags) {
+      mLagLead <- cbind(mLagLead, .lagn(mDx, i))
+    }
+  }
+  if (n.leads > 0) {
+    for (i in 1:n.leads) {
+      mLagLead <- cbind(mLagLead, .lagn(mDx, -i))
+    }
   }
 
-  if (n.lags != 0 && n.leads != 0) {
-    lags <- .dx_lags
-    leads <- .dx_leads[, (ncol(x) + 1):(ncol(.dx_leads)), drop = FALSE]
-    .lags_leads <- cbind(lags, leads)
-    .lags_leads <-
-      .lags_leads[(n.lags + 1):(N - 1 - n.leads), , drop = FALSE]
-  } else if (n.lags != 0 && n.leads == 0) {
-    lags <- .dx_lags
-    .lags_leads <- lags[(n.lags + 1):(N - 1), , drop = FALSE]
-  } else if (n.lags == 0 && n.leads != 0) {
-    lags <- .dx_lags
-    leads <- .dx_leads[, (ncol(x) + 1):(ncol(.dx_leads)), drop = FALSE]
-    .lags_leads <- cbind(lags, leads)
-    .lags_leads <- .lags_leads[1:(N - 1 - n.leads), , drop = FALSE]
-  } else if (n.lags == 0 && n.leads == 0) {
-    .lags_leads <- .dx_lags
-  }
-  deter <- trend.kpss.miltiple(model, N, bp, const, trend)
+  yrows <- apply(y, 1, function(r) any(is.na(r)))
+  xrows <- apply(x, 1, function(r) any(is.na(r)))
+  rows <- !yrows & !xrows
+
+  mX <- cbind(
+    mDeter,
+    mXdu,
+    x,
+    mLagLead
+  )
 
   list(
-    yreg = y[(n.lags + 2):(N - n.leads), 1, drop = FALSE],
-    xreg = cbind(
-      deter[(n.lags + 2):(N - n.leads), , drop = FALSE],
-      x[(n.lags + 2):(N - n.leads), , drop = FALSE],
-      .lags_leads
-    )
+    yreg = y[rows, 1, drop = FALSE],
+    xreg = mX[rows, , drop = FALSE]
   )
 }
 

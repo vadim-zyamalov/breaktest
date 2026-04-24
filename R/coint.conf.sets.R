@@ -81,10 +81,10 @@ coint.conf.sets <- function(y,
   wf <- wf[rows, , drop = FALSE]
 
   N2 <- nrow(y)
-  first.break1 <- trunc(2 * trim * N2)
-  last.break1 <- trunc((1 - 2 * trim) * N2)
-  first.break2 <- trunc(trim * N2)
-  last.break2 <- trunc((1 - trim) * N2)
+  lowerBreak1 <- trunc(2 * trim * N2)
+  upperBreak1 <- trunc((1 - 2 * trim) * N2)
+  lowerBreak2 <- trunc(trim * N2)
+  upperBreak2 <- trunc((1 - trim) * N2)
 
   cset.sup <- numeric(N2)
   cset.avg <- numeric(N2)
@@ -96,15 +96,14 @@ coint.conf.sets <- function(y,
   ssr.0 <- c(t(u.hat) %*% u.hat)
   est.date <- N2
 
-  for (tb in first.break1:last.break1) {
+  for (tb in lowerBreak1:upperBreak1) {
     wb1 <- rbind(
       matrix(0, tb, ncol(wb)),
       as.matrix(wb[(tb + 1):N2, ])
     )
     w <- cbind(wb, wb1, wf)
-    ww.inv <- solve(t(w) %*% w)
     u.hat <- OLS.reg(y, w)$residuals
-    ssr.1 <- c(t(u.hat) %*% u.hat)
+    ssr.1 <- sum(u.hat^2)
     if (ssr.1 < ssr.0) {
       ssr.0 <- ssr.1
       est.date <- tb
@@ -121,7 +120,7 @@ coint.conf.sets <- function(y,
   b.hat <- solve(t(w) %*% w) %*% t(w) %*% y
   u.hat <- y - w %*% b.hat
 
-  lrv.u <- lr.var(
+  lrv.u <- .lr.variance(
     u.hat,
     demean = FALSE,
     kernel = "quadratic",
@@ -148,7 +147,7 @@ coint.conf.sets <- function(y,
 
   cset.bls[bls.l:bls.u] <- 1
 
-  for (tb in first.break1:last.break1) {
+  for (tb in lowerBreak1:upperBreak1) {
     lambda.1 <- tb / N2
 
     wb1 <- rbind(
@@ -167,7 +166,7 @@ coint.conf.sets <- function(y,
     }
     be.hat <- solve(t(we) %*% we) %*% t(we) %*% y
     u.hat <- y - we %*% be.hat
-    lrv.u2 <- lr.var(
+    lrv.u2 <- .lr.variance(
       u.hat,
       demean = FALSE,
       kernel = "quadratic",
@@ -182,7 +181,7 @@ coint.conf.sets <- function(y,
     nbreak <- 0
     dbreak <- 0
 
-    for (tb2 in first.break2:last.break2) {
+    for (tb2 in lowerBreak2:upperBreak2) {
       lambda.2 <- tb2 / N2
 
       if (abs(lambda.2 - lambda.1) <= 0.05) {
@@ -194,7 +193,7 @@ coint.conf.sets <- function(y,
         )
 
         r <- wb2 - wb1
-        br.hat <- ww.inv %*% t(w) %*% r
+        br.hat <- solve(t(w) %*% w) %*% t(w) %*% r
         r.hat <- r - w %*% br.hat
 
         g <- t(r.hat) %*% y.hat
@@ -384,7 +383,7 @@ select.lead.lag.KS <- function(y,
   )
 
   u.hat <- OLS.reg(y.0, w.0)$residuals
-  min.ic <- info.criterion(u.hat, ncol(w.0))[[criterion]]
+  min.ic <- info.criterions(u.hat, ncol(w.0))[[criterion]]
   est.lead <- 0
   est.lag <- 0
 
@@ -410,7 +409,7 @@ select.lead.lag.KS <- function(y,
 
       u.hat <- OLS.reg(y.0, w.1)$residuals
 
-      cur.ic <- info.criterion(u.hat, ncol(w.1))[[criterion]]
+      cur.ic <- info.criterions(u.hat, ncol(w.1))[[criterion]]
       if (cur.ic < min.ic) {
         est.lead <- cur.lead
         est.lag <- cur.lag

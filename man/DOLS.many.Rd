@@ -4,12 +4,27 @@
 \alias{DOLS.many}
 \title{Estimating DOLS regression for multiple known break points}
 \usage{
-DOLS.many(y, x, model, bp, const = FALSE, trend = FALSE, n.lags, n.leads)
+DOLS.many(
+  y,
+  x,
+  const = FALSE,
+  trend = FALSE,
+  break.type,
+  break.point,
+  break.coint = FALSE,
+  n.lags,
+  n.leads,
+  ...
+)
 }
 \arguments{
 \item{y}{A time series of interest.}
 
 \item{x}{A matrix of explanatory stochastic regressors.}
+
+\item{const, trend}{Whether a constant or trend are to be included.}
+
+\item{break.point}{An array of moments of structural breaks.}
 
 \item{model}{A scalar or vector of break types:
 \itemize{
@@ -17,10 +32,6 @@ DOLS.many(y, x, model, bp, const = FALSE, trend = FALSE, n.lags, n.leads)
 \item 2: for the break in trend.
 \item 3: for the break in const and trend.
 }}
-
-\item{const, trend}{Whether a constant or trend are to be included.}
-
-\item{break.point}{An array of moments of structural breaks.}
 
 \item{k.lags, k.leads}{A number of lags and leads in DOLS regression.}
 }

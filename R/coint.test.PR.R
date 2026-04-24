@@ -95,7 +95,7 @@ resid.tests.PR <- function(ud,
 
   model.1 <- OLS.reg(ud, .lagn(ud, 1))
 
-  rho.hat <- as.matrix(model.1$beta)
+  rho.hat <- as.matrix(model.1$coefficients)
   omega <- as.matrix(model.1$residuals)
   s2.ud <- c(t(omega) %*% omega) / (nrow(omega) - 1)
   t.rho <- (rho.hat - 1) / sqrt(s2.ud / sum.ud.sq)
@@ -125,7 +125,7 @@ resid.tests.PR <- function(ud,
     sumb <- if (lag.bic == 0) {
       0
     } else {
-      sum(model.2$beta[2:(lag.bic + 1)])
+      sum(model.2$coefficients[2:(lag.bic + 1)])
     }
 
     s2.adj <- s2.eta / ((1 - sumb)^2)
@@ -140,7 +140,7 @@ resid.tests.PR <- function(ud,
         (2 * sum.ud.sq / N^2)
       gls.tests[2, 1] <- sqrt(2 * sum.ud.sq / (N^2 * s2.adj))
       gls.tests[3, 1] <- gls.tests[1, 1] * gls.tests[2, 1]
-      gls.tests[4, 1] <- model.2$beta[1] / sqrt(s2.eta * xtx.inv[1, 1])
+      gls.tests[4, 1] <- model.2$coefficients[1] / sqrt(s2.eta * xtx.inv[1, 1])
       gls.tests[5, 1] <- (N - 1) * (rho.hat - 1) -
         (s2.adj - s2.ud) / (2 * sum.ud.sq / N^2)
       gls.tests[6, 1] <- sqrt(s2.ud / s2.adj) * t.rho -

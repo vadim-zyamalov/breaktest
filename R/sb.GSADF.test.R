@@ -206,14 +206,14 @@ supSBADF.statistic <- function(y,
 
   if (!generalized) {
     for (j in (floor(trim * N)):N) {
-      t.beta <- OLS.reg(.diffn(C.t, na = 0)[1:j], C.t[1:j])$t.beta
+      t.beta <- OLS.reg(.diffn(C.t, na = 0)[1:j], C.t[1:j])$t.stats
       SBADF.values[m] <- drop(t.beta)
       m <- m + 1
     }
   } else {
     for (i in 1:(N - floor(trim * N) + 1)) {
       for (j in (i + floor(trim * N) - 1):N) {
-        t.beta <- OLS.reg(.diffn(C.t, na = 0)[i:j], C.t[i:j])$t.beta
+        t.beta <- OLS.reg(.diffn(C.t, na = 0)[i:j], C.t[i:j])$t.stats
         SBADF.values[m] <- drop(t.beta)
         m <- m + 1
       }

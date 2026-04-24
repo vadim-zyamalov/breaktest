@@ -14,9 +14,9 @@
 #' Journal of Econometrics 167, no. 1 (2012): 140–67.
 #'
 #' @export
-KPSS.HLT <- function(y,
-                     const = FALSE,
-                     trim = 0.15) {
+ur.KPSS.HLT <- function(y,
+                        const = FALSE,
+                        trim = 0.15) {
   if (!is.matrix(y)) y <- as.matrix(y)
 
   N <- nrow(y)
@@ -47,7 +47,7 @@ KPSS.HLT <- function(y,
     .y.lr.var <- .lr.var.bartlett(.model$residuals)
     .xx.inv <- qr.solve(t(x) %*% x)
 
-    .t0 <- abs(.model$beta[ncol(x)] /
+    .t0 <- abs(.model$coefficients[ncol(x)] /
       sqrt(.y.lr.var * .xx.inv[ncol(x), ncol(x)]))
 
     x <- cbind(
@@ -61,7 +61,7 @@ KPSS.HLT <- function(y,
     .dy.lr.var <- .lr.var.bartlett(.model$residuals)
     .xx.inv <- qr.solve(t(x) %*% x)
 
-    .t1 <- abs(.model$beta[ncol(x)] /
+    .t1 <- abs(.model$coefficients[ncol(x)] /
       sqrt(.dy.lr.var * .xx.inv[ncol(x), ncol(x)]))
 
     if (.t0 > t0) {

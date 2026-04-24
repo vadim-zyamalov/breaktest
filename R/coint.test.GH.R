@@ -76,13 +76,11 @@ coint.test.GH <- function(...,
   for (tb in first.break:last.break) {
     phi <- .du(tb, N)
 
-    if (shift == "level") {
-      x <- cbind(.const(N), phi, y2)
-    } else if (shift == "level-trend") {
-      x <- cbind(.const(N), phi, .trend(N), y2)
-    } else if (shift == "regime") {
-      x <- cbind(.const(N), phi, y2, phi * y2)
-    }
+    x <- switch(shift,
+      "level" = cbind(.const(N), phi, y2),
+      "level-trend" = cbind(.const(N), phi, .trend(N), y2),
+      "regime" = cbind(.const(N), phi, y2, phi * y2)
+    )
 
     e <- OLS.reg(y1, x)$residuals
     Le <- .lagn(e, 1)
