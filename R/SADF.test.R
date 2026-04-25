@@ -38,7 +38,9 @@
 SADF.test <- function(y,
                       trim = 0.01 + 1.8 / sqrt(length(y)),
                       const = TRUE,
-                      add.p.value = TRUE) {
+                      add.p.value = TRUE,
+                      boot.p = FALSE,
+                      boot.iter = 999) {
   N <- length(y)
 
   if (!const) y <- y - y[1]
@@ -54,32 +56,21 @@ SADF.test <- function(y,
   ## Take the maximum of the calculated t-statistics.
   SADF.value <- max(t.values)
 
-  if (add.p.value) {
-    if (const) {
-      cr.values <- .cval_SADF_with_const
-    } else {
-      cr.values <- .cval_SADF_without_const
-    }
+  result <- list(
+    y = y,
+    trim = trim,
+    const = const,
+    t.values = t.values,
+    SADF.value = SADF.value
+  )
+  class(result) <- "bt_SADF"
 
-    p.value <- get.p.values.SADF(SADF.value, N, cr.values)
+  if (add.p.value) {
+    cr.values <- ifelse(const, .cval_SADF_with_const, .cval_SADF_without_const)
+    result$p.value <- get.p.values.SADF(SADF.value, N, cr.values)
   }
 
-  result <- c(
-    list(
-      y = y,
-      trim = trim,
-      const = const,
-      t.values = t.values,
-      SADF.value = SADF.value
-    ),
-    if (add.p.value) {
-      list(p.value = p.value)
-    } else {
-      NULL
-    }
-  )
-
-  class(result) <- "sadf"
+  if (boot.p) result$boot.p.value <- bootstrap(result, boot.iter)
 
   result
 }
@@ -92,7 +83,9 @@ SADF.test <- function(y,
 GSADF.test <- function(y,
                        trim = 0.01 + 1.8 / sqrt(length(y)),
                        const = TRUE,
-                       add.p.value = TRUE) {
+                       add.p.value = TRUE,
+                       boot.p = FALSE,
+                       boot.iter = 999) {
   N <- length(y)
 
   if (const == FALSE) y <- y - y[1]
@@ -110,32 +103,21 @@ GSADF.test <- function(y,
   ## Take the maximum of the calculated t-statistics.
   GSADF.value <- max(t.values)
 
-  if (add.p.value) {
-    if (const == TRUE) {
-      cr.values <- .cval_GSADF_with_const
-    } else {
-      cr.values <- .cval_GSADF_without_const
-    }
+  result <- list(
+    y = y,
+    trim = trim,
+    const = const,
+    t.values = t.values,
+    GSADF.value = GSADF.value
+  )
+  class(result) <- c("bt_GSADF", "bt_SADF")
 
-    p.value <- get.p.values.SADF(GSADF.value, N, cr.values)
+  if (add.p.value) {
+    cr.values <- ifelse(const, .cval_GSADF_with_const, .cval_GSADF_without_const)
+    result$p.value <- get.p.values.SADF(GSADF.value, N, cr.values)
   }
 
-  result <- c(
-    list(
-      y = y,
-      trim = trim,
-      const = const,
-      t.values = t.values,
-      GSADF.value = GSADF.value
-    ),
-    if (add.p.value) {
-      list(p.value = p.value)
-    } else {
-      NULL
-    }
-  )
-
-  class(result) <- "sadf"
+  if (boot.p) result$boot.p.value <- bootstrap(result, boot.iter)
 
   result
 }

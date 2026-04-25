@@ -144,3 +144,120 @@ bootstrap.bt_kpss <- function(obj, iter = 999, boot.type = "sample", ...) {
 
   (1 / iter) * sum(obj$statistic <= result)
 }
+
+
+#' @rdname bootstrap
+#' @description
+#' `SADF.bootstrap.test` is a wild bootstrapping procedure for estimating
+#' critical and \eqn{p}-values for [SADF.test].
+#'
+#' `GSADF.bootstrap.test` is the same procedure but for `GSADF.test`.
+#'
+#' @details
+#' Refactored original code by Kurozumi et al.
+#'
+#' @param y A time series of interest.
+#' @param trim A trimming parameter to determine the lower and upper bounds for
+#' a possible break point.
+#' @param const Whether the constant needs to be included.
+#' @param alpha The significance level of interest.
+#' @param iter The number of iterations.
+#' @param seed The seed parameter for the random number generator.
+#'
+#' @references
+#' Kurozumi, Eiji, Anton Skrobotov, and Alexey Tsarev.
+#' “Time-Transformed Test for Bubbles under Non-Stationary Volatility.”
+#' Journal of Financial Econometrics, April 23, 2022.
+#' https://doi.org/10.1093/jjfinec/nbac004.
+#'
+#' @import doSNOW
+#' @import foreach
+#' @import parallel
+#' @importFrom stats quantile
+#' @importFrom stats rnorm
+#' @importFrom stats sd
+#' @importFrom utils txtProgressBar
+#' @importFrom utils setTxtProgressBar
+#'
+#' @export
+bootstrap.bt_SADF <- function(obj,
+                              iter = 999) {
+  y <- obj$y
+  trim <- obj$trim
+  const <- obj$const
+
+  N <- length(y)
+
+  ## Find SADF.value.
+  model <- SADF.test(y, trim, const)
+  SADF.value <- model$SADF.value
+
+  ## Do parallel.
+  cores <- detectCores()
+
+  progress.bar <- txtProgressBar(max = iter, style = 3)
+  progress <- function(n) setTxtProgressBar(progress.bar, n)
+
+  cluster <- makeCluster(max(cores - 1, 1))
+  registerDoSNOW(cluster)
+
+  SADF.bootstrap.values <- foreach(
+    step = 1:iter,
+    .combine = c,
+    .options.snow = list(progress = progress)
+  ) %dopar% {
+    y.star <- cumsum(rnorm(N - 1) * .diffn(y, na = 0))
+    SADF.test(y.star, trim, const)$SADF.value
+  }
+
+  stopCluster(cluster)
+
+  sum(SADF.bootstrap.values > SADF.value) / iter
+}
+
+
+#' @rdname bootstrap
+#'
+#' @import doSNOW
+#' @import foreach
+#' @import parallel
+#' @importFrom stats rnorm
+#' @importFrom stats sd
+#' @importFrom utils txtProgressBar
+#' @importFrom utils setTxtProgressBar
+#'
+#' @export
+bootstrap.bt_GSADF <- function(obj,
+                               iter = 999) {
+  y <- obj$y
+  trim <- obj$trim
+  const <- obj$const
+
+  N <- length(y)
+
+  ## Find GSADF.value.
+  model <- GSADF.test(y, trim, const)
+  GSADF.value <- model$GSADF.value
+
+  ## Do parallel.
+  cores <- detectCores()
+
+  progress.bar <- txtProgressBar(max = iter, style = 3)
+  progress <- function(n) setTxtProgressBar(progress.bar, n)
+
+  cluster <- makeCluster(max(cores - 1, 1))
+  clusterExport(cluster, c("GSADF.test", ".diffn"))
+  registerDoSNOW(cluster)
+
+  GSADF.bootstsrap.values <- foreach(
+    step = 1:iter,
+    .combine = c,
+    .options.snow = list(progress = progress)
+  ) %dopar% {
+    y.star <- cumsum(rnorm(N - 1) * .diffn(y, na = 0))
+    GSADF.test(y.star, trim, const)$GSADF.value
+  }
+  stopCluster(cluster)
+
+  sum(GSADF.bootstsrap.values > GSADF.value) / iter
+}

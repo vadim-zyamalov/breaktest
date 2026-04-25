@@ -4,6 +4,8 @@
 \alias{bootstrap}
 \alias{bootstrap.bt_adf}
 \alias{bootstrap.bt_kpss}
+\alias{bootstrap.bt_SADF}
+\alias{bootstrap.bt_GSADF}
 \title{Functions to receive bootstrapped p-values.}
 \usage{
 bootstrap(obj, ...)
@@ -11,13 +13,17 @@ bootstrap(obj, ...)
 \method{bootstrap}{bt_adf}(obj, iter = 999, ...)
 
 \method{bootstrap}{bt_kpss}(obj, iter = 999, boot.type = "sample", ...)
+
+\method{bootstrap}{bt_SADF}(obj, iter = 999)
+
+\method{bootstrap}{bt_GSADF}(obj, iter = 999)
 }
 \arguments{
 \item{obj}{An object of class \code{bt_kpss}.}
 
 \item{...}{Any additional arguments for \link{bootstrap} function.}
 
-\item{iter}{Number of bootstrap iterations.}
+\item{iter}{The number of iterations.}
 
 \item{boot.type}{Type of bootstrapping:
 \itemize{
@@ -26,11 +32,34 @@ bootstrap(obj, ...)
 variable,
 \item \code{"Rademacher"}: multiplying residuals by Rademacher-distributed variable.
 }}
+
+\item{y}{A time series of interest.}
+
+\item{trim}{A trimming parameter to determine the lower and upper bounds for
+a possible break point.}
+
+\item{const}{Whether the constant needs to be included.}
+
+\item{alpha}{The significance level of interest.}
+
+\item{seed}{The seed parameter for the random number generator.}
 }
 \value{
 A bootstrapped \eqn{p}-value.
 }
 \description{
-Functions to receive bootstrapped p-values.
+\code{SADF.bootstrap.test} is a wild bootstrapping procedure for estimating
+critical and \eqn{p}-values for \link{SADF.test}.
+
+\code{GSADF.bootstrap.test} is the same procedure but for \code{GSADF.test}.
+}
+\details{
+Refactored original code by Kurozumi et al.
+}
+\references{
+Kurozumi, Eiji, Anton Skrobotov, and Alexey Tsarev.
+“Time-Transformed Test for Bubbles under Non-Stationary Volatility.”
+Journal of Financial Econometrics, April 23, 2022.
+https://doi.org/10.1093/jjfinec/nbac004.
 }
 \keyword{internal}

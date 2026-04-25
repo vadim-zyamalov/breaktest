@@ -9,14 +9,18 @@ SADF.test(
   y,
   trim = 0.01 + 1.8/sqrt(length(y)),
   const = TRUE,
-  add.p.value = TRUE
+  add.p.value = TRUE,
+  boot.p = FALSE,
+  boot.iter = 999
 )
 
 GSADF.test(
   y,
   trim = 0.01 + 1.8/sqrt(length(y)),
   const = TRUE,
-  add.p.value = TRUE
+  add.p.value = TRUE,
+  boot.p = FALSE,
+  boot.iter = 999
 )
 }
 \arguments{

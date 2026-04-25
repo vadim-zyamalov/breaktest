@@ -54,34 +54,36 @@ sb.GSADF.test <- function(y,
   progress.bar <- txtProgressBar(max = iter, style = 3)
   progress <- function(n) setTxtProgressBar(progress.bar, n)
 
-  # cluster <- makeCluster(max(cores - 1, 1))
-  # clusterExport(cluster, c(
-  #  "ADF.test",
-  #  "GSADF.test",
-  #  # "supSBADF.statistic",
-  #  ".cval_GSADF_without_const",
-  #  ".cval_GSADF_with_const",
-  #  ".diffn"
-  # ))
-  # registerDoSNOW(cluster)
+  cluster <- makeCluster(max(cores - 1, 1))
+  clusterExport(cluster, c(
+    "ADF.test",
+    "GSADF.test",
+    # "supSBADF.statistic",
+    ".cval_GSADF_without_const",
+    ".cval_GSADF_with_const",
+    ".diffn"
+  ))
+  registerDoSNOW(cluster)
 
-  GSADF.supSBADF.bootstrap.values <- NULL
-  for (step in 1:iter) {
+  GSADF.bootstrap.values <- foreach(
+    i = 1:iter,
+    .combine = rbind,
+    .options.snow = list(progress = progress)
+  ) %dopar% {
     y.star <- cumsum(rnorm(N) * .diffn(y, na = 0))
     res <- c(NA, NA)
     if (urs) {
-      gsadf.model <- GSADF.test(y.star, trim, const)
-      res[1] <- gsadf.model$GSADF.value
+      gsadf.model <-
+        res[1] <- GSADF.test(y.star, trim, const)$GSADF.value
     }
-    res[2] <- supSBADF.statistic(y.star, trim) |> _$supSBADF.value
-    progress(step)
-    GSADF.supSBADF.bootstrap.values <- rbind(GSADF.supSBADF.bootstrap.values, res)
+    res[2] <- supSBADF.statistic(y.star, trim)$statistic
+    res
   }
 
-  # stopCluster(cluster)
-  print(GSADF.supSBADF.bootstrap.values)
+  stopCluster(cluster)
+
   ## Get sadf_supSBADF_bootstrap_values
-  supSBADF.bootstrap.values <- GSADF.supSBADF.bootstrap.values[, 2]
+  supSBADF.bootstrap.values <- GSADF.bootstrap.values[, 2]
 
   ## Find critical value.
   supSBADF.cr.value <- as.numeric(quantile(
@@ -97,7 +99,7 @@ sb.GSADF.test <- function(y,
     GSADF.value <- gsadf.model$GSADF.value
 
     ## Get sadf_supSBADF_bootstrap_values
-    GSADF.bootstrap.values <- GSADF.supSBADF.bootstrap.values[, 1]
+    GSADF.bootstrap.values <- GSADF.bootstrap.values[, 1]
 
     ## Find critical value.
     GSADF.cr.value <- as.numeric(quantile(
@@ -124,32 +126,36 @@ sb.GSADF.test <- function(y,
     ## Find critical value.
     U.cr.value <- as.numeric(quantile(U.bootstrap.values, 1 - alpha))
 
-    p.value <- round(sum(U.bootstrap.values > U.value) / iter, 4)
+    p.value <- sum(U.bootstrap.values > U.value) / iter
 
     is.explosive <- ifelse(U.value > U.cr.value, 1, 0)
   } else {
-    p.value <- round(sum(supSBADF.bootstrap.values > supSBADF.value) / iter, 4)
+    p.value <- sum(supSBADF.bootstrap.values > supSBADF.value) / iter
 
     is.explosive <- ifelse(supSBADF.value > supSBADF.cr.value, 1, 0)
   }
 
-  result <- c(
-    list(
-      y = y,
-      trim = trim,
-      const = const,
-      alpha = alpha,
-      iter = iter,
-      urs = urs,
-      seed = seed,
-      SBADF.values = supSBADF.model$SBADF.values,
-      supSBADF.value = supSBADF.model$supSBADF_value,
-      supSBADF.bootstrap.values = supSBADF.bootstrap.values,
-      supSBADF.cr.value = supSBADF.cr.value,
-      p.value = p.value,
-      is.explosive = is.explosive
-    ),
-    if (urs) {
+  result <- list(
+    y = y,
+    trim = trim,
+    const = const,
+    alpha = alpha,
+    iter = iter,
+    urs = urs,
+    seed = seed,
+    SBADF.values = supSBADF.model$SBADF.values,
+    supSBADF.value = supSBADF.model$supSBADF_value,
+    supSBADF.bootstrap.values = supSBADF.bootstrap.values,
+    supSBADF.cr.value = supSBADF.cr.value,
+    p.value = p.value,
+    is.explosive = is.explosive
+  )
+
+  class(result) <- c("bt_sbGSADF", "bt_SADF")
+
+  if (urs) {
+    result <- c(
+      result,
       list(
         t.values = t.values,
         GSADF.value = GSADF.value,
@@ -159,12 +165,9 @@ sb.GSADF.test <- function(y,
         U.bootstrap.values = U.bootstrap.values,
         U.cr.value = U.cr.value
       )
-    } else {
-      NULL
-    }
-  )
+    )
+  }
 
-  class(result) <- "sadf"
 
   result
 }
@@ -220,13 +223,8 @@ supSBADF.statistic <- function(y,
     }
   }
 
-  supSBADF.value <- max(SBADF.values)
-
   list(
-    y = y,
-    trim = trim,
-    C.t = C.t,
     SBADF.values = SBADF.values,
-    supSBADF.value = supSBADF.value
+    statistic = max(SBADF.values)
   )
 }

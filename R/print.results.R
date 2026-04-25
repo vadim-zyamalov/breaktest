@@ -6,7 +6,7 @@
 #'
 #' @keywords internal
 #' @export
-print.sadf <- function(x, ...) {
+print.bt_SADF <- function(x, ...) {
   test_name <- NULL
 
   if ("SADF.value" %in% names(x)) {
@@ -45,7 +45,7 @@ print.sadf <- function(x, ...) {
 }
 
 
-#' @rdname print.sadf
+#' @rdname print.bt_SADF
 #' @importFrom stringr str_split
 #' @keywords internal
 #' @export
@@ -119,7 +119,7 @@ print.mdfHLT <- function(x, ...) {
 }
 
 
-#' @rdname print.sadf
+#' @rdname print.bt_SADF
 #' @importFrom stringr str_split
 #' @keywords internal
 #' @export
@@ -161,7 +161,7 @@ print.mdfHLTN <- function(x, ...) {
 }
 
 
-#' @rdname print.sadf
+#' @rdname print.bt_SADF
 #' @keywords internal
 #' @export
 print.mdfCHLT <- function(x, ...) {
@@ -180,7 +180,7 @@ print.mdfCHLT <- function(x, ...) {
 }
 
 
-#' @rdname print.sadf
+#' @rdname print.bt_SADF
 #' @keywords internal
 #' @export
 print.cointGH <- function(x, ...) {
@@ -200,7 +200,7 @@ print.cointGH <- function(x, ...) {
 }
 
 
-#' @rdname print.sadf
+#' @rdname print.bt_SADF
 #' @keywords internal
 #' @export
 print.robustUR <- function(x, ...) {
@@ -222,7 +222,7 @@ print.robustUR <- function(x, ...) {
 }
 
 
-#' @rdname print.sadf
+#' @rdname print.bt_SADF
 #' @keywords internal
 #' @export
 print.robustURN <- function(x, ...) {
