@@ -96,7 +96,7 @@ weighted.SADF.test <- function(y,
     .combine = rbind,
     .options.snow = list(progress = progress)
   ) %dopar% {
-    y.star <- cumsum(rnorm(N - 1) * .diff(y, na = 0))
+    y.star <- cumsum(rnorm(N - 1) * .diffn(y, na = 0))
     tmp.SADF.value <- NA
     if (urs) {
       tmp.sadf.model <- SADF.test(y.star, trim, const)

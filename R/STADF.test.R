@@ -160,50 +160,45 @@ STADF.test <- function(y,
     p.value <- get.p.values.SADF(STADF.value, n.obs, cr.values)
   }
 
-  result <- c(
-    list(
-      y = y,
-      N = n.obs,
-      trim = trim,
-      const = const,
-      omega.est = omega.est,
-      truncated = truncated,
-      is.reindex = is.reindex,
-      new.index = new.index,
-      ksi.input = ksi.input,
-      hc = hc,
-      h.est = h.est,
-      u.hat = u.hat,
-      pc = pc,
-      w.sq = w.sq,
-      t.values = t.values,
-      STADF.value = STADF.value
-    ),
-    if (truncated) {
-      list(u.hat.truncated = u.hat.truncated)
-    } else {
-      NULL
-    },
-    if (ksi.input == "auto") {
-      list(ksi = ksi, sigma = sigma)
-    } else {
-      NULL
-    },
-    if (is.reindex) {
-      list(eta.hat = eta.hat)
-    } else {
-      NULL
-    },
-    if (add.p.value) {
-      list(p.value = p.value)
-    } else {
-      NULL
-    }
+  result <- list(
+    y = y,
+    N = n.obs,
+    trim = trim,
+    const = const,
+    omega.est = omega.est,
+    truncated = truncated,
+    is.reindex = is.reindex,
+    new.index = new.index,
+    ksi.input = ksi.input,
+    hc = hc,
+    h.est = h.est,
+    u.hat = u.hat,
+    pc = pc,
+    w.sq = w.sq,
+    t.values = t.values,
+    STADF.value = STADF.value
   )
 
-  class(result) <- "sadf"
+  class(result) <- c("bt_STADF", "bt_SADF")
 
-  return(result)
+  if (truncated) {
+    result$u.hat.truncated <- u.hat.truncated
+  }
+
+  if (ksi.input == "auto") {
+    result$ksi <- ksi
+    result$sigma <- sigma
+  }
+
+  if (is.reindex) {
+    result$eta.hat <- eta.hat
+  }
+
+  if (add.p.value) {
+    result$p.value <- p.value
+  }
+
+  result
 }
 
 
@@ -310,50 +305,45 @@ GSTADF.test <- function(y,
     p.value <- get.p.values.SADF(GSTADF.value, n.obs, cr.values)
   }
 
-  result <- c(
-    list(
-      y = y,
-      N = n.obs,
-      trim = trim,
-      const = const,
-      omega.est = omega.est,
-      truncated = truncated,
-      is.reindex = is.reindex,
-      new.index = new.index,
-      ksi.input = ksi.input,
-      hc = hc,
-      h.est = h.est,
-      u.hat = u.hat,
-      pc = pc,
-      w.sq = w.sq,
-      t.values = t.values,
-      GSTADF.value = GSTADF.value
-    ),
-    if (truncated) {
-      list(u.hat.truncated = u.hat.truncated)
-    } else {
-      NULL
-    },
-    if (ksi.input == "auto") {
-      list(ksi = ksi, sigma = sigma)
-    } else {
-      NULL
-    },
-    if (is.reindex) {
-      list(eta.hat = eta.hat)
-    } else {
-      NULL
-    },
-    if (add.p.value) {
-      list(p.value = p.value)
-    } else {
-      NULL
-    }
+  result <- list(
+    y = y,
+    N = n.obs,
+    trim = trim,
+    const = const,
+    omega.est = omega.est,
+    truncated = truncated,
+    is.reindex = is.reindex,
+    new.index = new.index,
+    ksi.input = ksi.input,
+    hc = hc,
+    h.est = h.est,
+    u.hat = u.hat,
+    pc = pc,
+    w.sq = w.sq,
+    t.values = t.values,
+    GSTADF.value = GSTADF.value
   )
 
-  class(result) <- "sadf"
+  class(result) <- c("bt_GSTADF", "bt_SADF")
 
-  return(result)
+  if (truncated) {
+    result$u.hat.truncated <- u.hat.truncated
+  }
+
+  if (ksi.input == "auto") {
+    result$ksi <- ksi
+    result$sigma <- sigma
+  }
+
+  if (is.reindex) {
+    result$eta.hat <- eta.hat
+  }
+
+  if (add.p.value) {
+    result$p.value <- p.value
+  }
+
+  result
 }
 
 
@@ -401,15 +391,9 @@ reindex.CT <- function(u) {
   }
   eta.hat.inv[N + 1] <- 1
 
-  new.index <- floor(eta.hat.inv * N)
-
-  return(
-    list(
-      u = u,
-      s = s,
-      eta.hat = eta.hat,
-      eta.hat.inv = eta.hat.inv,
-      new.index = new.index
-    )
+  list(
+    eta.hat = eta.hat,
+    eta.hat.inv = eta.hat.inv,
+    new.index = floor(eta.hat.inv * N)
   )
 }

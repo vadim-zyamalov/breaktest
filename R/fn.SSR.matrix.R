@@ -58,18 +58,18 @@ SSR.recursive <- function(y,
   beg <- max(beg, 1)
   end <- min(end, N)
 
-  result <- matrix(data = Inf, nrow = N, ncol = 1)
+  result <- rep(Inf, N)
 
   y0 <- y[beg:(beg + width - 1), , drop = FALSE]
   x0 <- x[beg:(beg + width - 1), , drop = FALSE]
 
-  xx.inv <- qr.solve(t(x0) %*% x0)
+  xx.inv <- solve(t(x0) %*% x0)
   .model <- OLS.reg(y0, x0)
   beta <- .model$coefficients
   residl <- .model$residuals
   rm(.model)
 
-  result[beg + width - 1, 1] <- drop(t(residl) %*% residl)
+  result[beg + width - 1] <- drop(t(residl) %*% residl)
 
   for (step in (beg + width):end) {
     if (step > end) break
@@ -79,7 +79,7 @@ SSR.recursive <- function(y,
 
     denom <- drop(1 + xl %*% xx.inv %*% t(xl))
 
-    result[step, 1] <- result[step - 1, 1] + residl^2 / denom
+    result[step] <- result[step - 1] + residl^2 / denom
 
     beta <- beta + xx.inv %*% t(xl) * residl
     xx.inv <- xx.inv -

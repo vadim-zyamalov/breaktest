@@ -24,10 +24,10 @@
 #' https://doi.org/10.1111/ectj.12056.
 #'
 #' @export
-coint.test.PR <- function(y,
-                          x,
-                          deter,
-                          min.lag = 0) {
+coint.PR <- function(y,
+                     x,
+                     deter,
+                     min.lag = 0) {
   if (!is.matrix(y)) y <- as.matrix(y)
   if (!is.matrix(x)) x <- as.matrix(x)
 
@@ -56,7 +56,7 @@ coint.test.PR <- function(y,
   model <- OLS.reg(y.d, x.d)
   ud.hat <- cbind(model$residuals)
 
-  resid.tests.PR(ud.hat, min.lag, max.lag, opt.cbar, deter)
+  statistics.PR(ud.hat, min.lag, max.lag, opt.cbar, deter)
 }
 
 
@@ -77,11 +77,11 @@ coint.test.PR <- function(y,
 #' * estimated number of lags.
 #'
 #' @keywords internal
-resid.tests.PR <- function(ud,
-                           min.lag,
-                           max.lag,
-                           c.bar,
-                           deter) {
+statistics.PR <- function(ud,
+                          min.lag,
+                          max.lag,
+                          c.bar,
+                          deter) {
   N <- nrow(ud)
 
   if (ncol(ud) > 1) {
@@ -96,8 +96,8 @@ resid.tests.PR <- function(ud,
   model.1 <- OLS.reg(ud, .lagn(ud, 1))
 
   rho.hat <- as.matrix(model.1$coefficients)
-  omega <- as.matrix(model.1$residuals)
-  s2.ud <- c(t(omega) %*% omega) / (nrow(omega) - 1)
+  omega <- na.omit(model.1$residuals)
+  s2.ud <- sum(omega^2) / (nrow(omega) - 1)
   t.rho <- (rho.hat - 1) / sqrt(s2.ud / sum.ud.sq)
 
   fin.bic <- Inf
@@ -118,8 +118,8 @@ resid.tests.PR <- function(ud,
 
     model.2 <- OLS.reg(d.ud, tmp.reg)
 
-    eta <- cbind(model.2$residuals)
-    s2.eta <- c(t(eta) %*% eta) / (nrow(eta) - ncol(tmp.reg))
+    eta <- na.omit(model.2$residuals)
+    s2.eta <- sum(eta^2) / (nrow(eta) - ncol(tmp.reg))
     xtx.inv <- solve(t(tmp.reg) %*% tmp.reg)
 
     sumb <- if (lag.bic == 0) {
@@ -172,9 +172,11 @@ resid.tests.PR <- function(ud,
     }
   )
 
-  result <- list()
-  result$gls.tests <- gls.tests
-  result$lag <- fin.lag
+  result <- list(
+    gls.tests = gls.tests,
+    lag = fin.lag
+  )
+  class(result) <- "bt_cointPR"
 
   result
 }
