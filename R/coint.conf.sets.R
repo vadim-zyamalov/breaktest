@@ -26,18 +26,26 @@
 #' https://doi.org/10.1111/obes.12223.
 #'
 #' @export
-coint.conf.sets <- function(y,
-                            trend = FALSE,
-                            zb = NULL,
-                            zf = NULL,
-                            z.lead = NULL,
-                            z.lag = NULL,
-                            conf.level = 0.9,
-                            trim = 0.05,
-                            criterion = "bic") {
-  if (!is.matrix(y)) y <- as.matrix(y)
-  if (!is.null(zb) && !is.matrix(zb)) zb <- as.matrix(zb)
-  if (!is.null(zf) && !is.matrix(zf)) zf <- as.matrix(zf)
+coint.conf.sets <- function(
+  y,
+  trend = FALSE,
+  zb = NULL,
+  zf = NULL,
+  z.lead = NULL,
+  z.lag = NULL,
+  conf.level = 0.9,
+  trim = 0.05,
+  criterion = "bic"
+) {
+  if (!is.matrix(y)) {
+    y <- as.matrix(y)
+  }
+  if (!is.null(zb) && !is.matrix(zb)) {
+    zb <- as.matrix(zb)
+  }
+  if (!is.null(zf) && !is.matrix(zf)) {
+    zf <- as.matrix(zf)
+  }
 
   if (is.null(z.lead) || is.null(z.lag)) {
     ll.est <- select.lead.lag.KS(y, trend, zb, zf, trim, criterion)
@@ -120,12 +128,11 @@ coint.conf.sets <- function(y,
   b.hat <- solve(t(w) %*% w) %*% t(w) %*% y
   u.hat <- y - w %*% b.hat
 
-  lrv.u <- .lr.variance(
+  lrv.u <- LR.variance.single(
     u.hat,
     demean = FALSE,
-    kernel = "quadratic",
-    limit.lags = TRUE,
-    limit.selector = "Andrews"
+    kernel = "Quadratic",
+    limit.selector = "Bartlett"
   )
 
   l.hat <- (wb[est.date, ] %*% b.hat[seq_len(ncol(wb))])^2 / lrv.u
@@ -166,12 +173,10 @@ coint.conf.sets <- function(y,
     }
     be.hat <- solve(t(we) %*% we) %*% t(we) %*% y
     u.hat <- y - we %*% be.hat
-    lrv.u2 <- .lr.variance(
+    lrv.u2 <- LR.variance.single(
       u.hat,
-      demean = FALSE,
-      kernel = "quadratic",
-      limit.lags = TRUE,
-      limit.selector = "Andrews"
+      kernel = "Quadratic",
+      limit.selector = "Bartlett"
     )
 
     sup.stat <- 0
@@ -314,19 +319,27 @@ coint.conf.sets <- function(y,
 #' https://doi.org/10.1111/obes.12223.
 #'
 #' @keywords internal
-select.lead.lag.KS <- function(y,
-                               trend = TRUE,
-                               zb = NULL,
-                               zf = NULL,
-                               trim = 0.05,
-                               criterion = "bic") {
+select.lead.lag.KS <- function(
+  y,
+  trend = TRUE,
+  zb = NULL,
+  zf = NULL,
+  trim = 0.05,
+  criterion = "bic"
+) {
   if (!criterion %in% c("bic", "aic", "hq", "lwz")) {
     stop("ERROR! Unknown criterion")
   }
 
-  if (!is.matrix(y)) y <- as.matrix(y)
-  if (!is.null(zb) && !is.matrix(zb)) zb <- as.matrix(zb)
-  if (!is.null(zf) && !is.matrix(zf)) zf <- as.matrix(zf)
+  if (!is.matrix(y)) {
+    y <- as.matrix(y)
+  }
+  if (!is.null(zb) && !is.matrix(zb)) {
+    zb <- as.matrix(zb)
+  }
+  if (!is.null(zf) && !is.matrix(zf)) {
+    zf <- as.matrix(zf)
+  }
 
   N <- nrow(y)
 
