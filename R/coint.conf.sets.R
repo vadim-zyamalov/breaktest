@@ -130,9 +130,8 @@ coint.conf.sets <- function(
 
   lrv.u <- LR.variance.single(
     u.hat,
-    demean = FALSE,
     kernel = "Quadratic",
-    limit.selector = "Bartlett"
+    bw.selector = "Bartlett"
   )
 
   l.hat <- (wb[est.date, ] %*% b.hat[seq_len(ncol(wb))])^2 / lrv.u
@@ -176,7 +175,7 @@ coint.conf.sets <- function(
     lrv.u2 <- LR.variance.single(
       u.hat,
       kernel = "Quadratic",
-      limit.selector = "Bartlett"
+      bw.selector = "Bartlett"
     )
 
     sup.stat <- 0

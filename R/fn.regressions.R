@@ -17,8 +17,12 @@
 #'
 #' @keywords internal
 OLS.reg <- function(y, x) {
-  if (!is.matrix(y)) y <- as.matrix(y)
-  if (!is.matrix(x)) x <- as.matrix(x)
+  if (!is.matrix(y)) {
+    y <- as.matrix(y)
+  }
+  if (!is.matrix(x)) {
+    x <- as.matrix(x)
+  }
 
   N <- length(y)
 
@@ -86,11 +90,15 @@ DOLS.many <- function(
   n.leads,
   ...
 ) {
-  if (!is.matrix(y)) y <- as.matrix(y)
+  if (!is.matrix(y)) {
+    y <- as.matrix(y)
+  }
   if (is.null(x)) {
     stop("ERROR! DOLS.multiple: explanatory variables needed for DOLS")
   }
-  if (!is.matrix(x)) x <- as.matrix(x)
+  if (!is.matrix(x)) {
+    x <- as.matrix(x)
+  }
 
   .vars_dols <- DOLS.mlt.regressors(
     y,
@@ -135,8 +143,12 @@ DOLS.many <- function(
 #'
 #' @keywords internal
 GLS.reg <- function(y, z, c) {
-  if (!is.matrix(y)) y <- as.matrix(y)
-  if (!is.matrix(z)) z <- as.matrix(z)
+  if (!is.matrix(y)) {
+    y <- as.matrix(y)
+  }
+  if (!is.matrix(z)) {
+    z <- as.matrix(z)
+  }
 
   N <- nrow(y)
   Nc <- ncol(y)
@@ -163,9 +175,9 @@ GLS.reg <- function(y, z, c) {
   }
 
   result <- list(
-    coefficients  = betas,
-    t.stats       = drop(t.betas),
-    residuals     = resids,
+    coefficients = betas,
+    t.stats = drop(t.betas),
+    residuals = resids,
     fitted.values = fitted
   )
   class(result) <- "bt_gls"
@@ -201,52 +213,55 @@ AR.reg <- function(
     }
   }
 
-  if (!is.matrix(y)) y <- as.matrix(y)
-  if (!is.null(x) && !is.matrix(x)) x <- as.matrix(x)
+  if (!is.matrix(y)) {
+    y <- as.matrix(y)
+  }
+  if (!is.null(x) && !is.matrix(x)) {
+    x <- as.matrix(x)
+  }
 
   if (!is.null(x)) {
     Nx <- ncol(x)
-    .rhs <- x
+    mRHS <- x
   } else {
     Nx <- 0
-    .rhs <- NULL
+    mRHS <- NULL
   }
 
-  .rhs <- cbind(
-    .rhs,
-    apply(as.array(1:max.lag), 1, function(l) .lagn(y, l))
-  )
+  for (l in seq_len(max.lag)) {
+    mRHS <- cbind(mRHS, .lagn(y, l))
+  }
 
   yrows <- apply(y, 1, function(r) any(is.na(r)))
-  xrows <- apply(.rhs, 1, function(r) any(is.na(r)))
+  xrows <- apply(mRHS, 1, function(r) any(is.na(r)))
   rows <- !yrows & !xrows
 
-  .lhs <- y[rows, , drop = FALSE]
-  .rhs <- .rhs[rows, , drop = FALSE]
+  vLHS <- y[rows, , drop = FALSE]
+  mRHS <- mRHS[rows, , drop = FALSE]
 
   if (is.null(criterion)) {
-    .lag <- max.lag
-    result <- OLS.reg(.lhs, .rhs[, 1:(Nx + .lag), drop = FALSE])
+    resLag <- max.lag
+    result <- OLS.reg(vLHS, mRHS[, 1:(Nx + resLag), drop = FALSE])
   } else {
-    .lag <- 0
+    resLag <- 0
 
     result <- NULL
-    .ic <- Inf
+    minIC <- Inf
 
     for (l in 0:max.lag) {
-      .model <- OLS.reg(.lhs, .rhs[, 1:(Nx + l), drop = FALSE])
-      .model_ic <- info.criterions(.model$residuals, l)[[criterion]]
+      loopModel <- OLS.reg(vLHS, mRHS[, 1:(Nx + l), drop = FALSE])
+      loopIC <- info.criterions(loopModel$residuals, Nx + l)[[criterion]]
 
-      if (.model_ic < .ic) {
-        .ic <- .model_ic
-        .lag <- l
-        result <- .model
+      if (loopIC < minIC) {
+        minIC <- loopIC
+        resLag <- l
+        result <- loopModel
       }
     }
   }
 
-  result$lag <- .lag
-  result$criterion <- .ic
+  result$lag <- resLag
+  result$criterion <- minIC
   result$criterion.name <- criterion
 
   class(result) <- "bt_ar"
@@ -297,12 +312,12 @@ NW.reg <- function(
   }
 
   list(
-    my      = y,
-    mx      = x,
-    h       = h,
-    kernel  = kernel,
+    my = y,
+    mx = x,
+    h = h,
+    kernel = kernel,
     rr1.est = rho,
-    u.hat   = y - rho * x
+    u.hat = y - rho * x
   )
 }
 
@@ -357,11 +372,11 @@ NW.variance <- function(
   omega2 <- c(rep(NA, dN), omega2)
 
   list(
-    me       = e,
-    h        = h,
-    kernel   = kernel,
+    me = e,
+    h = h,
+    kernel = kernel,
     omega.sq = omega2,
-    se       = sqrt(omega2)
+    se = sqrt(omega2)
   )
 }
 
@@ -416,10 +431,10 @@ NW.bandwidth <- function(y, x, kernel = "unif") {
   }
 
   list(
-    my     = y,
-    mx     = x,
+    my = y,
+    mx = x,
     kernel = kernel,
-    h      = h
+    h = h
   )
 }
 
@@ -440,12 +455,10 @@ NW.bandwidth <- function(y, x, kernel = "unif") {
 #' @importFrom stats pnorm
 #'
 #' @keywords internal
-NW.kernel <- function(i,
-                      x,
-                      h,
-                      kernel = "unif") {
-  switch(kernel,
-    unif  = ifelse((abs((x - x[i]) / h) <= 1), 1, 0),
+NW.kernel <- function(i, x, h, kernel = "unif") {
+  switch(
+    kernel,
+    unif = ifelse((abs((x - x[i]) / h) <= 1), 1, 0),
     gauss = pnorm((x - x[i]) / h)
   )
 }

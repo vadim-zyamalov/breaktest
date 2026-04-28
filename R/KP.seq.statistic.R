@@ -23,13 +23,17 @@
 #' https://doi.org/10.1111/j.1467-9892.2010.00666.x.
 #'
 #' @export
-PY.sequential <- function(y,
-                          const = FALSE,
-                          breaks = 1,
-                          criterion = "aic",
-                          trim = 0.15,
-                          max.lag = 1) {
-  if (!is.matrix(y)) y <- as.matrix(y)
+KP.seq.statistic <- function(
+  y,
+  const = FALSE,
+  breaks = 1,
+  criterion = "aic",
+  trim = 0.15,
+  max.lag = trunc(12 * (length(y) / 100)^(1 / 4))
+) {
+  if (!is.matrix(y)) {
+    y <- as.matrix(y)
+  }
 
   model <- ifelse(const, 2, 1)
   R <- .cval_PY_sequential[[model]]$R
@@ -68,7 +72,7 @@ PY.sequential <- function(y,
         x <- cbind(
           .const(N),
           if (const) .du(tb, N) else NULL,
-          (1:N) - date.vec[i] + 1,
+          .trend(N) - date.vec[i] + 1,
           .dt(tb, N)
         )
 
@@ -80,7 +84,7 @@ PY.sequential <- function(y,
         resids <- OLS.reg(y.i, x.i)$residuals
         d.resid <- .diffn(resids, na = 0)
 
-        y.u <- resids[k.hat:nrow(resids), , drop = FALSE]
+        y.u <- resids[k.hat:length(resids)]
         x.u <- .lagn(resids, 1, na = 0)
         if (k.hat > 1) {
           x.u <- cbind(
@@ -99,8 +103,7 @@ PY.sequential <- function(y,
         u.resid <- tmp.OLS$residuals
         rm(tmp.OLS)
 
-        VCV <- qr.solve(t(x.u) %*% x.u) *
-          drop(t(u.resid) %*% u.resid) / nrow(u.resid)
+        VCV <- qr.solve(t(x.u) %*% x.u) * sum(u.resid^2) / nrow(u.resid)
 
         a.hat <- beta.u[1]
         var.a.hat <- VCV[1, 1]
@@ -121,8 +124,7 @@ PY.sequential <- function(y,
           c.tau <- -tau
         }
         if (tau <= tau05 && tau > -k) {
-          c.tau <- IP * tau / N -
-            (k.x + 1) / (tau + c2 * (tau + k))
+          c.tau <- IP * tau / N - (k.x + 1) / (tau + c2 * (tau + k))
         }
         if (tau <= -k && tau > -c1) {
           c.tau <- IP * tau / N - (k.x + 1) / tau
@@ -139,7 +141,9 @@ PY.sequential <- function(y,
         }
 
         CR <- sqrt(N) * abs(a.hat.M - 1)
-        if (CR <= 1) a.hat.M <- 1
+        if (CR <= 1) {
+          a.hat.M <- 1
+        }
 
         y.g <- rbind(
           y[date.vec[i], , drop = FALSE],
@@ -158,7 +162,7 @@ PY.sequential <- function(y,
         rm(tmp.OLS)
 
         if (k.hat == 1) {
-          h0 <- drop(t(g.resid) %*% g.resid) / nrow(g.resid)
+          h0 <- sum(g.resid^2) / length(g.resid)
         } else {
           if (a.hat.M == 1) {
             x.v <- apply(
@@ -167,8 +171,8 @@ PY.sequential <- function(y,
               function(i) .lagn(g.resid, i, na = 0)
             )
 
-            y.v <- g.resid[(k.hat - 1):nrow(g.resid)]
-            x.v <- x.v[(k.hat - 1):nrow(g.resid), , drop = FALSE]
+            y.v <- g.resid[(k.hat - 1):length(g.resid)]
+            x.v <- x.v[(k.hat - 1):length(g.resid), , drop = FALSE]
 
             tmp.OLS <- OLS.reg(y.v, x.v)
             beta.v <- tmp.OLS$coefficients
@@ -176,8 +180,7 @@ PY.sequential <- function(y,
             rm(tmp.OLS)
 
             if (!const) {
-              h0 <- (drop(t(v.resid) %*% v.resid) / (N.i - k.hat)) / # nolint
-                ((1 - sum(beta.v))^2)
+              h0 <- (sum(v.resid^2) / (N.i - k.hat)) / ((1 - sum(beta.v))^2)
             }
             if (const) {
               BETAS <- matrix(0, nrow = k.hat - 1, ncol = 4)
@@ -195,7 +198,7 @@ PY.sequential <- function(y,
                 )
                 beta.ki <- OLS.reg(y.g, x.g.ki)$coefficients
                 BETAS[k.i, ] <- drop(beta.ki)
-                sig.e <- drop(t(v.resid) %*% v.resid) / (N.i - k.hat) # nolint
+                sig.e <- sum(v.resid^2) / (N.i - k.hat)
                 beta.g[2] <- (sqrt(h0) / sqrt(sig.e)) *
                   (beta.g[2] - drop(t(BETAS[, 2]) %*% beta.v))
                 h0 <- sig.e / ((1 - sum(beta.v))^2)
@@ -204,13 +207,14 @@ PY.sequential <- function(y,
           }
 
           if (abs(a.hat.M) < 1) {
-            h0 <- .lr.var.quadratic(g.resid)
+            h0 <- .lr.var.quad(g.resid)
           }
         }
 
         VCV <- h0 * qr.solve(t(x.g) %*% x.g)
         vect1[tb] <- t(R %*% beta.g) %*%
-          qr.solve(R %*% VCV %*% t(R)) %*% (R %*% beta.g)
+          qr.solve(R %*% VCV %*% t(R)) %*%
+          (R %*% beta.g)
       }
 
       vect1 <- vect1[t.low:t.high]

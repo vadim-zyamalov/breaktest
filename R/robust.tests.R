@@ -136,7 +136,7 @@ KP <- function(y,
   res <- 0
 
   for (l in 0:(breaks - 1)) {
-    test.stat <- PY.sequential(y, const, l, criterion, trim, k.max)
+    test.stat <- KP.seq.statistic(y, const, l, criterion, trim, k.max)
     c.v <- .cval_KP[[model]][[trim.pos]]
 
     if (test.stat < c.v[2, l + 1]) {

@@ -189,7 +189,7 @@ MDF.1br <- function(y,
   }
 
   t.HLT <- ur.KPSS.HLT(y, const, trim)
-  tmp.PY <- PY.single(y, const, trend, "aic", trim, max.lag)
+  tmp.PY <- PY.statistic(y, const, trend, "aic", trim, max.lag)
   t.PY <- tmp.PY$wald
   cv.PY <- tmp.PY$critical.value
   rm(tmp.PY)

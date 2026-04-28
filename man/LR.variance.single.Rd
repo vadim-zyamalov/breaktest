@@ -5,7 +5,7 @@
 \alias{.lr.var.quad}
 \alias{.lr.var.kurozumi}
 \alias{.lr.var.spc}
-\alias{.lr.variance}
+\alias{LR.variance.single}
 \title{Calculating long-run variance or covariance matrix}
 \usage{
 .lr.var.bartlett(y)
@@ -14,18 +14,16 @@
 
 .lr.var.kurozumi(y)
 
-.lr.var.spc(y, max.lag = 0, kernel = "bartlett", criterion = "bic")
+.lr.var.spc(y, max.lag = 0, kernel = "Bartlett", criterion = "bic")
 
-.lr.variance(
-  y,
-  demean = TRUE,
+LR.variance.single(
+  u,
   kernel = "bartlett",
-  limit.lags = FALSE,
-  limit.selector = "kpss-q",
-  rho.upper.bound = 0.97,
-  lag.upper.bound = 0.8,
+  bw.selector = "kpss-q",
+  bw.limit = NULL,
+  lag.selector = NULL,
   recolor = FALSE,
-  max.lag = 0,
+  recolor.lag = 0,
   criterion = "bic"
 )
 }
@@ -58,10 +56,10 @@
 
 \item{criterion}{The information crietreion: bic, aic or lwz.}
 
-\item{demean}{Whether the demeaning is needed.}
-
 \item{recolor}{Whether the correction by Sul et al. (2005) should be used.
 This option resets \code{limit_lags} to \code{TRUE}, and \code{limit_selector} to \code{Andrews}.}
+
+\item{demean}{Whether the demeaning is needed.}
 
 \item{limit_lags}{Whether all lags shoult be used in formulae.}
 

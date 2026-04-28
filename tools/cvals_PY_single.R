@@ -1,6 +1,6 @@
 .cval_PY_single <- list(
   c = list(
-    VR = matrix(c(0, 1, 0), nrow = 1, ncol = 3, byrow = TRUE),
+    VR = matrix(c(0, 0, 1), nrow = 1, ncol = 3, byrow = TRUE),
     v.t = as.matrix(c(
       -4.30, -4.39, -4.39, -4.34, -4.32,
       -4.45, -4.42, -4.33, -4.27, -4.27
@@ -29,7 +29,7 @@
   ),
   ct = list(
     VR = matrix(c(
-      0, 1, 0, 0,
+      0, 0, 1, 0,
       0, 0, 0, 1
     ), nrow = 2, ncol = 4, byrow = TRUE),
     v.t = as.matrix(c(
