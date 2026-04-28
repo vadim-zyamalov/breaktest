@@ -19,12 +19,7 @@
 #' https://doi.org/10.1111/j.1468-0084.2006.00180.x.
 #'
 #' @keywords internal
-segments.CSS <- function(beg,
-                         end,
-                         bp.min,
-                         bp.max,
-                         len,
-                         SSR.data) {
+segments.CSS <- function(beg, end, bp.min, bp.max, len, SSR.data) {
   .rss <- matrix(data = Inf, nrow = len, ncol = 1)
 
   for (bp in bp.min:bp.max) {
@@ -35,7 +30,7 @@ segments.CSS <- function(beg,
   final.bp <- (bp.min - 1) + which.min(.rss[bp.min:bp.max])
 
   list(
-    SSR         = final.rss,
+    SSR = final.rss,
     break.point = final.bp
   )
 }
@@ -77,8 +72,12 @@ segments.BP <- function(
   width = 2,
   SSR.data = NULL
 ) {
-  if (!is.matrix(y)) y <- as.matrix(y)
-  if (!is.matrix(x)) x <- as.matrix(x)
+  if (!is.matrix(y)) {
+    y <- as.matrix(y)
+  }
+  if (!is.matrix(x)) {
+    x <- as.matrix(x)
+  }
 
   N <- nrow(y)
 
@@ -112,7 +111,8 @@ segments.BP <- function(
           upperBorder,
           width,
           upperBorder - width,
-          upperBorder, SSR.data
+          upperBorder,
+          SSR.data
         )
         vSSR[v] <- .segments$SSR
         mBreaks[v, 1] <- .segments$break.point
@@ -158,7 +158,7 @@ segments.BP <- function(
   }
 
   list(
-    SSR         = finalSSR,
+    SSR = finalSSR,
     break.point = finalBreaks
   )
 }
@@ -185,14 +185,18 @@ segments.BP <- function(
 #' https://doi.org/10.1515/jtse-2016-0014.
 #'
 #' @keywords internal
-segments.GLS <- function(y,
-                         const = FALSE,
-                         trend = FALSE,
-                         breaks = 1,
-                         bp_min = NULL,
-                         bp_max = NULL,
-                         trim = 0.15) {
-  if (!is.matrix(y)) y <- as.matrix(y)
+segments.GLS <- function(
+  y,
+  const = FALSE,
+  trend = FALSE,
+  breaks = 1,
+  bp_min = NULL,
+  bp_max = NULL,
+  trim = 0.15
+) {
+  if (!is.matrix(y)) {
+    y <- as.matrix(y)
+  }
 
   if (breaks < 1) {
     stop("At least one break is needed!")
@@ -203,8 +207,12 @@ segments.GLS <- function(y,
 
   N <- nrow(y)
 
-  if (is.null(bp_min)) bp_min <- floor(trim * N) + 1
-  if (is.null(bp_max)) bp_max <- floor((1 - trim) * N) + 1
+  if (is.null(bp_min)) {
+    bp_min <- floor(trim * N) + 1
+  }
+  if (is.null(bp_max)) {
+    bp_max <- floor((1 - trim) * N) + 1
+  }
   width <- bp_min - 1
 
   steps <- c(0, 0.2, 0.4, 0.6, 0.8, 0.9, 0.95, 0.975, 1)

@@ -37,7 +37,7 @@ OLS.reg <- function(y, x) {
   r <- .model$residuals
   cf <- .model$coefficients
   s.sq <- sum(r^2) / (nrow(x) - ncol(x))
-  se.cf <- sqrt(diag(s.sq * qr.solve(t(x) %*% x)))
+  se.cf <- sqrt(diag(s.sq * solve(t(x) %*% x)))
   t.beta <- cf / se.cf
 
   resid <- rep(NA, N)

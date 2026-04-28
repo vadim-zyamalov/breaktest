@@ -19,7 +19,7 @@
 LR.variance.single(
   u,
   kernel = "bartlett",
-  bw.selector = "kpss-q",
+  bw.selector = "bartlett",
   bw.limit = NULL,
   lag.selector = NULL,
   recolor = FALSE,
@@ -28,56 +28,55 @@ LR.variance.single(
 )
 }
 \arguments{
-\item{y}{A time series of interest.}
-
 \item{kernel}{A kernel to be used:
 \itemize{
-\item \code{truncated}: \eqn{\left\{\begin{array}{ll}
+\item \code{Truncated}: \eqn{\left\{\begin{array}{ll}
 1 & |x| \leq 1 \\
 0 & \textrm{otherwize}
 \end{array}\right.}
-\item \code{bartlett}: \eqn{\left\{\begin{array}{ll}
+\item \code{Bartlett}: \eqn{\left\{\begin{array}{ll}
 1 - |x| & |x| \leq 1 \\
 0 & \textrm{otherwize}
-\end{array}\right.}
-\item \code{parzen}: \eqn{\left\{\begin{array}{ll}
+\end{array}\right.},
+\item \code{Parzen}: \eqn{\left\{\begin{array}{ll}
 1 - 6 x^2 + 6 {|x|}^3 & |x| \leq 1/2 \\
 2 (1 - |x|)^3 & 1/2 \leq |x| \leq 1 \\
 0 & \textrm{otherwize}
-\end{array}\right.}
-\item \code{tukey-hanning}: \eqn{\left\{\begin{array}{ll}
+\end{array}\right.},
+\item \code{Tukey-Hanning}: \eqn{\left\{\begin{array}{ll}
 (1 + \cos(\pi x))/2 & |x| \leq 1 \\
 0 & \textrm{otherwize}
-\end{array}\right.}
-\item \code{quadratic}: \eqn{
+\end{array}\right.},
+\item \code{Quadratic}: \eqn{
 \frac{25}{12 \pi^2 x^2}
-\left(\frac{\sin(6 \pi x / 5)}{6 \pi x / 5} - \cos(6 \pi x / 5)\right)}
+\left(\frac{\sin(6 \pi x / 5)}{6 \pi x / 5} - \cos(6 \pi x / 5)\right)}.
 }}
 
 \item{criterion}{The information crietreion: bic, aic or lwz.}
 
-\item{recolor}{Whether the correction by Sul et al. (2005) should be used.
-This option resets \code{limit_lags} to \code{TRUE}, and \code{limit_selector} to \code{Andrews}.}
+\item{u}{A time series of interest.}
 
-\item{demean}{Whether the demeaning is needed.}
-
-\item{limit_lags}{Whether all lags shoult be used in formulae.}
-
-\item{limit_selector}{Way of limit selection:
+\item{bw.selector}{A method to select bandwidth:
 \itemize{
-\item \code{kpss-q}: \eqn{4 (T / 100)^{1 / 4}}.
-\item \code{kpss-m}: \eqn{12 (T / 100)^{1 / 4}}.
-\item \code{Andrews}: kernel-specific formula from Andrews (1991).
-\item \code{Kurozumi}: kernel-specific formula from Andrews (1991)
-with Kurozumi (2002) proposal.
+\item \code{Bartlett}: \eqn{1.1447 (N \alpha(1))^{1 / 3}},
+\item \code{Parzen}: \eqn{2.6614 (N \alpha(2))^{1 / 5}},
+\item \code{Tukey-Hanning}: \eqn{1.7462 (N \alpha(2))^{1 / 5}},
+\item \code{Quadratic}: \eqn{1.3221 (N \alpha(2))^{1 / 5}}.
 }}
 
-\item{upper.rho.limit}{The upper limit for the value or AR-coefficient.}
+\item{bw.limit}{A limiting parameter for Kurozumi's proposal. If \code{NULL} no limiting is done.}
 
-\item{upper.lag.limit}{The value used to calculate the upper limit
-for Kurozumi (2002) proposal.}
+\item{lag.selector}{How to limit the number of lags in formulae:
+\itemize{
+\item \code{kpss-q}: \eqn{4 * \left(\frac{N}{100}\right)^{1 / 4}},
+\item \code{kpss-m}: \eqn{12 * \left(\frac{N}{100}\right)^{1 / 4}},
+\item \code{full}: \eqn{N-1},
+\item NULL: number of lags equals bandwidth.
+}}
 
-\item{max_lag}{Maximum number of lags used in AR regresion during
+\item{recolor}{Whether the correction by Sul et al. (2005) should be used.}
+
+\item{recolor.lag}{Maximum number of lags used in AR regresion during
 recolorization. Otherwize ignored.}
 }
 \description{

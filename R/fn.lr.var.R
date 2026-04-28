@@ -4,42 +4,41 @@
 #' The code provided is based on the original code by Kurozumi, Sul et al.
 #' ported to R.
 #'
-#' @param y A time series of interest.
-#' @param demean Whether the demeaning is needed.
+#' @param u A time series of interest.
 #' @param kernel A kernel to be used:
-#' * `truncated`: \eqn{\left\{\begin{array}{ll}
+#' * `Truncated`: \eqn{\left\{\begin{array}{ll}
 #' 1 & |x| \leq 1 \\
 #' 0 & \textrm{otherwize}
 #' \end{array}\right.}
-#' * `bartlett`: \eqn{\left\{\begin{array}{ll}
+#' * `Bartlett`: \eqn{\left\{\begin{array}{ll}
 #' 1 - |x| & |x| \leq 1 \\
 #' 0 & \textrm{otherwize}
-#' \end{array}\right.}
-#' * `parzen`: \eqn{\left\{\begin{array}{ll}
+#' \end{array}\right.},
+#' * `Parzen`: \eqn{\left\{\begin{array}{ll}
 #' 1 - 6 x^2 + 6 {|x|}^3 & |x| \leq 1/2 \\
 #' 2 (1 - |x|)^3 & 1/2 \leq |x| \leq 1 \\
 #' 0 & \textrm{otherwize}
-#' \end{array}\right.}
-#' * `tukey-hanning`: \eqn{\left\{\begin{array}{ll}
+#' \end{array}\right.},
+#' * `Tukey-Hanning`: \eqn{\left\{\begin{array}{ll}
 #' (1 + \cos(\pi x))/2 & |x| \leq 1 \\
 #' 0 & \textrm{otherwize}
-#' \end{array}\right.}
-#' * `quadratic`: \eqn{
+#' \end{array}\right.},
+#' * `Quadratic`: \eqn{
 #' \frac{25}{12 \pi^2 x^2}
-#' \left(\frac{\sin(6 \pi x / 5)}{6 \pi x / 5} - \cos(6 \pi x / 5)\right)}
-#' @param limit_lags Whether all lags shoult be used in formulae.
-#' @param limit_selector Way of limit selection:
-#' * `kpss-q`: \eqn{4 (T / 100)^{1 / 4}}.
-#' * `kpss-m`: \eqn{12 (T / 100)^{1 / 4}}.
-#' * `Andrews`: kernel-specific formula from Andrews (1991).
-#' * `Kurozumi`: kernel-specific formula from Andrews (1991)
-#' with Kurozumi (2002) proposal.
-#' @param upper.rho.limit The upper limit for the value or AR-coefficient.
-#' @param upper.lag.limit The value used to calculate the upper limit
-#' for Kurozumi (2002) proposal.
+#' \left(\frac{\sin(6 \pi x / 5)}{6 \pi x / 5} - \cos(6 \pi x / 5)\right)}.
+#' @param bw.selector A method to select bandwidth:
+#' * `Bartlett`: \eqn{1.1447 (N \alpha(1))^{1 / 3}},
+#' * `Parzen`: \eqn{2.6614 (N \alpha(2))^{1 / 5}},
+#' * `Tukey-Hanning`: \eqn{1.7462 (N \alpha(2))^{1 / 5}},
+#' * `Quadratic`: \eqn{1.3221 (N \alpha(2))^{1 / 5}}.
+#' @param bw.limit A limiting parameter for Kurozumi's proposal. If `NULL` no limiting is done.
+#' @param lag.selector How to limit the number of lags in formulae:
+#' * `kpss-q`: \eqn{4 * \left(\frac{N}{100}\right)^{1 / 4}},
+#' * `kpss-m`: \eqn{12 * \left(\frac{N}{100}\right)^{1 / 4}},
+#' * `full`: \eqn{N-1},
+#' * NULL: number of lags equals bandwidth.
 #' @param recolor Whether the correction by Sul et al. (2005) should be used.
-#' This option resets `limit_lags` to `TRUE`, and `limit_selector` to `Andrews`.
-#' @param max_lag Maximum number of lags used in AR regresion during
+#' @param recolor.lag Maximum number of lags used in AR regresion during
 #' recolorization. Otherwize ignored.
 #' @param criterion The information crietreion: bic, aic or lwz.
 #'
@@ -66,7 +65,7 @@
 LR.variance.single <- function(
   u,
   kernel = "bartlett",
-  bw.selector = "kpss-q",
+  bw.selector = "bartlett",
   bw.limit = NULL,
   lag.selector = NULL,
   recolor = FALSE,
@@ -97,7 +96,7 @@ LR.variance.single <- function(
 
   rho <- sum(u[1:(N - 1)] * u[2:N]) / sum(u[2:N]^2)
 
-  lmfL <- .lr.lag.limit(lag.selector)
+  lmtL <- .lr.lag.limit(lag.selector)
   lmtF <- .lr.bandwidth(bw.selector, .alpha.single, N)
   wgtF <- .lr.weight(kernel)
 
@@ -107,8 +106,14 @@ LR.variance.single <- function(
   }
   bw <- trunc(bw)
 
+  lags <- if (is.null(lmtL)) {
+    bw
+  } else {
+    lmtL(N)
+  }
+
   lrv <- sum(u^2) / N
-  for (i in 1:lmfL(N)) {
+  for (i in 1:lags) {
     lrv <- lrv + 2 * sum(u[1:(N - i)] * u[(1 + i):N]) * wgtF(i, bw) / N
   }
 
@@ -137,7 +142,8 @@ LR.variance.single <- function(
   LR.variance.single(
     y,
     kernel = "Quadratic",
-    bw.selector = "Quadratic"
+    bw.selector = "Quadratic",
+    lag.selector = "full"
   )
 }
 
@@ -162,15 +168,19 @@ LR.variance.single <- function(
 ) {
   LR.variance.single(
     y,
-    max.lag = max.lag,
     kernel = kernel,
+    bw.selector = kernel,
     criterion = criterion,
-    recolor = TRUE
+    recolor = TRUE,
+    recolor.lag = max.lag
   )
 }
 
 
 .lr.lag.limit <- function(selector) {
+  if (is.null(selector)) {
+    return(NULL)
+  }
   switch(
     selector,
     "kpss-q" = function(N) {
@@ -179,7 +189,7 @@ LR.variance.single <- function(
     "kpss-m" = function(N) {
       12 * (N / 100)^(1 / 4)
     },
-    function(N) {
+    "full" = function(N) {
       N - 1
     }
   )
@@ -204,6 +214,7 @@ LR.variance.single <- function(
     stop("LR.variance: Unknown banwidth selector!")
   )
 }
+
 
 .lr.weight <- function(kernel) {
   switch(
@@ -244,6 +255,7 @@ LR.variance.single <- function(
     stop("Unknown kernel!")
   )
 }
+
 
 .alpha.single <- function(r) {
   list(

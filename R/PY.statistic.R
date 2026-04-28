@@ -211,8 +211,6 @@ PY.statistic <- function(
       vect1,
       t(VR %*% b) %*% solve(VR %*% VCV %*% t(VR)) %*% (VR %*% b)
     )
-
-    cat(h0, amus)
   }
 
   wald <- log(sum(exp(vect1 / 2)) / N)

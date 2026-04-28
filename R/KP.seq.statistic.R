@@ -43,7 +43,7 @@ KP.seq.statistic <- function(
   h <- trunc(trim * N)
 
   if (breaks == 0) {
-    date.vec <- c(1, N + 1)
+    datevec <- c(1, N + 1)
   } else {
     SSR.data <- SSR.matrix(y, cbind(.const(N), .trend(N)), h)
     dates <- segments.BP(
@@ -53,172 +53,165 @@ KP.seq.statistic <- function(
       h,
       SSR.data
     )
-    date.vec <- c(1, drop(dates$break.point) + 1, N + 1)
+    datevec <- c(1, sort(drop(dates$break.point)), N + 1)
   }
+  wald <- NULL
 
-  wald <- numeric(breaks + 1)
+  for (i in seq_len(breaks + 1)) {
+    T_i <- datevec[i + 1] - datevec[i]
+    vect1 <- NULL
 
-  for (i in 1:(breaks + 1)) {
-    N.i <- date.vec[i + 1] - date.vec[i]
-    vect1 <- numeric(N)
-
-    t.low <- max(trunc(date.vec[i] + N.i * trim - 1), max.lag + 2)
-    t.high <- trunc(date.vec[i + 1] - N.i * trim - 1)
+    t.low <- max(trunc(datevec[i] + T_i * trim), max.lag + 2)
+    t.high <- trunc(datevec[i + 1] - T_i * trim)
 
     if (t.low < t.high - 1) {
       for (tb in t.low:t.high) {
-        lambda <- (tb - 1) / (date.vec[i + 1] - 1)
+        lam1 <- (tb - 1) / (datevec[i + 1] - 1)
 
-        x <- cbind(
+        reg <- cbind(
           .const(N),
-          if (const) .du(tb, N) else NULL,
-          .trend(N) - date.vec[i] + 1,
-          .dt(tb, N)
+          if (const) .du(tb - 1, N) else NULL,
+          .trend(N) - (datevec[i] - 1),
+          .dt(tb - 1, N)
         )
 
-        y.i <- y[date.vec[i]:(date.vec[i + 1] - 1), , drop = FALSE]
-        x.i <- x[date.vec[i]:(date.vec[i + 1] - 1), , drop = FALSE]
+        y_i <- y[datevec[i]:(datevec[i + 1] - 1), , drop = FALSE]
+        reg_i <- reg[datevec[i]:(datevec[i + 1] - 1), , drop = FALSE]
 
-        k.hat <- max(1, AR.reg(y.i, x.i, max.lag, criterion)$lag)
+        khat <- max(1, AR.reg(y_i, reg_i, max.lag, criterion)$lag)
 
-        resids <- OLS.reg(y.i, x.i)$residuals
-        d.resid <- .diffn(resids, na = 0)
+        u <- OLS.reg(y_i, reg_i)$residuals
+        du <- .diffn(u, na = 0)
 
-        y.u <- resids[k.hat:length(resids)]
-        x.u <- .lagn(resids, 1, na = 0)
-        if (k.hat > 1) {
-          x.u <- cbind(
-            x.u,
-            apply(
-              as.array(1:(k.hat - 1)),
-              1,
-              function(i) .lagn(d.resid, i, na = 0)
-            )
-          )
+        depu <- u[khat:length(u)]
+        regu <- .lagn(u, 1, na = 0)
+        for (l in seq_len(khat - 1)) {
+          regu <- cbind(regu, .lagn(du, l, na = 0))
         }
-        x.u <- x.u[k.hat:nrow(x.u), , drop = FALSE]
+        regu <- regu[khat:length(u), , drop = FALSE]
 
-        tmp.OLS <- OLS.reg(y.u, x.u)
-        beta.u <- tmp.OLS$coefficients
-        u.resid <- tmp.OLS$residuals
-        rm(tmp.OLS)
+        tmp.OLS <- OLS.reg(depu, regu)
+        b <- tmp.OLS$coefficients
+        ehat <- tmp.OLS$residuals
 
-        VCV <- qr.solve(t(x.u) %*% x.u) * sum(u.resid^2) / nrow(u.resid)
+        VCV <- solve(t(regu) %*% regu) * sum(ehat^2) / length(ehat)
 
-        a.hat <- beta.u[1]
-        var.a.hat <- VCV[1, 1]
-        tau <- (a.hat - 1) / sqrt(var.a.hat)
+        ahat <- b[1]
+        vahat <- VCV[1, 1]
+        tau1 <- (ahat - 1) / sqrt(vahat)
 
-        tau05 <- v.t[ceiling(lambda * 10)]
+        # Upper Biased Estimator
+        t05 <- v.t[ceiling(lam1 * 10)]
 
-        IP <- trunc((k.hat + 1) / 2)
-
+        IP <- trunc((khat + 1) / 2)
+        r <- ncol(reg)
         k <- 10
-        k.x <- ncol(x)
 
-        c1 <- sqrt((1 + k.x) * N.i)
-        c2 <- ((1 + k.x) * N.i - tau05^2 * (IP + N.i)) /
-          (tau05 * (tau05 + k) * (IP + N.i))
+        c1 <- sqrt((1 + r) * T_i)
+        c2 <- ((1 + r) * T_i - t05^2 * (IP + T_i)) /
+          (t05 * (t05 + k) * (IP + T_i))
 
-        if (tau > tau05) {
-          c.tau <- -tau
+        if (tau1 > t05) {
+          c.tau <- -tau1
         }
-        if (tau <= tau05 && tau > -k) {
-          c.tau <- IP * tau / N - (k.x + 1) / (tau + c2 * (tau + k))
+        if (tau1 <= t05 && tau1 > -k) {
+          c.tau <- IP * tau1 / N - (r + 1) / (tau1 + c2 * (tau1 + k))
         }
-        if (tau <= -k && tau > -c1) {
-          c.tau <- IP * tau / N - (k.x + 1) / tau
+        if (tau1 <= -k && tau1 > -c1) {
+          c.tau <- IP * tau1 / N - (r + 1) / tau1
         }
-        if (tau <= -c1) {
+        if (tau1 <= -c1) {
           c.tau <- 0
         }
 
-        a.hat.M <- a.hat + c.tau * sqrt(var.a.hat)
-        if (a.hat.M >= 1) {
-          a.hat.M <- 1
-        } else if (a.hat.M <= -1) {
-          a.hat.M <- -0.99
+        amus <- ahat + c.tau * sqrt(vahat)
+        if (amus >= 1) {
+          amus <- 1
+        } else if (amus <= -1) {
+          amus <- -0.99
         }
 
-        CR <- sqrt(N) * abs(a.hat.M - 1)
+        CR <- sqrt(N) * abs(amus - 1)
         if (CR <= 1) {
-          a.hat.M <- 1
+          amus <- 1
         }
 
-        y.g <- rbind(
-          y[date.vec[i], , drop = FALSE],
-          y[(date.vec[i] + 1):(date.vec[i + 1] - 1), , drop = FALSE] -
-            a.hat.M * y[date.vec[i]:(date.vec[i + 1] - 2), , drop = FALSE] # nolint
+        gdep <- rbind(
+          y[datevec[i], , drop = FALSE],
+          y[(datevec[i] + 1):(datevec[i + 1] - 1), , drop = FALSE] -
+            amus * y[datevec[i]:(datevec[i + 1] - 2), , drop = FALSE] # nolint
         )
-        x.g <- rbind(
-          x[date.vec[i], , drop = FALSE],
-          x[(date.vec[i] + 1):(date.vec[i + 1] - 1), , drop = FALSE] -
-            a.hat.M * x[date.vec[i]:(date.vec[i + 1] - 2), , drop = FALSE] # nolint
+        greg <- rbind(
+          reg[datevec[i], , drop = FALSE],
+          reg[(datevec[i] + 1):(datevec[i + 1] - 1), , drop = FALSE] -
+            amus * reg[datevec[i]:(datevec[i + 1] - 2), , drop = FALSE] # nolint
         )
 
-        tmp.OLS <- OLS.reg(y.g, x.g)
-        beta.g <- tmp.OLS$coefficients
-        g.resid <- tmp.OLS$residuals
-        rm(tmp.OLS)
+        tmp.OLS <- OLS.reg(gdep, greg)
+        b <- tmp.OLS$coefficients
+        v <- tmp.OLS$residuals
 
-        if (k.hat == 1) {
-          h0 <- sum(g.resid^2) / length(g.resid)
+        if (khat == 1) {
+          h0 <- sum(v^2) / length(v)
         } else {
-          if (a.hat.M == 1) {
-            x.v <- apply(
-              as.array(1:(k.hat - 1)),
-              1,
-              function(i) .lagn(g.resid, i, na = 0)
-            )
+          if (amus == 1) {
+            regv <- NULL
+            for (l in seq_len(khat - 1)) {
+              regv <- cbind(regv, .lagn(v, l, na = 0))
+            }
 
-            y.v <- g.resid[(k.hat - 1):length(g.resid)]
-            x.v <- x.v[(k.hat - 1):length(g.resid), , drop = FALSE]
+            depv <- v[(khat - 1):length(v)]
+            regv <- regv[(khat - 1):length(v), , drop = FALSE]
 
-            tmp.OLS <- OLS.reg(y.v, x.v)
-            beta.v <- tmp.OLS$coefficients
-            v.resid <- tmp.OLS$residuals
-            rm(tmp.OLS)
+            tmp.OLS <- OLS.reg(depv, regv)
+            beta <- tmp.OLS$coefficients
+            e <- tmp.OLS$residuals
 
             if (!const) {
-              h0 <- (sum(v.resid^2) / (N.i - k.hat)) / ((1 - sum(beta.v))^2)
+              h0 <- (sum(e^2) / (T_i - khat)) / ((1 - sum(beta))^2)
             }
             if (const) {
-              BETAS <- matrix(0, nrow = k.hat - 1, ncol = 4)
-              for (k.i in 1:(k.hat - 1)) {
-                x.ki <- cbind(
+              vbeta <- matrix(0, nrow = khat - 1, ncol = 4)
+              for (ki in seq_len(khat - 1)) {
+                regki <- cbind(
                   .const(N),
-                  .du(tb - k.i, N),
+                  .du(tb - ki - 1, N),
                   .trend(N),
-                  .dt(tb - k.i, N)
+                  .du(tb - ki - 1, N) * (.trend(N) - (tb - 1))
                 )
-                x.g.ki <- rbind(
-                  x.ki[date.vec[i] + 1, ],
-                  x.ki[(date.vec[i] + 2):(date.vec[i + 1] - 1), ] - # nolint
-                    a.hat.M * x.ki[(date.vec[i] + 1):(date.vec[i + 1] - 2), ] # nolint
+                gdepki <- rbind(
+                  y[datevec[i], , drop = FALSE],
+                  y[(datevec[i] + 1):(datevec[i + 1] - 1), , drop = FALSE] - # nolint
+                    amus * y[(datevec[i]):(datevec[i + 1] - 2), , drop = FALSE] # nolint
                 )
-                beta.ki <- OLS.reg(y.g, x.g.ki)$coefficients
-                BETAS[k.i, ] <- drop(beta.ki)
-                sig.e <- sum(v.resid^2) / (N.i - k.hat)
-                beta.g[2] <- (sqrt(h0) / sqrt(sig.e)) *
-                  (beta.g[2] - drop(t(BETAS[, 2]) %*% beta.v))
-                h0 <- sig.e / ((1 - sum(beta.v))^2)
+                gregki <- rbind(
+                  reg[datevec[i], ],
+                  regki[(datevec[i] + 1):(datevec[i + 1] - 1), ] - # nolint
+                    amus * regki[datevec[i]:(datevec[i + 1] - 2), ] # nolint
+                )
+                vbeta[ki, ] <- drop(OLS.reg(gdepki, gregki)$coefficients)
               }
+              sige <- sum(e^2) / (T_i - khat)
+              h0 <- sige / ((1 - sum(beta))^2)
+              b[2] <- (sqrt(h0) / sqrt(sige)) *
+                (b[2] - drop(t(vbeta[, 2]) %*% beta))
             }
           }
 
-          if (abs(a.hat.M) < 1) {
-            h0 <- .lr.var.quad(g.resid)
+          if (abs(amus) < 1) {
+            h0 <- .lr.var.quad(v)
           }
         }
-
-        VCV <- h0 * qr.solve(t(x.g) %*% x.g)
-        vect1[tb] <- t(R %*% beta.g) %*%
-          qr.solve(R %*% VCV %*% t(R)) %*%
-          (R %*% beta.g)
+        VCV <- h0 * qr.solve(t(greg) %*% greg)
+        vect1 <- c(
+          vect1,
+          t(R %*% b) %*%
+            qr.solve(R %*% VCV %*% t(R)) %*%
+            (R %*% b)
+        )
       }
 
-      vect1 <- vect1[t.low:t.high]
-      wald[i] <- log(sum(exp(vect1 / 2)) / (date.vec[i + 1] - date.vec[i])) # nolint
+      wald <- c(wald, log(sum(exp(vect1 / 2)) / T_i))
     }
   }
 
