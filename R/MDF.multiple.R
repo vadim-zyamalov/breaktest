@@ -1,4 +1,66 @@
 #' @title
+#' A wrapping function around [breaktest.KP] and [MDF.mlt].
+#'
+#' @details
+#' The code provided is the original Ox code by Skrobotov (2018)
+#' ported to R.
+#'
+#' @param y A series of interest.
+#' @param const Whether the constant term should be included.
+#' @param season Whether the seasonal adjustment is needed.
+#' @param breaks Number of breaks.
+#' @param trim Trimming value for a possible break date bounds.
+#'
+#' @export
+robust.tests.multiple <- function(
+  y,
+  const = FALSE,
+  season = FALSE,
+  breaks = 2,
+  trim = 0.15
+) {
+  if (!is.matrix(y)) {
+    y <- as.matrix(y)
+  }
+
+  ## Start ##
+  N <- nrow(y)
+
+  if (season) {
+    SEAS <- cbind(
+      .const(N),
+      seasonal.dummies(N)
+    )
+    y <- OLS.reg(y, SEAS)$residuals
+  }
+
+  m.star <- breaktest.KP(
+    y = y,
+    const = const,
+    breaks = breaks,
+    criterion = "aic",
+    trim = trim
+  )
+
+  result <- MDF.mlt(
+    y = y,
+    const = const,
+    breaks = breaks,
+    breaks.star = m.star$breaks,
+    trim = trim,
+    ZA = FALSE
+  )
+
+  result$season <- season
+  result$KP.sequential <- m.star
+
+  class(result) <- "bt_robustURN"
+
+  result
+}
+
+
+#' @title
 #' MDF procedure for multiple unknown breaks.
 #'
 #' @details
@@ -16,28 +78,22 @@
 #' * The value of statistic: \eqn{MDF-GLS}, \eqn{MDF-OLS},
 #' * The asymptotic critical values.
 #' \eqn{UR} values are included as well.
-#'
-#' @export
-MDF.mlt <- function(y,
-                    const = FALSE,
-                    breaks = 1,
-                    breaks.star = 1,
-                    trim = 0.15,
-                    ZA = FALSE) {
-  if (!is.matrix(y)) y <- as.matrix(y)
+MDF.mlt <- function(
+  y,
+  const = FALSE,
+  breaks = 1,
+  breaks.star = 1,
+  trim = 0.15,
+  ZA = FALSE
+) {
+  if (!is.matrix(y)) {
+    y <- as.matrix(y)
+  }
 
   N <- nrow(y)
 
   ## Critical values ##
-  model <- if (const && ZA) {
-    "cz"
-  } else if (const && !ZA) {
-    "c"
-  } else if (!const %% ZA) {
-    "nz"
-  } else {
-    "n"
-  }
+  model <- paste0(if (const) "c" else "n", if (ZA) "z" else "")
 
   cv.DF.OLS.t <- .cval_MDF_multiple[[model]]$cv.DF.OLS.t
   cv.MDF.OLS1 <- .cval_MDF_multiple[[model]]$cv.MDF.OLS1
@@ -64,49 +120,53 @@ MDF.mlt <- function(y,
   sap.cv.ur.2 <- .cval_MDF_multiple[[model]]$sap.cv.ur.2
   sap.cv.ur.3 <- .cval_MDF_multiple[[model]]$sap.cv.ur.3
 
-
   ## Start ##
-  max.lag <- trunc(12 * (N / 100)^(1 / 4))
+  kmax <- trunc(12 * (N / 100)^(1 / 4))
 
-  first.break <- trunc(trim * N) + 1
-  width <- first.break - 1
-  last.break <- trunc((1 - trim) * N) + 1
+  tb_L <- trunc(trim * N)
+  sep <- tb_L
+  tb_U <- trunc((1 - trim) * N)
 
   x <- cbind(.const(N), .trend(N))
 
   ## GLS case
-  resid.GLS.t <- GLS.reg(y, x, -13.5)$residuals
-
-  resid.OLS.t <- OLS.reg(y, x)$residuals
-  DF.OLS.t <- ADF.test(resid.OLS.t,
-    const = FALSE, trend = FALSE,
-    max.lag = max.lag,
-    criterion = "aic",
-    modified.criterion = TRUE
+  r_GLS_t <- GLS.reg(y, x, -13.5)$residuals
+  r_OLS_t <- OLS.reg(y, x)$residuals
+  k_t <- max(
+    1,
+    ADF.test(
+      r_OLS_t,
+      const = FALSE,
+      trend = FALSE,
+      max.lag = kmax,
+      criterion = "aic",
+      modified.criterion = TRUE
+    )$lag
   )
-  k.t <- max(1, DF.OLS.t$lag)
 
-  DF.GLS.t <- ADF.test(resid.GLS.t,
-    const = FALSE, trend = FALSE,
-    max.lag = k.t,
+  DF_GLS_t <- ADF.test(
+    r_GLS_t,
+    const = FALSE,
+    trend = FALSE,
+    max.lag = k_t,
     criterion = NULL
-  )
-  DF.GLS.t <- DF.GLS.t$t.alpha
+  )$t.alpha
 
   ## OLS case
-  DF.OLS.t <- ADF.test(resid.OLS.t,
-    const = FALSE, trend = FALSE,
-    max.lag = k.t,
+  DF_OLS_t <- ADF.test(
+    r_OLS_t,
+    const = FALSE,
+    trend = FALSE,
+    max.lag = k_t,
     criterion = NULL
-  )
-  DF.OLS.t <- DF.OLS.t$t.alpha
+  )$t.alpha
 
   ## OLS-GLS ##
   ## One break
-  MDF.OLS1 <- Inf
-  MDF.GLS1 <- Inf
+  MDF_OLS1 <- Inf
+  MDF_GLS1 <- Inf
 
-  for (tb1 in first.break:last.break) {
+  for (tb1 in tb_L:tb_U) {
     x <- cbind(
       .const(N),
       .trend(N),
@@ -114,49 +174,53 @@ MDF.mlt <- function(y,
       .dt(tb1, N)
     )
 
-    resid.OLS <- OLS.reg(y, x)$residuals
-    DF1.tb <- ADF.test(resid.OLS,
-      const = FALSE, trend = FALSE,
-      max.lag = max.lag,
-      criterion = "aic",
-      modified.criterion = TRUE
+    r_OLS <- OLS.reg(y, x)$residuals
+    k_t <- max(
+      1,
+      ADF.test(
+        r_OLS,
+        const = FALSE,
+        trend = FALSE,
+        max.lag = kmax,
+        criterion = "aic",
+        modified.criterion = TRUE
+      )$lag
     )
-    k.t <- max(1, DF1.tb$lag)
 
-    DF1.tb <- ADF.test(resid.OLS,
-      const = FALSE, trend = FALSE,
-      max.lag = k.t,
+    DF1 <- ADF.test(
+      r_OLS,
+      const = FALSE,
+      trend = FALSE,
+      max.lag = k_t,
       criterion = NULL
     )
-    if (!ZA) {
-      denom <- 1 - sum(DF1.tb$coefficients) + DF1.tb$alpha
-      stat.OLS <- N * DF1.tb$alpha / denom
-    } else {
-      stat.OLS <- DF1.tb$t.alpha
-    }
-
-    resid.GLS <- GLS.reg(y, x, -17.6)$residuals
-    DF1.tb <- ADF.test(resid.GLS,
-      const = FALSE, trend = FALSE,
-      max.lag = k.t,
-      criterion = NULL
+    MDF_OLS1 <- min(
+      MDF_OLS1,
+      if (!ZA) {
+        denom <- 1 - sum(DF1$coefficients) + DF1$alpha
+        N * DF1$alpha / denom
+      } else {
+        DF1$t.alpha
+      }
     )
 
-    if (stat.OLS < MDF.OLS1) MDF.OLS1 <- stat.OLS
-    if (DF1.tb$t.alpha < MDF.GLS1) MDF.GLS1 <- DF1.tb$t.alpha
+    r_GLS <- GLS.reg(y, x, -17.6)$residuals
+    DF1_tb <- ADF.test(
+      r_GLS,
+      const = FALSE,
+      trend = FALSE,
+      max.lag = k_t,
+      criterion = NULL
+    )$t.alpha
+    MDF_GLS1 <- min(MDF_GLS1, DF1_tb)
   }
 
   ## Two breaks
-  MDF.OLS2 <- Inf
-  MDF.GLS2 <- Inf
+  MDF_OLS2 <- Inf
+  MDF_GLS2 <- Inf
 
-  for (tb1 in first.break:(last.break - width)) {
-    for (tb2 in (tb1 + width):last.break) {
-      DU1 <- as.numeric(1:N > tb1)
-      DT1 <- DU1 * (1:N - tb1)
-      DU2 <- as.numeric(1:N > tb2)
-      DT2 <- DU2 * (1:N - tb2)
-
+  for (tb1 in tb_L:(tb_U - sep)) {
+    for (tb2 in (tb1 + sep):tb_U) {
       x <- cbind(
         .const(N),
         .trend(N),
@@ -166,94 +230,112 @@ MDF.mlt <- function(y,
         .dt(tb2, N)
       )
 
-      resid.OLS <- OLS.reg(y, x)$residuals
-      DF2.tb <- ADF.test(resid.OLS,
-        const = FALSE, trend = FALSE,
-        max.lag = max.lag,
-        criterion = "aic",
-        modified.criterion = TRUE
+      r_OLS <- OLS.reg(y, x)$residuals
+      k_t <- max(
+        1,
+        ADF.test(
+          r_OLS,
+          const = FALSE,
+          trend = FALSE,
+          max.lag = kmax,
+          criterion = "aic",
+          modified.criterion = TRUE
+        )$lag
       )
-      k.t <- max(1, DF2.tb$lag)
 
-      DF2.tb <- ADF.test(resid.OLS,
-        const = FALSE, trend = FALSE,
-        max.lag = k.t,
+      DF2 <- ADF.test(
+        r_OLS,
+        const = FALSE,
+        trend = FALSE,
+        max.lag = k_t,
         criterion = NULL
       )
-      if (!ZA) {
-        denom <- 1 - sum(DF2.tb$coefficients) + DF2.tb$alpha
-        stat.OLS <- N * DF2.tb$alpha / denom
-      } else {
-        stat.OLS <- DF2.tb$t.alpha
-      }
-
-      resid.GLS <- GLS.reg(y, x, -21.5)$residuals
-      DF2.tb <- ADF.test(resid.GLS,
-        const = FALSE, trend = FALSE,
-        max.lag = k.t,
-        criterion = NULL
+      MDF_OLS2 <- min(
+        MDF_OLS2,
+        if (!ZA) {
+          denom <- 1 - sum(DF2$coefficients) + DF2$alpha
+          N * DF2$alpha / denom
+        } else {
+          DF2$t.alpha
+        }
       )
 
-      if (stat.OLS < MDF.OLS2) MDF.OLS2 <- stat.OLS
-      if (DF2.tb$t.alpha < MDF.GLS2) MDF.GLS2 <- DF2.tb$t.alpha
+      r_GLS <- GLS.reg(y, x, -21.5)$residuals
+      DF2_tb <- ADF.test(
+        r_GLS,
+        const = FALSE,
+        trend = FALSE,
+        max.lag = k_t,
+        criterion = NULL
+      )$t.alpha
+      MDF_GLS2 <- min(MDF_GLS2, DF2_tb)
     }
   }
 
   ## Three breaks
-  MDF.OLS3 <- Inf
-  MDF.GLS3 <- Inf
+  MDF_OLS3 <- Inf
+  MDF_GLS3 <- Inf
 
-  for (tb1 in first.break:(last.break - 2 * width)) {
-    for (tb2 in (tb1 + width):(last.break - width)) {
-      for (tb3 in (tb2 + width):last.break) {
+  for (tb1 in tb_L:(tb_U - 2 * sep)) {
+    for (tb2 in (tb1 + sep):(tb_U - sep)) {
+      for (tb3 in (tb2 + sep):tb_U) {
         x <- cbind(
           .const(N),
           .trend(N),
           if (const) .du(tb1, N) else NULL,
           .dt(tb1, N),
           if (const) .du(tb2, N) else NULL,
-          .dt(tb2, N),,
+          .dt(tb2, N),
           if (const) .du(tb3, N) else NULL,
-          .dt(tb3, N),
+          .dt(tb3, N)
         )
 
-        resid.OLS <- OLS.reg(y, x)$residuals
-        DF3.tb <- ADF.test(resid.OLS,
-          const = FALSE, trend = FALSE,
-          max.lag = max.lag,
-          criterion = "aic",
-          modified.criterion = TRUE
+        r_OLS <- OLS.reg(y, x)$residuals
+        k_t <- max(
+          1,
+          ADF.test(
+            r_OLS,
+            const = FALSE,
+            trend = FALSE,
+            max.lag = kmax,
+            criterion = "aic",
+            modified.criterion = TRUE
+          )$lag
         )
-        k.t <- max(1, DF3.tb$lag)
 
-        DF3.tb <- ADF.test(resid.OLS,
-          const = FALSE, trend = FALSE,
-          max.lag = k.t,
+        DF3 <- ADF.test(
+          r_OLS,
+          const = FALSE,
+          trend = FALSE,
+          max.lag = k_t,
           criterion = NULL
         )
-        if (!ZA) {
-          denom <- 1 - sum(DF3.tb$coefficients) + DF3.tb$alpha
-          stat.OLS <- N * DF3.tb$alpha / denom
-        } else {
-          stat.OLS <- DF3.tb$t.alpha
-        }
-
-        resid.GLS <- GLS.reg(y, x, -25.5)$residuals
-        DF3.tb <- ADF.test(resid.GLS,
-          const = FALSE, trend = FALSE,
-          max.lag = k.t,
-          criterion = NULL
+        MDF_OLS3 <- min(
+          MDF_OLS3,
+          if (!ZA) {
+            denom <- 1 - sum(DF3$coefficients) + DF3$alpha
+            N * DF3$alpha / denom
+          } else {
+            DF3$t.alpha
+          }
         )
 
-        if (stat.OLS < MDF.OLS3) MDF.OLS3 <- stat.OLS
-        if (DF3.tb$t.alpha < MDF.GLS3) MDF.GLS3 <- DF3.tb$t.alpha
+        r_GLS <- GLS.reg(y, x, -25.5)$residuals
+        DF3_tb <- ADF.test(
+          r_GLS,
+          const = FALSE,
+          trend = FALSE,
+          max.lag = k_t,
+          criterion = NULL
+        )$t.alpha
+        MDF_GLS3 <- min(MDF_GLS3, DF3_tb)
       }
     }
   }
 
   ## Alternative break selection
   if (breaks == 2) {
-    tbs <- get.m.breaks.GLS(y, const, TRUE, 2)
+    tbs <- segments.GLS(y, const, TRUE, 2)
 
     x <- cbind(
       .const(N),
@@ -266,13 +348,11 @@ MDF.mlt <- function(y,
 
     tmp.OLS <- OLS.reg(y, x)
     bb <- tmp.OLS$coefficients
-    rr <- tmp.OLS$residuals
-    rm(tmp.OLS)
-    t.alpha <- bb[1] / sqrt(drop(t(rr) %*% rr) / N)
-    t.alpha.2.id <- as.numeric(t.alpha > 1)
+    res <- tmp.OLS$residuals
+    t_alpha_2_id <- as.numeric(bb[1] / sqrt(drop(t(res) %*% res) / N) > 1)
   }
   if (breaks == 3) {
-    tbs <- get.m.breaks.GLS(y, const, TRUE, 3)
+    tbs <- segments.GLS(y, const, TRUE, 3)
 
     x <- cbind(
       .const(N),
@@ -287,199 +367,200 @@ MDF.mlt <- function(y,
 
     tmp.OLS <- OLS.reg(y, x)
     bb <- tmp.OLS$coefficients
-    rr <- tmp.OLS$residuals
-    rm(tmp.OLS)
-    t.alpha <- bb[1] / sqrt(drop(t(rr) %*% rr) / N)
-    t.alpha.3.id <- as.numeric(t.alpha > 1)
+    res <- tmp.OLS$residuals
+    t_alpha_3_id <- as.numeric(bb[1] / sqrt(drop(t(res) %*% res) / N) > 1)
   }
 
   ## breaks.star
-  if (breaks.star == 0) {
-    tbb <- 0
+  Tbb <- if (breaks.star == 0) {
+    0
   } else {
-    tbb <- get.m.breaks.GLS(y, const, TRUE, breaks.star)
+    segments.GLS(y, const, TRUE, breaks.star)
   }
 
   if (breaks == 2) {
-    ur2.ols.sa <- as.numeric(
-      (DF.OLS.t < (sap.cv.ur.2 * sap.ur2.ols * cv.DF.OLS.t)) ||
-        (MDF.OLS1 < (sap.cv.ur.2 * sap.ur2.ols * cv.MDF.OLS1)) ||
-        (MDF.OLS2 < (sap.cv.ur.2 * sap.ur2.ols * cv.MDF.OLS2))
+    ur2ols_sa <- as.numeric(
+      (DF_OLS_t < (sap.cv.ur.2 * sap.ur2.ols * cv.DF.OLS.t)) ||
+        (MDF_OLS1 < (sap.cv.ur.2 * sap.ur2.ols * cv.MDF.OLS1)) ||
+        (MDF_OLS2 < (sap.cv.ur.2 * sap.ur2.ols * cv.MDF.OLS2))
     )
 
-    ur2.olsgls.sa <- as.numeric(
-      (DF.GLS.t < (sap.cv.ur.2 * sap.ur2.olsgls * cv.DF.GLS.t)) ||
-        (MDF.GLS1 < (sap.cv.ur.2 * sap.ur2.olsgls * cv.MDF.GLS1)) ||
-        (DF.OLS.t < (sap.cv.ur.2 * sap.ur2.olsgls * cv.DF.OLS.t)) ||
-        (MDF.OLS1 < (sap.cv.ur.2 * sap.ur2.olsgls * cv.MDF.OLS1)) ||
-        (MDF.GLS2 < (sap.cv.ur.2 * sap.ur2.olsgls * cv.MDF.GLS2)) ||
-        (MDF.OLS2 < (sap.cv.ur.2 * sap.ur2.olsgls * cv.MDF.OLS2))
+    ur2olsgls_sa <- as.numeric(
+      (DF_GLS_t < (sap.cv.ur.2 * sap.ur2.olsgls * cv.DF.GLS.t)) ||
+        (MDF_GLS1 < (sap.cv.ur.2 * sap.ur2.olsgls * cv.MDF.GLS1)) ||
+        (DF_OLS_t < (sap.cv.ur.2 * sap.ur2.olsgls * cv.DF.OLS.t)) ||
+        (MDF_OLS1 < (sap.cv.ur.2 * sap.ur2.olsgls * cv.MDF.OLS1)) ||
+        (MDF_GLS2 < (sap.cv.ur.2 * sap.ur2.olsgls * cv.MDF.GLS2)) ||
+        (MDF_OLS2 < (sap.cv.ur.2 * sap.ur2.olsgls * cv.MDF.OLS2))
     )
 
-    ur2.1ols.sa <- as.numeric(
-      (MDF.OLS1 < (sap.cv.ur.2 * sap.ur2.1ols * cv.MDF.OLS1)) ||
-        (MDF.OLS2 < (sap.cv.ur.2 * sap.ur2.1ols * cv.MDF.OLS2))
+    ur2_1ols_sa <- as.numeric(
+      (MDF_OLS1 < (sap.cv.ur.2 * sap.ur2.1ols * cv.MDF.OLS1)) ||
+        (MDF_OLS2 < (sap.cv.ur.2 * sap.ur2.1ols * cv.MDF.OLS2))
     )
 
-    ur2.1olsgls.sa <- as.numeric(
-      (MDF.GLS1 < (sap.cv.ur.2 * sap.ur2.1olsgls * cv.MDF.GLS1)) ||
-        (MDF.OLS1 < (sap.cv.ur.2 * sap.ur2.1olsgls * cv.MDF.OLS1)) ||
-        (MDF.GLS2 < (sap.cv.ur.2 * sap.ur2.1olsgls * cv.MDF.GLS2)) ||
-        (MDF.OLS2 < (sap.cv.ur.2 * sap.ur2.1olsgls * cv.MDF.OLS2))
+    ur2_1olsgls_sa <- as.numeric(
+      (MDF_GLS1 < (sap.cv.ur.2 * sap.ur2.1olsgls * cv.MDF.GLS1)) ||
+        (MDF_OLS1 < (sap.cv.ur.2 * sap.ur2.1olsgls * cv.MDF.OLS1)) ||
+        (MDF_GLS2 < (sap.cv.ur.2 * sap.ur2.1olsgls * cv.MDF.GLS2)) ||
+        (MDF_OLS2 < (sap.cv.ur.2 * sap.ur2.1olsgls * cv.MDF.OLS2))
     )
 
-    ur2.2ols.sa <- as.numeric(
-      MDF.OLS2 < (sap.cv.ur.2 * sap.ur2.2ols * cv.MDF.OLS2)
+    ur2_2ols_sa <- as.numeric(
+      MDF_OLS2 < (sap.cv.ur.2 * sap.ur2.2ols * cv.MDF.OLS2)
     )
 
-    ur2.2olsgls.sa <- as.numeric(
-      (MDF.GLS2 < (sap.cv.ur.2 * sap.ur2.2olsgls * cv.MDF.GLS2)) ||
-        (MDF.OLS2 < (sap.cv.ur.2 * sap.ur2.2olsgls * cv.MDF.OLS2))
+    ur2_2olsgls_sa <- as.numeric(
+      (MDF_GLS2 < (sap.cv.ur.2 * sap.ur2.2olsgls * cv.MDF.GLS2)) ||
+        (MDF_OLS2 < (sap.cv.ur.2 * sap.ur2.2olsgls * cv.MDF.OLS2))
     )
 
-    UR <- as.numeric(breaks.star == 2) *
-      ((1 - t.alpha.2.id) * ur2.olsgls.sa + t.alpha.2.id * ur2.ols.sa) +
-      as.numeric(breaks.star == 1) *
-        ((1 - t.alpha.2.id) * ur2.1olsgls.sa + t.alpha.2.id * ur2.1ols.sa) +
-      as.numeric(breaks.star == 0) *
-        ((1 - t.alpha.2.id) * ur2.2olsgls.sa + t.alpha.2.id * ur2.2ols.sa)
+    UR <- if (breaks.star == 2) {
+      ((1 - t_alpha_2_id) * ur2olsgls_sa + t_alpha_2_id * ur2ols_sa)
+    } else if (breaks.star == 1) {
+      ((1 - t_alpha_2_id) * ur2_1olsgls_sa + t_alpha_2_id * ur2_1ols_sa)
+    } else {
+      ((1 - t_alpha_2_id) * ur2_2olsgls_sa + t_alpha_2_id * ur2_2ols_sa)
+    }
 
     ## without pre-test    for breaks
-    ur2.ols.sa <- as.numeric(
-      (DF.OLS.t < (sap.cv.ur.2 * sap.ur2.ols * cv.DF.OLS.t)) ||
-        (MDF.OLS1 < (sap.cv.ur.2 * sap.ur2.ols * cv.MDF.OLS1)) ||
-        (MDF.OLS2 < (sap.cv.ur.2 * sap.ur2.ols * cv.MDF.OLS2))
+    ur2ols_sa <- as.numeric(
+      (DF_OLS_t < (sap.cv.ur.2 * sap.ur2.ols * cv.DF.OLS.t)) ||
+        (MDF_OLS1 < (sap.cv.ur.2 * sap.ur2.ols * cv.MDF.OLS1)) ||
+        (MDF_OLS2 < (sap.cv.ur.2 * sap.ur2.ols * cv.MDF.OLS2))
     )
 
-    ur2.olsgls.sa <- as.numeric(
-      (DF.GLS.t < (sap.cv.ur.2 * sap.ur2.olsgls * cv.DF.GLS.t)) ||
-        (MDF.GLS1 < (sap.cv.ur.2 * sap.ur2.olsgls * cv.MDF.GLS1)) ||
-        (DF.OLS.t < (sap.cv.ur.2 * sap.ur2.olsgls * cv.DF.OLS.t)) ||
-        (MDF.OLS1 < (sap.cv.ur.2 * sap.ur2.olsgls * cv.MDF.OLS1)) ||
-        (MDF.GLS2 < (sap.cv.ur.2 * sap.ur2.olsgls * cv.MDF.GLS2)) ||
-        (MDF.OLS2 < (sap.cv.ur.2 * sap.ur2.olsgls * cv.MDF.OLS2))
+    ur2olsgls_sa <- as.numeric(
+      (DF_GLS_t < (sap.cv.ur.2 * sap.ur2.olsgls * cv.DF.GLS.t)) ||
+        (MDF_GLS1 < (sap.cv.ur.2 * sap.ur2.olsgls * cv.MDF.GLS1)) ||
+        (DF_OLS_t < (sap.cv.ur.2 * sap.ur2.olsgls * cv.DF.OLS.t)) ||
+        (MDF_OLS1 < (sap.cv.ur.2 * sap.ur2.olsgls * cv.MDF.OLS1)) ||
+        (MDF_GLS2 < (sap.cv.ur.2 * sap.ur2.olsgls * cv.MDF.GLS2)) ||
+        (MDF_OLS2 < (sap.cv.ur.2 * sap.ur2.olsgls * cv.MDF.OLS2))
     )
 
-    UR1 <- (1 - t.alpha.2.id) * ur2.olsgls.sa + t.alpha.2.id * ur2.ols.sa
+    UR1 <- (1 - t_alpha_2_id) * ur2olsgls_sa + t_alpha_2_id * ur2ols_sa
   } else if (breaks == 3) {
-    ur3.ols.sa <- as.numeric(
-      (DF.OLS.t < (sap.cv.ur.3 * sap.ur3.ols * cv.DF.OLS.t)) ||
-        (MDF.OLS1 < (sap.cv.ur.3 * sap.ur3.ols * cv.MDF.OLS1)) ||
-        (MDF.OLS2 < (sap.cv.ur.3 * sap.ur3.ols * cv.MDF.OLS2)) ||
-        (MDF.OLS3 < (sap.cv.ur.3 * sap.ur3.ols * cv.MDF.OLS3))
+    ur3ols_sa <- as.numeric(
+      (DF_OLS_t < (sap.cv.ur.3 * sap.ur3.ols * cv.DF.OLS.t)) ||
+        (MDF_OLS1 < (sap.cv.ur.3 * sap.ur3.ols * cv.MDF.OLS1)) ||
+        (MDF_OLS2 < (sap.cv.ur.3 * sap.ur3.ols * cv.MDF.OLS2)) ||
+        (MDF_OLS3 < (sap.cv.ur.3 * sap.ur3.ols * cv.MDF.OLS3))
     )
 
-    ur3.olsgls.sa <- as.numeric(
-      (DF.GLS.t < (sap.cv.ur.3 * sap.ur3.olsgls * cv.DF.GLS.t)) ||
-        (MDF.GLS1 < (sap.cv.ur.3 * sap.ur3.olsgls * cv.MDF.GLS1)) ||
-        (DF.OLS.t < (sap.cv.ur.3 * sap.ur3.olsgls * cv.DF.OLS.t)) ||
-        (MDF.OLS1 < (sap.cv.ur.3 * sap.ur3.olsgls * cv.MDF.OLS1)) ||
-        (MDF.GLS2 < (sap.cv.ur.3 * sap.ur3.olsgls * cv.MDF.GLS2)) ||
-        (MDF.OLS2 < (sap.cv.ur.3 * sap.ur3.olsgls * cv.MDF.OLS2)) ||
-        (MDF.GLS3 < (sap.cv.ur.3 * sap.ur3.olsgls * cv.MDF.GLS3)) ||
-        (MDF.OLS3 < (sap.cv.ur.3 * sap.ur3.olsgls * cv.MDF.OLS3))
+    ur3olsgls_sa <- as.numeric(
+      (DF_GLS_t < (sap.cv.ur.3 * sap.ur3.olsgls * cv.DF.GLS.t)) ||
+        (MDF_GLS1 < (sap.cv.ur.3 * sap.ur3.olsgls * cv.MDF.GLS1)) ||
+        (DF_OLS_t < (sap.cv.ur.3 * sap.ur3.olsgls * cv.DF.OLS.t)) ||
+        (MDF_OLS1 < (sap.cv.ur.3 * sap.ur3.olsgls * cv.MDF.OLS1)) ||
+        (MDF_GLS2 < (sap.cv.ur.3 * sap.ur3.olsgls * cv.MDF.GLS2)) ||
+        (MDF_OLS2 < (sap.cv.ur.3 * sap.ur3.olsgls * cv.MDF.OLS2)) ||
+        (MDF_GLS3 < (sap.cv.ur.3 * sap.ur3.olsgls * cv.MDF.GLS3)) ||
+        (MDF_OLS3 < (sap.cv.ur.3 * sap.ur3.olsgls * cv.MDF.OLS3))
     )
 
-    ur3.1ols.sa <- as.numeric(
-      (MDF.OLS1 < (sap.cv.ur.3 * sap.ur3.1ols * cv.MDF.OLS1)) ||
-        (MDF.OLS2 < (sap.cv.ur.3 * sap.ur3.1ols * cv.MDF.OLS2)) ||
-        (MDF.OLS3 < (sap.cv.ur.3 * sap.ur3.1ols * cv.MDF.OLS3))
+    ur3_1ols_sa <- as.numeric(
+      (MDF_OLS1 < (sap.cv.ur.3 * sap.ur3.1ols * cv.MDF.OLS1)) ||
+        (MDF_OLS2 < (sap.cv.ur.3 * sap.ur3.1ols * cv.MDF.OLS2)) ||
+        (MDF_OLS3 < (sap.cv.ur.3 * sap.ur3.1ols * cv.MDF.OLS3))
     )
 
-    ur3.1olsgls.sa <- as.numeric(
-      (MDF.GLS1 < (sap.cv.ur.3 * sap.ur3.1olsgls * cv.MDF.GLS1)) ||
-        (MDF.OLS1 < (sap.cv.ur.3 * sap.ur3.1olsgls * cv.MDF.OLS1)) ||
-        (MDF.GLS2 < (sap.cv.ur.3 * sap.ur3.1olsgls * cv.MDF.GLS2)) ||
-        (MDF.OLS2 < (sap.cv.ur.3 * sap.ur3.1olsgls * cv.MDF.OLS2)) ||
-        (MDF.GLS3 < (sap.cv.ur.3 * sap.ur3.1olsgls * cv.MDF.GLS3)) ||
-        (MDF.OLS3 < (sap.cv.ur.3 * sap.ur3.1olsgls * cv.MDF.OLS3))
+    ur3_1olsgls_sa <- as.numeric(
+      (MDF_GLS1 < (sap.cv.ur.3 * sap.ur3.1olsgls * cv.MDF.GLS1)) ||
+        (MDF_OLS1 < (sap.cv.ur.3 * sap.ur3.1olsgls * cv.MDF.OLS1)) ||
+        (MDF_GLS2 < (sap.cv.ur.3 * sap.ur3.1olsgls * cv.MDF.GLS2)) ||
+        (MDF_OLS2 < (sap.cv.ur.3 * sap.ur3.1olsgls * cv.MDF.OLS2)) ||
+        (MDF_GLS3 < (sap.cv.ur.3 * sap.ur3.1olsgls * cv.MDF.GLS3)) ||
+        (MDF_OLS3 < (sap.cv.ur.3 * sap.ur3.1olsgls * cv.MDF.OLS3))
     )
 
-    ur3.2ols.sa <- as.numeric(
-      (MDF.OLS2 < (sap.cv.ur.3 * sap.ur3.2ols * cv.MDF.OLS2)) ||
-        (MDF.OLS3 < (sap.cv.ur.3 * sap.ur3.2ols * cv.MDF.OLS3))
+    ur3_2ols_sa <- as.numeric(
+      (MDF_OLS2 < (sap.cv.ur.3 * sap.ur3.2ols * cv.MDF.OLS2)) ||
+        (MDF_OLS3 < (sap.cv.ur.3 * sap.ur3.2ols * cv.MDF.OLS3))
     )
 
-    ur3.2olsgls.sa <- as.numeric(
-      (MDF.GLS2 < (sap.cv.ur.3 * sap.ur3.2olsgls * cv.MDF.GLS2)) ||
-        (MDF.OLS2 < (sap.cv.ur.3 * sap.ur3.2olsgls * cv.MDF.OLS2)) ||
-        (MDF.GLS3 < (sap.cv.ur.3 * sap.ur3.2olsgls * cv.MDF.GLS3)) ||
-        (MDF.OLS3 < (sap.cv.ur.3 * sap.ur3.2olsgls * cv.MDF.OLS3))
+    ur3_2olsgls_sa <- as.numeric(
+      (MDF_GLS2 < (sap.cv.ur.3 * sap.ur3.2olsgls * cv.MDF.GLS2)) ||
+        (MDF_OLS2 < (sap.cv.ur.3 * sap.ur3.2olsgls * cv.MDF.OLS2)) ||
+        (MDF_GLS3 < (sap.cv.ur.3 * sap.ur3.2olsgls * cv.MDF.GLS3)) ||
+        (MDF_OLS3 < (sap.cv.ur.3 * sap.ur3.2olsgls * cv.MDF.OLS3))
     )
 
-    ur3.3ols.sa <- as.numeric(
-      MDF.OLS3 < (sap.cv.ur.3 * sap.ur3.3ols * cv.MDF.OLS3)
+    ur3_3ols_sa <- as.numeric(
+      MDF_OLS3 < (sap.cv.ur.3 * sap.ur3.3ols * cv.MDF.OLS3)
     )
 
-    ur3.3olsgls.sa <- as.numeric(
-      (MDF.GLS3 < (sap.cv.ur.3 * sap.ur3.3olsgls * cv.MDF.GLS3)) ||
-        (MDF.OLS3 < (sap.cv.ur.3 * sap.ur3.3olsgls * cv.MDF.OLS3))
+    ur3_3olsgls_sa <- as.numeric(
+      (MDF_GLS3 < (sap.cv.ur.3 * sap.ur3.3olsgls * cv.MDF.GLS3)) ||
+        (MDF_OLS3 < (sap.cv.ur.3 * sap.ur3.3olsgls * cv.MDF.OLS3))
     )
 
-    UR <- as.numeric(breaks.star == 3) *
-      ((1 - t.alpha.3.id) * ur3.olsgls.sa + t.alpha.3.id * ur3.ols.sa) +
-      as.numeric(breaks.star == 2) *
-        ((1 - t.alpha.3.id) * ur3.1olsgls.sa + t.alpha.3.id * ur3.1ols.sa) +
-      as.numeric(breaks.star == 1) *
-        ((1 - t.alpha.3.id) * ur3.2olsgls.sa + t.alpha.3.id * ur3.2ols.sa) +
-      as.numeric(breaks.star == 0) *
-        ((1 - t.alpha.3.id) * ur3.3olsgls.sa + t.alpha.3.id * ur3.3ols.sa)
+    UR <- if (breaks.star == 3) {
+      ((1 - t_alpha_3_id) * ur3olsgls_sa + t_alpha_3_id * ur3ols_sa)
+    } else if (breaks.star == 2) {
+      ((1 - t_alpha_3_id) * ur3_1olsgls_sa + t_alpha_3_id * ur3_1ols_sa)
+    } else if (breaks.star == 1) {
+      ((1 - t_alpha_3_id) * ur3_2olsgls_sa + t_alpha_3_id * ur3_2ols_sa)
+    } else {
+      ((1 - t_alpha_3_id) * ur3_3olsgls_sa + t_alpha_3_id * ur3_3ols_sa)
+    }
 
     ## without pre-test for breaks
 
-    ur3.ols.sa <- as.numeric(
-      (DF.OLS.t < (sap.cv.ur.3 * sap.ur3.ols * cv.DF.OLS.t)) ||
-        (MDF.OLS1 < (sap.cv.ur.3 * sap.ur3.ols * cv.MDF.OLS1)) ||
-        (MDF.OLS2 < (sap.cv.ur.3 * sap.ur3.ols * cv.MDF.OLS2)) ||
-        (MDF.OLS3 < (sap.cv.ur.3 * sap.ur3.ols * cv.MDF.OLS3))
+    ur3ols_sa <- as.numeric(
+      (DF_OLS_t < (sap.cv.ur.3 * sap.ur3.ols * cv.DF.OLS.t)) ||
+        (MDF_OLS1 < (sap.cv.ur.3 * sap.ur3.ols * cv.MDF.OLS1)) ||
+        (MDF_OLS2 < (sap.cv.ur.3 * sap.ur3.ols * cv.MDF.OLS2)) ||
+        (MDF_OLS3 < (sap.cv.ur.3 * sap.ur3.ols * cv.MDF.OLS3))
     )
 
-    ur3.olsgls.sa <- as.numeric(
-      (DF.GLS.t < (sap.cv.ur.3 * sap.ur3.olsgls * cv.DF.GLS.t)) ||
-        (MDF.GLS1 < (sap.cv.ur.3 * sap.ur3.olsgls * cv.MDF.GLS1)) ||
-        (DF.OLS.t < (sap.cv.ur.3 * sap.ur3.olsgls * cv.DF.OLS.t)) ||
-        (MDF.OLS1 < (sap.cv.ur.3 * sap.ur3.olsgls * cv.MDF.OLS1)) ||
-        (MDF.GLS2 < (sap.cv.ur.3 * sap.ur3.olsgls * cv.MDF.GLS2)) ||
-        (MDF.OLS2 < (sap.cv.ur.3 * sap.ur3.olsgls * cv.MDF.OLS2)) ||
-        (MDF.GLS3 < (sap.cv.ur.3 * sap.ur3.olsgls * cv.MDF.GLS3)) ||
-        (MDF.OLS3 < (sap.cv.ur.3 * sap.ur3.olsgls * cv.MDF.OLS3))
+    ur3olsgls_sa <- as.numeric(
+      (DF_GLS_t < (sap.cv.ur.3 * sap.ur3.olsgls * cv.DF.GLS.t)) ||
+        (MDF_GLS1 < (sap.cv.ur.3 * sap.ur3.olsgls * cv.MDF.GLS1)) ||
+        (DF_OLS_t < (sap.cv.ur.3 * sap.ur3.olsgls * cv.DF.OLS.t)) ||
+        (MDF_OLS1 < (sap.cv.ur.3 * sap.ur3.olsgls * cv.MDF.OLS1)) ||
+        (MDF_GLS2 < (sap.cv.ur.3 * sap.ur3.olsgls * cv.MDF.GLS2)) ||
+        (MDF_OLS2 < (sap.cv.ur.3 * sap.ur3.olsgls * cv.MDF.OLS2)) ||
+        (MDF_GLS3 < (sap.cv.ur.3 * sap.ur3.olsgls * cv.MDF.GLS3)) ||
+        (MDF_OLS3 < (sap.cv.ur.3 * sap.ur3.olsgls * cv.MDF.OLS3))
     )
 
-    UR1 <- (1 - t.alpha.3.id) * ur3.olsgls.sa + t.alpha.3.id * ur3.ols.sa
+    UR1 <- (1 - t_alpha_3_id) * ur3olsgls_sa + t_alpha_3_id * ur3ols_sa
   }
 
-  result <- list()
-  result$const <- const
-  result$breaks.star <- breaks.star
-  result$breaks.tbb <- tbb
-  result$breaks <- breaks
+  result <- list(
+    const = const,
+    breaks.star = breaks.star,
+    breaks.tbb = Tbb,
+    breaks = breaks
+  )
 
   result$MDF.GLS.1 <- list(
-    statistic = MDF.GLS1,
+    statistic = MDF_GLS1,
     cv = cv.MDF.GLS1
   )
   result$MDF.GLS.2 <- list(
-    statistic = MDF.GLS2,
+    statistic = MDF_GLS2,
     cv = cv.MDF.GLS2
   )
   if (breaks == 3) {
     result$MDF.GLS.3 <- list(
-      statistic = MDF.GLS3,
+      statistic = MDF_GLS3,
       cv = cv.MDF.GLS3
     )
   }
 
   result$MDF.OLS.1 <- list(
-    statistic = MDF.OLS1,
+    statistic = MDF_OLS1,
     cv = cv.MDF.OLS1
   )
   result$MDF.OLS.2 <- list(
-    statistic = MDF.OLS2,
+    statistic = MDF_OLS2,
     cv = cv.MDF.OLS2
   )
   if (breaks == 3) {
     result$MDF.OLS.3 <- list(
-      statistic = MDF.OLS3,
+      statistic = MDF_OLS3,
       cv = cv.MDF.OLS3
     )
   }
@@ -487,7 +568,294 @@ MDF.mlt <- function(y,
   result$UR1 <- UR1
   result$UR <- UR
 
-  class(result) <- "mdfHLTN"
+  class(result) <- "bt_mdfHLTN"
 
   result
+}
+
+
+#' @title
+#' Kejrival-Perron procedure of breaks number detection
+#'
+#' @details
+#' The code provided is the original Ox code by Skrobotov (2018)
+#' ported to R.
+#'
+#' @param y An input series of interest.
+#' @param const Whether the break in constant is allowed.
+#' @param breaks Number of breaks.
+#' @param criterion Needed information criterion: aic, bic, hq or lwz.
+#' @param trim A trimming value for a possible break date bounds.
+#'
+#' @return The estimated optimal break point.
+#'
+#' @references
+#' Kejriwal, Mohitosh, and Pierre Perron.
+#' “A Sequential Procedure to Determine the Number of Breaks in Trend
+#' with an Integrated or Stationary Noise Component:
+#' Determination of Number of Breaks in Trend.”
+#' Journal of Time Series Analysis 31, no. 5 (September 2010): 305–28.
+#' https://doi.org/10.1111/j.1467-9892.2010.00666.x.
+breaktest.KP <- function(
+  y,
+  const = FALSE,
+  breaks = 1,
+  criterion = "aic",
+  trim = 0.15
+) {
+  if (!is.matrix(y)) {
+    y <- as.matrix(y)
+  }
+
+  N <- nrow(y)
+  kmax <- trunc(12 * (N / 100)^(1 / 4))
+
+  model <- as.numeric(const) + 1
+  trim.pos <- which(c(0.01, 0.05, 0.1, 0.15, 0.25) == trim)
+
+  res <- 0
+
+  for (l in 0:(breaks - 1)) {
+    test.stat <- KP.seq.statistic(y, const, l, criterion, trim, kmax)
+    c.v <- .cval_KP[[model]][[trim.pos]]
+
+    if (test.stat < c.v[2, l + 1]) {
+      res <- l
+      break
+    }
+  }
+
+  result <- list(
+    breaks = res,
+    statistic = test.stat,
+    cr.val = c.v[2, res + 1],
+    const = const,
+    trim = trim
+  )
+  class(result) <- "bt_KP"
+
+  result
+}
+
+
+#' @title
+#' Sequential statistic for breaks at unknown date.
+#'
+#' @details
+#' This procedure is based on ideas of Perron & Yabu (2009).
+#'
+#' The code provided is the original Ox code by Skrobotov (2018)
+#' ported to R.
+#'
+#' @param y A time series of interest.
+#' @param const Allowing the break in constant.
+#' @param breaks A number of breaks.
+#' @param criterion Needed information criterion: aic, bic, hq or lwz.
+#' @param trim A trimming value for a possible break date bounds.
+#' @param max.lag The maximum possible lag in the model.
+#'
+#' @return An estimated Wald statistic.
+#'
+#' @references
+#' Kejriwal, Mohitosh, and Pierre Perron.
+#' “A Sequential Procedure to Determine the Number of Breaks in Trend
+#' with an Integrated or Stationary Noise Component:
+#' Determination of Number of Breaks in Trend.”
+#' Journal of Time Series Analysis 31, no. 5 (September 2010): 305–28.
+#' https://doi.org/10.1111/j.1467-9892.2010.00666.x.
+#'
+#' @export
+KP.seq.statistic <- function(
+  y,
+  const = FALSE,
+  breaks = 1,
+  criterion = "aic",
+  trim = 0.15,
+  max.lag = trunc(12 * (length(y) / 100)^(1 / 4))
+) {
+  if (!is.matrix(y)) {
+    y <- as.matrix(y)
+  }
+
+  model <- ifelse(const, 2, 1)
+  R <- .cval_PY_sequential[[model]]$R
+  v.t <- .cval_PY_sequential[[model]]$v.t
+
+  N <- nrow(y)
+  h <- trunc(trim * N)
+
+  if (breaks == 0) {
+    datevec <- c(1, N + 1)
+  } else {
+    SSR.data <- SSR.matrix(y, cbind(.const(N), .trend(N)), h)
+    dates <- segments.BP(
+      y,
+      cbind(.const(N), .trend(N)),
+      breaks,
+      h,
+      SSR.data
+    )
+    datevec <- c(1, sort(drop(dates$break.point)), N + 1)
+  }
+  wald <- NULL
+
+  for (i in seq_len(breaks + 1)) {
+    T_i <- datevec[i + 1] - datevec[i]
+    vect1 <- NULL
+
+    t.low <- max(trunc(datevec[i] + T_i * trim), max.lag + 2)
+    t.high <- trunc(datevec[i + 1] - T_i * trim)
+
+    if (t.low < t.high - 1) {
+      for (tb in t.low:t.high) {
+        lam1 <- (tb - 1) / (datevec[i + 1] - 1)
+
+        reg <- cbind(
+          .const(N),
+          if (const) .du(tb - 1, N) else NULL,
+          .trend(N) - (datevec[i] - 1),
+          .dt(tb - 1, N)
+        )
+
+        y_i <- y[datevec[i]:(datevec[i + 1] - 1), , drop = FALSE]
+        reg_i <- reg[datevec[i]:(datevec[i + 1] - 1), , drop = FALSE]
+
+        khat <- max(1, AR.reg(y_i, reg_i, max.lag, criterion)$lag)
+
+        u <- OLS.reg(y_i, reg_i)$residuals
+        du <- .diffn(u, na = 0)
+
+        depu <- u[khat:length(u)]
+        regu <- .lagn(u, 1, na = 0)
+        for (l in seq_len(khat - 1)) {
+          regu <- cbind(regu, .lagn(du, l, na = 0))
+        }
+        regu <- regu[khat:length(u), , drop = FALSE]
+
+        tmp.OLS <- OLS.reg(depu, regu)
+        b <- tmp.OLS$coefficients
+        ehat <- tmp.OLS$residuals
+
+        VCV <- solve(t(regu) %*% regu) * sum(ehat^2) / length(ehat)
+
+        ahat <- b[1]
+        vahat <- VCV[1, 1]
+        tau1 <- (ahat - 1) / sqrt(vahat)
+
+        # Upper Biased Estimator
+        t05 <- v.t[ceiling(lam1 * 10)]
+
+        IP <- trunc((khat + 1) / 2)
+        r <- ncol(reg)
+        k <- 10
+
+        c1 <- sqrt((1 + r) * T_i)
+        c2 <- ((1 + r) * T_i - t05^2 * (IP + T_i)) /
+          (t05 * (t05 + k) * (IP + T_i))
+
+        if (tau1 > t05) {
+          c.tau <- -tau1
+        }
+        if (tau1 <= t05 && tau1 > -k) {
+          c.tau <- IP * tau1 / N - (r + 1) / (tau1 + c2 * (tau1 + k))
+        }
+        if (tau1 <= -k && tau1 > -c1) {
+          c.tau <- IP * tau1 / N - (r + 1) / tau1
+        }
+        if (tau1 <= -c1) {
+          c.tau <- 0
+        }
+
+        amus <- ahat + c.tau * sqrt(vahat)
+        if (amus >= 1) {
+          amus <- 1
+        } else if (amus <= -1) {
+          amus <- -0.99
+        }
+
+        CR <- sqrt(N) * abs(amus - 1)
+        if (CR <= 1) {
+          amus <- 1
+        }
+
+        gdep <- rbind(
+          y[datevec[i], , drop = FALSE],
+          y[(datevec[i] + 1):(datevec[i + 1] - 1), , drop = FALSE] -
+            amus * y[datevec[i]:(datevec[i + 1] - 2), , drop = FALSE] # nolint
+        )
+        greg <- rbind(
+          reg[datevec[i], , drop = FALSE],
+          reg[(datevec[i] + 1):(datevec[i + 1] - 1), , drop = FALSE] -
+            amus * reg[datevec[i]:(datevec[i + 1] - 2), , drop = FALSE] # nolint
+        )
+
+        tmp.OLS <- OLS.reg(gdep, greg)
+        b <- tmp.OLS$coefficients
+        v <- tmp.OLS$residuals
+
+        if (khat == 1) {
+          h0 <- sum(v^2) / length(v)
+        } else {
+          if (amus == 1) {
+            regv <- NULL
+            for (l in seq_len(khat - 1)) {
+              regv <- cbind(regv, .lagn(v, l, na = 0))
+            }
+
+            depv <- v[(khat - 1):length(v)]
+            regv <- regv[(khat - 1):length(v), , drop = FALSE]
+
+            tmp.OLS <- OLS.reg(depv, regv)
+            beta <- tmp.OLS$coefficients
+            e <- tmp.OLS$residuals
+
+            if (!const) {
+              h0 <- (sum(e^2) / (T_i - khat)) / ((1 - sum(beta))^2)
+            }
+            if (const) {
+              vbeta <- matrix(0, nrow = khat - 1, ncol = 4)
+              for (ki in seq_len(khat - 1)) {
+                regki <- cbind(
+                  .const(N),
+                  .du(tb - ki - 1, N),
+                  .trend(N),
+                  .du(tb - ki - 1, N) * (.trend(N) - (tb - 1))
+                )
+                gdepki <- rbind(
+                  y[datevec[i], , drop = FALSE],
+                  y[(datevec[i] + 1):(datevec[i + 1] - 1), , drop = FALSE] - # nolint
+                    amus * y[(datevec[i]):(datevec[i + 1] - 2), , drop = FALSE] # nolint
+                )
+                gregki <- rbind(
+                  reg[datevec[i], ],
+                  regki[(datevec[i] + 1):(datevec[i + 1] - 1), ] - # nolint
+                    amus * regki[datevec[i]:(datevec[i + 1] - 2), ] # nolint
+                )
+                vbeta[ki, ] <- drop(OLS.reg(gdepki, gregki)$coefficients)
+              }
+              sige <- sum(e^2) / (T_i - khat)
+              h0 <- sige / ((1 - sum(beta))^2)
+              b[2] <- (sqrt(h0) / sqrt(sige)) *
+                (b[2] - drop(t(vbeta[, 2]) %*% beta))
+            }
+          }
+
+          if (abs(amus) < 1) {
+            h0 <- .lr.var.quad(v)
+          }
+        }
+        VCV <- h0 * qr.solve(t(greg) %*% greg)
+        vect1 <- c(
+          vect1,
+          t(R %*% b) %*%
+            qr.solve(R %*% VCV %*% t(R)) %*%
+            (R %*% b)
+        )
+      }
+
+      wald <- c(wald, log(sum(exp(vect1 / 2)) / T_i))
+    }
+  }
+
+  max(wald)
 }

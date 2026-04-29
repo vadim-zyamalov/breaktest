@@ -132,6 +132,7 @@ LR.variance.single <- function(
   LR.variance.single(
     y,
     kernel = "Bartlett",
+    bw.selector = "Bartlett",
     lag.selector = "kpss-q"
   )
 }

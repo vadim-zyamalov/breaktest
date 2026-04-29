@@ -32,11 +32,10 @@
 #' @importFrom utils setTxtProgressBar
 #'
 #' @export
-MDF.CHLT <- function(y,
-                     max.lag = 10,
-                     trim = 0.15,
-                     iter = 499) {
-  if (!is.matrix(y)) y <- as.matrix(y)
+MDF.CHLT <- function(y, max.lag = 10, trim = 0.15, iter = 499) {
+  if (!is.matrix(y)) {
+    y <- as.matrix(y)
+  }
 
   ## CV ##
   g.brk.MZ <- .cval_MDF_CHLT$g.brk.MZ
@@ -70,8 +69,11 @@ MDF.CHLT <- function(y,
   for (tb in first.break:last.break) {
     b1 <- (y[tb] - y[1]) / (tb - 1)
     b2 <- (y[N] - y[tb]) / (N - tb) - b1
-    tmp.ssr <- (N - 1) * b1^2 + (N - tb) * b2^2 -
-      2 * b1 * (y[N] - y[1]) - 2 * b2 * (y[N] - y[tb]) +
+    tmp.ssr <- (N - 1) *
+      b1^2 +
+      (N - tb) * b2^2 -
+      2 * b1 * (y[N] - y[1]) -
+      2 * b2 * (y[N] - y[tb]) +
       2 * b1 * b2 * (N - tb)
     if (tmp.ssr < res.ssr) {
       res.ssr <- tmp.ssr
@@ -92,7 +94,8 @@ MDF.CHLT <- function(y,
   x <- cbind(.trend(N), cumsum(.trend(N)))
   r.resid <- OLS.reg(z, x)$residuals
   W.stat.dy <- drop(t(r.resid) %*% r.resid) /
-    drop(t(u.resid) %*% u.resid) - 1
+    drop(t(u.resid) %*% u.resid) -
+    1
 
   lam.MZ.brk.tau.dy <- exp(-g.brk.MZ * W.stat.dy / sqrt(N))
   tau.lam.MZ <- (1 - lam.MZ.brk.tau.dy) * tau.dy
@@ -107,13 +110,16 @@ MDF.CHLT <- function(y,
   resid.OLS <- OLS.reg(y, x)$residuals
   k.t <- ADF.test(
     resid.OLS,
-    const = FALSE, trend = FALSE,
+    const = FALSE,
+    trend = FALSE,
     max.lag = max.lag,
-    criterion = "aic", modified.criterion = TRUE
+    criterion = "aic",
+    modified.criterion = TRUE
   )$lag
   ers.DF <- ADF.test(
     resid.GLS,
-    const = FALSE, trend = FALSE,
+    const = FALSE,
+    trend = FALSE,
     max.lag = k.t,
     criterion = NULL
   )$t.alpha
@@ -165,16 +171,20 @@ MDF.CHLT <- function(y,
       weight.u <- 1 - (tau.u - tau.lam.MZ) / 0.05
 
       cbar.tau.lam.MZ <-
-        weight.l * tau.cbar.MZa.cv.lim[tau.l.index, 2] +
+        weight.l *
+        tau.cbar.MZa.cv.lim[tau.l.index, 2] +
         weight.u * tau.cbar.MZa.cv.lim[tau.u.index, 2]
       cv.MZa.tau.lam.MZ.lim <-
-        weight.l * tau.cbar.MZa.cv.lim[tau.l.index, 3] +
+        weight.l *
+        tau.cbar.MZa.cv.lim[tau.l.index, 3] +
         weight.u * tau.cbar.MZa.cv.lim[tau.u.index, 3]
       cv.MSB.tau.lam.MZ.lim <-
-        weight.l * tau.cbar.MSB.cv.lim[tau.l.index, 3] +
+        weight.l *
+        tau.cbar.MSB.cv.lim[tau.l.index, 3] +
         weight.u * tau.cbar.MSB.cv.lim[tau.u.index, 3]
       cv.MZt.tau.lam.MZ.lim <-
-        weight.l * tau.cbar.MZt.cv.lim[tau.l.index, 3] +
+        weight.l *
+        tau.cbar.MZt.cv.lim[tau.l.index, 3] +
         weight.u * tau.cbar.MZt.cv.lim[tau.u.index, 3]
     }
 
@@ -188,7 +198,8 @@ MDF.CHLT <- function(y,
 
     k.bt <- ADF.test(
       resid.OLS.bt,
-      const = FALSE, trend = FALSE,
+      const = FALSE,
+      trend = FALSE,
       max.lag = max.lag,
       criterion = NULL
     )$lag
@@ -240,10 +251,12 @@ MDF.CHLT <- function(y,
       weight.u <- 1 - (tau.u - tau.lam.ADF) / 0.05
 
       cbar.tau.lam.ADF <-
-        weight.l * tau.cbar.ADF.cv.lim[tau.l.index, 2] +
+        weight.l *
+        tau.cbar.ADF.cv.lim[tau.l.index, 2] +
         weight.u * tau.cbar.ADF.cv.lim[tau.u.index, 2]
       cv.ADF.tau.lam.ADF.lim <-
-        weight.l * tau.cbar.ADF.cv.lim[tau.l.index, 3] +
+        weight.l *
+        tau.cbar.ADF.cv.lim[tau.l.index, 3] +
         weight.u * tau.cbar.ADF.cv.lim[tau.u.index, 3]
     }
 
@@ -257,21 +270,24 @@ MDF.CHLT <- function(y,
 
     k.bt <- ADF.test(
       resid.OLS.bt,
-      const = FALSE, trend = FALSE,
+      const = FALSE,
+      trend = FALSE,
       max.lag = max.lag,
       criterion = NULL
     )$lag
 
     ers.tau.lam.ADF.0 <- ADF.test(
       resid.GLS.bt,
-      const = FALSE, trend = FALSE,
+      const = FALSE,
+      trend = FALSE,
       max.lag = 0,
       criterion = NULL
     )$t.alpha
 
     ers.tau.lam.ADF.k <- ADF.test(
       resid.GLS.bt,
-      const = FALSE, trend = FALSE,
+      const = FALSE,
+      trend = FALSE,
       max.lag = k.bt,
       criterion = NULL
     )$t.alpha
@@ -300,55 +316,57 @@ MDF.CHLT <- function(y,
     i = 1:iter,
     .combine = rbind,
     .options.snow = list(progress = progress)
-  ) %dopar% {
-    z <- rnorm(N)
-    y.wb <- cumsum(eps * z)
+  ) %dopar%
+    {
+      z <- rnorm(N)
+      y.wb <- cumsum(eps * z)
 
+      if (tau.lam.MZ < trim) {
+        resid.wb <- GLS.reg(
+          y.wb,
+          cbind(.const(N), .trend(N)),
+          -13.5
+        )$residuals
+        MZ.wb <- .mz.statistics(resid.wb, 0)
+        MZa.wb <- MZ.wb$mza
+        MSB.wb <- MZ.wb$msb
+        MZt.wb <- MZ.wb$mzt
+        rm(MZ.wb)
+      } else {
+        resid.wb <- GLS.bt(y, tau.lam.MZ, cbar.tau.lam.MZ)$residuals
+        MZ.wb <- .mz.statistics(resid.wb, 0)
+        MZa.wb <- MZ.wb$mza
+        MSB.wb <- MZ.wb$msb
+        MZt.wb <- MZ.wb$mzt
+        rm(MZ.wb)
+      }
 
-    if (tau.lam.MZ < trim) {
-      resid.wb <- GLS.reg(
-        y.wb,
-        cbind(.const(N), .trend(N)),
-        -13.5
-      )$residuals
-      MZ.wb <- .mz.statistics(resid.wb, 0)
-      MZa.wb <- MZ.wb$mza
-      MSB.wb <- MZ.wb$msb
-      MZt.wb <- MZ.wb$mzt
-      rm(MZ.wb)
-    } else {
-      resid.wb <- GLS.bt(y, tau.lam.MZ, cbar.tau.lam.MZ)$residuals
-      MZ.wb <- .mz.statistics(resid.wb, 0)
-      MZa.wb <- MZ.wb$mza
-      MSB.wb <- MZ.wb$msb
-      MZt.wb <- MZ.wb$mzt
-      rm(MZ.wb)
+      if (tau.lam.ADF < trim) {
+        resid.wb <- GLS.reg(
+          y.wb,
+          cbind(.const(N), .trend(N)),
+          -13.5
+        )$residuals
+        ers.ADF.wb <- ADF.test(
+          resid.wb,
+          const = FALSE,
+          trend = FALSE,
+          max.lag = 0,
+          criterion = NULL
+        )$t.alpha
+      } else {
+        resid.wb <- GLS.bt(y, tau.lam.ADF, cbar.tau.lam.ADF)$residuals
+        ers.ADF.wb <- ADF.test(
+          resid.wb,
+          const = FALSE,
+          trend = FALSE,
+          max.lag = 0,
+          criterion = NULL
+        )$t.alpha
+      }
+
+      c(MZa.wb, MSB.wb, MZt.wb, ers.ADF.wb)
     }
-
-    if (tau.lam.ADF < trim) {
-      resid.wb <- GLS.reg(
-        y.wb,
-        cbind(.const(N), .trend(N)),
-        -13.5
-      )$residuals
-      ers.ADF.wb <- ADF.test(
-        resid.wb,
-        const = FALSE, trend = FALSE,
-        max.lag = 0,
-        criterion = NULL
-      )$t.alpha
-    } else {
-      resid.wb <- GLS.bt(y, tau.lam.ADF, cbar.tau.lam.ADF)$residuals
-      ers.ADF.wb <- ADF.test(
-        resid.wb,
-        const = FALSE, trend = FALSE,
-        max.lag = 0,
-        criterion = NULL
-      )$t.alpha
-    }
-
-    c(MZa.wb, MSB.wb, MZt.wb, ers.ADF.wb)
-  }
 
   stopCluster(cluster)
 
@@ -397,9 +415,7 @@ MDF.CHLT <- function(y,
 #' @param c A coefficient for \eqn{\rho} calculation.
 #'
 #' @keywords internal
-GLS.bt <- function(y,
-                   lambda,
-                   c) {
+GLS.bt <- function(y, lambda, c) {
   N <- nrow(y)
   tb <- trunc(lambda * N)
   x <- cbind(.const(N), .dt(tb, N))

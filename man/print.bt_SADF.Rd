@@ -2,27 +2,27 @@
 % Please edit documentation in R/fn.print.R
 \name{print.bt_SADF}
 \alias{print.bt_SADF}
-\alias{print.mdfHLT}
-\alias{print.mdfHLTN}
+\alias{print.bt_mdfHLT}
+\alias{print.bt_mdfHLTN}
 \alias{print.mdfCHLT}
 \alias{print.cointGH}
-\alias{print.robustUR}
-\alias{print.robustURN}
+\alias{print.bt_robustUR}
+\alias{print.bt_robustURN}
 \title{Custom functions for printing results in a nice way.}
 \usage{
 \method{print}{bt_SADF}(x, ...)
 
-\method{print}{mdfHLT}(x, ...)
+\method{print}{bt_mdfHLT}(obj, ...)
 
-\method{print}{mdfHLTN}(x, ...)
+\method{print}{bt_mdfHLTN}(obj, ...)
 
-\method{print}{mdfCHLT}(x, ...)
+\method{print}{mdfCHLT}(obj, ...)
 
 \method{print}{cointGH}(x, ...)
 
-\method{print}{robustUR}(x, ...)
+\method{print}{bt_robustUR}(obj, ...)
 
-\method{print}{robustURN}(x, ...)
+\method{print}{bt_robustURN}(obj, ...)
 }
 \arguments{
 \item{x}{An object containing results.}

@@ -80,26 +80,30 @@
 #' @importFrom utils setTxtProgressBar
 #'
 #' @export
-ADF.test <- function(y,
-                     const = TRUE,
-                     trend = FALSE,
-                     max.lag = 0,
-                     criterion = NULL,
-                     modified.criterion = FALSE,
-                     rescale.criterion = FALSE,
-                     recursive = FALSE,
-                     cc = 0,
-                     gamma = 0,
-                     trim = 0.15,
-                     boot.p = FALSE,
-                     boot.iter = 999) {
+ADF.test <- function(
+  y,
+  const = TRUE,
+  trend = FALSE,
+  max.lag = 0,
+  criterion = NULL,
+  modified.criterion = FALSE,
+  rescale.criterion = FALSE,
+  recursive = FALSE,
+  cc = 0,
+  gamma = 0,
+  trim = 0.15,
+  boot.p = FALSE,
+  boot.iter = 999
+) {
   if (!is.null(criterion)) {
     if (!criterion %in% c("bic", "aic", "lwz", "hq")) {
       stop("ERROR! Unknown criterion, none is used")
     }
   }
 
-  if (!is.matrix(y)) y <- as.matrix(y)
+  if (!is.matrix(y)) {
+    y <- as.matrix(y)
+  }
 
   cN <- nrow(y)
   rows <- (1 + max.lag):cN
@@ -148,7 +152,8 @@ ADF.test <- function(y,
     e <- tmp.ols$residuals
 
     rIC <- info.criterions(
-      e, 0,
+      e,
+      0,
       modification = modified.criterion,
       alpha = b[1],
       y = mXr[rows, 1, drop = FALSE]
@@ -156,7 +161,9 @@ ADF.test <- function(y,
     rLag <- 0
 
     for (l in 1:max.lag) {
-      if (max.lag == 0) break
+      if (max.lag == 0) {
+        break
+      }
 
       if (rescale.criterion) {
         tmp.rescale <- rescale.CPST(diffY, mX, mDeter, l, max.lag)
@@ -175,7 +182,8 @@ ADF.test <- function(y,
       e <- tmp.ols$residuals
 
       tmp.ic <- info.criterions(
-        e, l,
+        e,
+        l,
         modification = modified.criterion,
         alpha = b[1],
         y = mXr[rows, 1, drop = FALSE]
@@ -203,8 +211,8 @@ ADF.test <- function(y,
     model = res.OLS,
     # coefs = res.OLS$coefficients,
     # t.stats = drop(res.OLS$t.stats),
-    alpha = drop(res.OLS$coefficients[1]),
-    t.alpha = drop(res.OLS$t.stats[1]),
+    alpha = as.numeric(res.OLS$coefficients[1]),
+    t.alpha = as.numeric(res.OLS$t.stats[1]),
     Z.stat = dZstat,
     lag = rLag,
     recursive = recursive
@@ -249,11 +257,7 @@ ADF.test <- function(y,
 #' https://doi.org/10.1080/07474938.2013.808065.
 #'
 #' @keywords internal
-rescale.CPST <- function(d.y,
-                         x,
-                         deter,
-                         adf.lag,
-                         max.lag) {
+rescale.CPST <- function(d.y, x, deter, adf.lag, max.lag) {
   e <- OLS.reg(d.y, x[, 1:(1 + adf.lag), drop = FALSE])$residuals
 
   dNWse <- NW.variance(
@@ -322,11 +326,7 @@ rescale.CPST <- function(d.y,
 #' https://doi.org/10.1198/073500102317352001.
 #'
 #' @keywords internal
-detrend.recursively <- function(y,
-                                x,
-                                cc,
-                                gamma,
-                                trim) {
+detrend.recursively <- function(y, x, cc, gamma, trim) {
   if (is.null(x)) {
     return(y)
   }

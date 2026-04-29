@@ -14,14 +14,14 @@
 #' Journal of Econometrics 167, no. 1 (2012): 140–67.
 #'
 #' @export
-ur.KPSS.HLT <- function(y,
-                        const = FALSE,
-                        trim = 0.15) {
-  if (!is.matrix(y)) y <- as.matrix(y)
+ur.KPSS.HLT <- function(y, const = FALSE, trim = 0.15) {
+  if (!is.matrix(y)) {
+    y <- as.matrix(y)
+  }
 
   N <- nrow(y)
   m.ksi <- ifelse(const, 1.052, 0.853)
-  dy <- .diffn(y)
+  dy <- diff(y)
 
   bp.min <- trunc(trim * N)
   bp.max <- trunc((1 - trim) * N)
@@ -47,22 +47,26 @@ ur.KPSS.HLT <- function(y,
     .y.lr.var <- .lr.var.bartlett(.model$residuals)
     .xx.inv <- qr.solve(t(x) %*% x)
 
-    .t0 <- abs(.model$coefficients[ncol(x)] /
-      sqrt(.y.lr.var * .xx.inv[ncol(x), ncol(x)]))
+    .t0 <- abs(
+      .model$coefficients[ncol(x)] /
+        sqrt(.y.lr.var * .xx.inv[ncol(x), ncol(x)])
+    )
 
     x <- cbind(
       .const(N),
       if (const) .diffn(du) else NULL,
       du
-    )
+    )[-1, ]
 
     .model <- OLS.reg(dy, x)
 
     .dy.lr.var <- .lr.var.bartlett(.model$residuals)
     .xx.inv <- qr.solve(t(x) %*% x)
 
-    .t1 <- abs(.model$coefficients[ncol(x)] /
-      sqrt(.dy.lr.var * .xx.inv[ncol(x), ncol(x)]))
+    .t1 <- abs(
+      .model$coefficients[ncol(x)] /
+        sqrt(.dy.lr.var * .xx.inv[ncol(x), ncol(x)])
+    )
 
     if (.t0 > t0) {
       t0 <- .t0

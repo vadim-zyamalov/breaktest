@@ -8,3 +8,6 @@ res3 <- coint.CSS(data$gdp, data$cons, const = TRUE, break.type = "c", break.poi
 
 res4 <- breaktest::PY.statistic(data$gdp, criterion = "bic", const = TRUE, trend = TRUE)
 res5 <- breaktest::KP.seq.statistic(data$gdp, breaks = 0, criterion = "bic", const = TRUE)
+
+res6 <- robust.tests.single(data$gdp, TRUE, TRUE)
+res7 <- robust.tests.multiple(data$gdp, TRUE, FALSE)

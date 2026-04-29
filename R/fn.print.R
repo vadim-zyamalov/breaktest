@@ -49,20 +49,20 @@ print.bt_SADF <- function(x, ...) {
 #' @importFrom stringr str_split
 #' @keywords internal
 #' @export
-print.mdfHLT <- function(x, ...) {
-  if (x$const && !x$trend) {
+print.bt_mdfHLT <- function(obj, ...) {
+  if (obj$const && !obj$trend) {
     cat("Model 0: Structural change in intercept\n")
     cat(
       "Y{t}=a0+a1*DU+b0*t+e{t}\n",
       "    where DU=1(t>TB)\n"
     )
-  } else if (!x$const && x$trend) {
+  } else if (!obj$const && obj$trend) {
     cat("Model 1: Structural change in slope\n")
     cat(
       "Y{t}=a0+b0*t+b1*DT+e{t}\n",
       "    where DT=1(t>TB)*(t-TB)\n"
     )
-  } else if (x$const && x$trend) {
+  } else if (obj$const && obj$trend) {
     cat("Model 2: Structural change in both intercept and slope\n")
     cat(
       "Y{t}=a0+a1*DU+b0*t+b1*DT+e{t}\n",
@@ -71,7 +71,7 @@ print.mdfHLT <- function(x, ...) {
   }
   cat("\n")
 
-  cat("The break date is estimated in", x$break.time, "\n")
+  cat("The break date is estimated in", obj$break.time, "\n")
   cat("\n")
 
   cat(
@@ -80,8 +80,8 @@ print.mdfHLT <- function(x, ...) {
     "\tstat\tc.v.\n"
   )
   for (v in c("HLT", "PY")) {
-    cat(sprintf("%-7s\t%.4f\t%.4f\n", v, x[[v]]$statistic, x[[v]]$cv))
-    if (x[[v]]$statistic > x[[v]]$cv) {
+    cat(sprintf("%-7s\t%.4f\t%.4f\n", v, obj[[v]]$statistic, obj[[v]]$cv))
+    if (obj[[v]]$statistic > obj[[v]]$cv) {
       cat("reject\n")
     } else {
       cat("fails to reject\n")
@@ -94,9 +94,9 @@ print.mdfHLT <- function(x, ...) {
     "Unit root tests:\n\n",
     "\tstat\tc.v.\n"
   )
-  for (v in c("DF.GLS", "DF.OLS", "MDF.GLS", "MDF.OLS", "MDF.t")) {
-    cat(sprintf("%-7s\t%.4f\t%.4f\n", v, x[[v]]$statistic, x[[v]]$cv))
-    if (x[[v]]$statistic < x[[v]]$cv) {
+  for (v in c("DF.GLS", "DF.OLS", "MDF.GLS", "MDF.OLS")) {
+    cat(sprintf("%-7s\t%.4f\t%.4f\n", v, obj[[v]]$statistic, obj[[v]]$cv))
+    if (obj[[v]]$statistic < obj[[v]]$cv) {
       cat("reject\n")
     } else {
       cat("fails to reject\n")
@@ -106,10 +106,10 @@ print.mdfHLT <- function(x, ...) {
   cat("\n")
 
   cat("Testing strategies:\n\n")
-  for (v in c("A.HLT", "A.PY", "UR.HLT", "UR.PY")) {
+  for (v in c("A.HLT", "A.PY", "UR.HLT", "UR.PY", "URR.HLT", "URR.PY")) {
     tmp_str <- stringr::str_split(v, "\\.")
     cat(tmp_str[[1]][1], "*(t_", tmp_str[[1]][2], ", s_alpha): ", sep = "")
-    if (x[[v]] == 1) {
+    if (obj[[v]] == 1) {
       cat("reject\n")
     } else {
       cat("fails to reject\n")
@@ -123,19 +123,19 @@ print.mdfHLT <- function(x, ...) {
 #' @importFrom stringr str_split
 #' @keywords internal
 #' @export
-print.mdfHLTN <- function(x, ...) {
+print.bt_mdfHLTN <- function(obj, ...) {
   cat("\t\tstat\tc.v.\n\n")
 
   for (v in c(
     "MDF.GLS.1",
     "MDF.GLS.2",
-    if (x$breaks == 3) "MDF.GLS.3" else NULL,
+    if (obj$breaks == 3) "MDF.GLS.3" else NULL,
     "MDF.OLS.1",
     "MDF.OLS.2",
-    if (x$breaks == 3) "MDF.OLS.3" else NULL
+    if (obj$breaks == 3) "MDF.OLS.3" else NULL
   )) {
-    cat(sprintf("%-9s:\t%.4f\t%.4f\n", v, x[[v]]$statistic, x[[v]]$cv))
-    if (x[[v]]$statistic < x[[v]]$cv) {
+    cat(sprintf("%-9s:\t%.4f\t%.4f\n", v, obj[[v]]$statistic, obj[[v]]$cv))
+    if (obj[[v]]$statistic < obj[[v]]$cv) {
       cat("reject\n")
     } else {
       cat("fails to reject\n")
@@ -144,15 +144,15 @@ print.mdfHLTN <- function(x, ...) {
   }
   cat("\n")
 
-  cat(sprintf("UR^%d(s.alpha): ", x$breaks))
-  if (x$UR1 == 1) {
+  cat(sprintf("UR^%d(s.alpha): ", obj$breaks))
+  if (obj$UR1 == 1) {
     cat("reject\n")
   } else {
     cat("fails to reject\n")
   }
 
-  cat(sprintf("UR^%d(s.alpha, %d): ", x$breaks, x$breaks.star))
-  if (x$UR == 1) {
+  cat(sprintf("UR^%d(s.alpha, %d): ", obj$breaks, obj$breaks.star))
+  if (obj$UR == 1) {
     cat("reject\n")
   } else {
     cat("fails to reject\n")
@@ -164,16 +164,16 @@ print.mdfHLTN <- function(x, ...) {
 #' @rdname print.bt_SADF
 #' @keywords internal
 #' @export
-print.mdfCHLT <- function(x, ...) {
+print.mdfCHLT <- function(obj, ...) {
   cat("\t\tstat\tc.v.\t wild c.v.\n\n")
   for (v in c("MZa", "MSB", "MZt", "ADF")) {
     cat(
       sprintf(
         "%s stat:\t%.4f\t%.4f\t%.4f\n",
         v,
-        x[[v]]$statistic,
-        x[[v]]$cv,
-        x[[v]]$cv.bootstrap
+        obj[[v]]$statistic,
+        obj[[v]]$cv,
+        obj[[v]]$cv.bootstrap
       )
     )
   }
@@ -203,19 +203,24 @@ print.cointGH <- function(x, ...) {
 #' @rdname print.bt_SADF
 #' @keywords internal
 #' @export
-print.robustUR <- function(x, ...) {
-  cat(sprintf("Estimated break moment: %d\n", x$break.time))
+print.bt_robustUR <- function(obj, ...) {
+  cat(sprintf("Estimated break moment: %d\n", obj$break.time))
   cat("\t\tstat\tc.v.\t\n\n")
   for (v in c(
-    "HLT", "PY", "DF.GLS", "DF.OLS",
-    "MDF.GLS", "MDF.OLS", "MDF.t"
+    "HLT",
+    "PY",
+    "DF.GLS",
+    "DF.OLS",
+    "MDF.GLS",
+    "MDF.OLS",
+    "MDF.t"
   )) {
     cat(
       sprintf(
         "%s stat:\t%.4f\t%.4f\n",
         v,
-        x[[v]]$statistic,
-        x[[v]]$cv
+        obj[[v]]$statistic,
+        obj[[v]]$cv
       )
     )
   }
@@ -225,16 +230,16 @@ print.robustUR <- function(x, ...) {
 #' @rdname print.bt_SADF
 #' @keywords internal
 #' @export
-print.robustURN <- function(x, ...) {
-  cat(sprintf("Estimated break moment: %d\n", x$breaks.star))
+print.bt_robustURN <- function(obj, ...) {
+  cat(sprintf("Estimated break moment: %d\n", obj$breaks.star))
   cat("\t\tstat\tc.v.\n\n")
   for (v in c("MDF.GLS.1", "MDF.OLS.1", "MDF.GLS.2", "MDF.OLS.2")) {
     cat(
       sprintf(
         "%s stat:\t%.4f\t%.4f\n",
         v,
-        x[[v]]$statistic,
-        x[[v]]$cv
+        obj[[v]]$statistic,
+        obj[[v]]$cv
       )
     )
   }

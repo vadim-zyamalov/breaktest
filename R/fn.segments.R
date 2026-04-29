@@ -208,10 +208,10 @@ segments.GLS <- function(
   N <- nrow(y)
 
   if (is.null(bp_min)) {
-    bp_min <- floor(trim * N) + 1
+    bp_min <- floor(trim * N)
   }
   if (is.null(bp_max)) {
-    bp_max <- floor((1 - trim) * N) + 1
+    bp_max <- floor((1 - trim) * N)
   }
   width <- bp_min - 1
 
@@ -223,20 +223,17 @@ segments.GLS <- function(
   for (alpha in steps) {
     if (breaks == 1) {
       for (bp1 in bp_min:bp_max) {
-        du1 <- as.numeric(trend > bp1)
-        dt1 <- du1 * (trend - bp1)
-
         x <- cbind(
           .const(N),
           .trend(N),
-          if (const) du1 else NULL,
-          if (trend) dt1 else NULL
+          if (const) .du(bp1, N) else NULL,
+          if (trend) .dt(bp1, N) else NULL
         )
 
         c_bar <- N * (alpha - 1)
-        resids <- GLS.reg(y, x, c_bar)$residuals
+        r_GLS <- GLS.reg(y, x, c_bar)$residuals
 
-        .rss_loop <- drop(t(resids) %*% resids)
+        .rss_loop <- sum(r_GLS^2)
 
         if (.rss_loop < .rss) {
           .rss <- .rss_loop
@@ -246,24 +243,19 @@ segments.GLS <- function(
     } else if (breaks == 2) {
       for (bp1 in bp_min:(bp_max - width)) {
         for (bp2 in (bp1 + width):bp_max) {
-          du1 <- as.numeric(trend > bp1)
-          dt1 <- du1 * (trend - bp1)
-          du2 <- as.numeric(trend > bp2)
-          dt2 <- du2 * (trend - bp2)
-
           x <- cbind(
             .const(N),
             .trend(N),
-            if (const) du1 else NULL,
-            if (trend) dt1 else NULL,
-            if (const) du2 else NULL,
-            if (trend) dt2 else NULL
+            if (const) .du(bp1, N) else NULL,
+            if (trend) .dt(bp1, N) else NULL,
+            if (const) .du(bp2, N) else NULL,
+            if (trend) .dt(bp2, N) else NULL
           )
 
           c_bar <- N * (alpha - 1)
-          resids <- GLS.reg(y, x, c_bar)$residuals
+          r_GLS <- GLS.reg(y, x, c_bar)$residuals
 
-          .rss_loop <- drop(t(resids) %*% resids)
+          .rss_loop <- sum(r_GLS^2)
 
           if (.rss_loop < .rss) {
             .rss <- .rss_loop
@@ -275,28 +267,21 @@ segments.GLS <- function(
       for (bp1 in bp_min:(bp_max - 2 * width)) {
         for (bp2 in (bp1 + width):(bp_max - width)) {
           for (bp3 in (bp2 + width):bp_max) {
-            du1 <- as.numeric(trend > bp1)
-            dt1 <- du1 * (trend - bp1)
-            du2 <- as.numeric(trend > bp2)
-            dt2 <- du2 * (trend - bp2)
-            du3 <- as.numeric(trend > bp3)
-            dt3 <- du3 * (trend - bp3)
-
             x <- cbind(
               .const(N),
               .trend(N),
-              if (const) du1 else NULL,
-              if (trend) dt1 else NULL,
-              if (const) du2 else NULL,
-              if (trend) dt2 else NULL,
-              if (const) du3 else NULL,
-              if (trend) dt3 else NULL
+              if (const) .du(bp1, N) else NULL,
+              if (trend) .dt(bp1, N) else NULL,
+              if (const) .du(bp2, N) else NULL,
+              if (trend) .dt(bp2, N) else NULL,
+              if (const) .du(bp3, N) else NULL,
+              if (trend) .dt(bp3, N) else NULL
             )
 
             c_bar <- N * (alpha - 1)
-            resids <- GLS.reg(y, x, c_bar)$residuals
+            r_GLS <- GLS.reg(y, x, c_bar)$residuals
 
-            .rss_loop <- drop(t(resids) %*% resids)
+            .rss_loop <- sum(r_GLS^2)
 
             if (.rss_loop < .rss) {
               .rss <- .rss_loop

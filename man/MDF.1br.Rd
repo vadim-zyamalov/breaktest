@@ -4,7 +4,7 @@
 \alias{MDF.1br}
 \title{MDF procedure for a single unknown break.}
 \usage{
-MDF.1br(y, const = FALSE, trend = FALSE, trim = 0.15)
+MDF.1br(y, const = FALSE, trend = FALSE, trim = 0.15, criterion = "bic")
 }
 \arguments{
 \item{y}{A time series of interest.}
