@@ -8,11 +8,13 @@
 #' @return A matrix of recursive SSR values.
 #'
 #' @keywords internal
-SSR.matrix <- function(y,
-                       x,
-                       width = 2) {
-  if (!is.matrix(y)) y <- as.matrix(y)
-  if (!is.matrix(x)) x <- as.matrix(x)
+SSR.matrix <- function(y, x, width = 2) {
+  if (!is.matrix(y)) {
+    y <- as.matrix(y)
+  }
+  if (!is.matrix(x)) {
+    x <- as.matrix(x)
+  }
 
   N <- nrow(y)
 
@@ -20,7 +22,11 @@ SSR.matrix <- function(y,
 
   for (i in 1:(N - width + 1)) {
     result[i, 1:N] <- SSR.recursive(
-      y, x, i, N, width
+      y,
+      x,
+      i,
+      N,
+      width
     )
   }
 
@@ -45,20 +51,20 @@ SSR.matrix <- function(y,
 #' Series B (Methodological) 37, no. 2 (1975): 149–92.
 #'
 #' @keywords internal
-SSR.recursive <- function(y,
-                          x,
-                          beg,
-                          end,
-                          width = 2) {
-  if (!is.matrix(y)) y <- as.matrix(y)
-  if (!is.matrix(x)) x <- as.matrix(x)
+SSR.recursive <- function(y, x, beg, end, width = 2) {
+  if (!is.matrix(y)) {
+    y <- as.matrix(y)
+  }
+  if (!is.matrix(x)) {
+    x <- as.matrix(x)
+  }
 
   N <- nrow(y)
 
   beg <- max(beg, 1)
   end <- min(end, N)
 
-  result <- rep(Inf, N)
+  vecSSR <- rep(Inf, N)
 
   y0 <- y[beg:(beg + width - 1), , drop = FALSE]
   x0 <- x[beg:(beg + width - 1), , drop = FALSE]
@@ -67,24 +73,23 @@ SSR.recursive <- function(y,
   .model <- OLS.reg(y0, x0)
   beta <- .model$coefficients
   residl <- .model$residuals
-  rm(.model)
-
-  result[beg + width - 1] <- drop(t(residl) %*% residl)
+  vecSSR[beg + width - 1] <- sum(residl^2)
 
   for (step in (beg + width):end) {
-    if (step > end) break
+    if (step > end) {
+      break
+    }
 
-    xl <- x[step, , drop = FALSE]
-    residl <- drop(y[step, , drop = FALSE] - xl %*% beta)
+    z <- x[step, , drop = FALSE]
+    v <- drop(y[step, , drop = FALSE] - z %*% beta)
+    f <- drop(1 + z %*% xx.inv %*% t(z))
 
-    denom <- drop(1 + xl %*% xx.inv %*% t(xl))
+    vecSSR[step] <- vecSSR[step - 1] + v^2 / f
 
-    result[step] <- result[step - 1] + residl^2 / denom
-
-    beta <- beta + xx.inv %*% t(xl) * residl
+    beta <- beta + xx.inv %*% t(z) * v / f
     xx.inv <- xx.inv -
-      (xx.inv %*% t(xl) %*% xl %*% xx.inv) / denom
+      (xx.inv %*% t(z) %*% z %*% xx.inv) / f
   }
 
-  result
+  vecSSR
 }

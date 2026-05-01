@@ -5,7 +5,7 @@
 #' @param end End of the sample.
 #' @param first.break First possible break point.
 #' @param last.break Last possible break point.
-#' @param len Total number of observations.
+#' @param N Total number of observations.
 #' @param SSR.data The matrix of recursive SSR values.
 #'
 #' @return A list of:
@@ -19,19 +19,16 @@
 #' https://doi.org/10.1111/j.1468-0084.2006.00180.x.
 #'
 #' @keywords internal
-segments.CSS <- function(beg, end, bp.min, bp.max, len, SSR.data) {
-  .rss <- matrix(data = Inf, nrow = len, ncol = 1)
+segments.CSS <- function(beg, end, bp.min, bp.max, N, SSR.data) {
+  SSR <- matrix(data = Inf, nrow = N, ncol = 1)
 
   for (bp in bp.min:bp.max) {
-    .rss[bp] <- SSR.data[beg, bp] + SSR.data[bp + 1, end]
+    SSR[bp] <- SSR.data[beg, bp] + SSR.data[bp + 1, end]
   }
 
-  final.rss <- min(.rss[bp.min:bp.max])
-  final.bp <- (bp.min - 1) + which.min(.rss[bp.min:bp.max])
-
   list(
-    SSR = final.rss,
-    break.point = final.bp
+    SSR = min(SSR),
+    break.point = which.min(SSR)
   )
 }
 
@@ -69,7 +66,7 @@ segments.BP <- function(
   y,
   x,
   m = 1,
-  width = 2,
+  h = 2,
   SSR.data = NULL
 ) {
   if (!is.matrix(y)) {
@@ -82,84 +79,62 @@ segments.BP <- function(
   N <- nrow(y)
 
   if (is.null(SSR.data)) {
-    SSR.data <- SSR.matrix(y, x, width)
+    SSR.data <- SSR.matrix(y, x, h)
   }
 
   # For one break use the procedure above
   if (m == 1) {
     return(
-      segments.CSS(1, N, width, N - width, N, SSR.data)
+      segments.CSS(1, N, h, N - h, N, SSR.data)
     )
   }
 
-  cNvars <- N - (m + 1) * width + 1
-  vSSR <- rep(Inf, cNvars)
-  mBreaks <- matrix(
-    data = 0,
-    nrow = cNvars,
+  optdat <- matrix(
+    data = NA,
+    nrow = N,
+    ncol = m
+  )
+  optSSR <- matrix(
+    data = Inf,
+    nrow = N,
     ncol = m
   )
 
-  for (step in 1:m) {
-    loopSSR <- rep(Inf, cNvars)
-
-    if (step == 1) {
-      for (v in 1:cNvars) {
-        upperBorder <- 2 * width + v - 1
-        .segments <- segments.CSS(
-          1,
-          upperBorder,
-          width,
-          upperBorder - width,
-          upperBorder,
-          SSR.data
-        )
-        vSSR[v] <- .segments$SSR
-        mBreaks[v, 1] <- .segments$break.point
+  for (ib in 1:m) {
+    if (ib == 1) {
+      for (j1 in (2 * h):N) {
+        .segments <- segments.CSS(1, j1, h, j1 - h, j1, SSR.data)
+        optSSR[j1, 1] <- .segments$SSR
+        optdat[j1, 1] <- .segments$break.point
       }
-    } else if (step == m) {
-      for (v in 1:cNvars) {
-        loopSSR[v] <- vSSR[v] + SSR.data[step * width + v, N]
+    } else if (ib == m) {
+      dvec <- rep(Inf, N)
+      for (jb in (ib * h):(N - h)) {
+        dvec[jb] <- optSSR[jb, ib - 1] + SSR.data[jb + 1, N]
       }
-      finalSSR <- min(loopSSR)
-      finalIdx <- which.min(loopSSR)
-      finalBreaks <- mBreaks[finalIdx, ]
-      finalBreaks[m] <- step * width + finalIdx - 1
+      optSSR[N, ib] <- min(dvec)
+      optdat[N, ib] <- which.min(dvec)
     } else {
-      vNewSSR <- rep(Inf, cNvars)
-      mNewBreaks <- matrix(
-        data = 0,
-        nrow = cNvars,
-        ncol = m
-      )
-
-      # Looping through the possible upperBounds for step-breaks segmentation.
-      for (upperBorder in ((step + 1) * width):(N - (m - step) * width)) {
-        searchIdx <- upperBorder - (step + 1) * width + 1
-
-        # For every v we calculate a new SSR value as the sum of step-1 breaks
-        # segmentation with last break at v and SSR of the rest part till upperBound.
-        for (v in 1:cNvars) {
-          loopSSR[v] <- vSSR[v] + SSR.data[step * width + v, upperBorder]
+      for (jlast in ((ib + 1) * h):N) {
+        dvec <- rep(Inf, N)
+        for (jb in (ib * h):(jlast - h)) {
+          dvec[jb] <- optSSR[jb, ib - 1] + SSR.data[jb + 1, jlast]
         }
-
-        # Look for the minimum loopSSR which corresponds to the optimal step-breaks
-        # segmentation for current upper border.
-        vNewSSR[searchIdx] <- min(loopSSR)
-        minIdx <- which.min(loopSSR)
-        mNewBreaks[searchIdx, 1:m] <- mBreaks[minIdx, ]
-        mNewBreaks[searchIdx, step] <- step * width + minIdx - 1
+        optSSR[jlast, ib] <- min(dvec)
+        optdat[jlast, ib] <- which.min(dvec)
       }
-
-      # Update vSSR and mBreaks with optimal step-breaks segments.
-      vSSR <- vNewSSR
-      mBreaks <- mNewBreaks
     }
   }
 
+  datevec <- numeric(m)
+  datevec[m] <- optdat[N, m]
+  for (i in seq_len(m - 1)) {
+    xx <- m - i
+    datevec[xx] <- optdat[datevec[xx + 1], xx]
+  }
   list(
-    SSR = finalSSR,
-    break.point = finalBreaks
+    SSR = optSSR[N, m],
+    break.point = datevec
   )
 }
 
@@ -213,12 +188,12 @@ segments.GLS <- function(
   if (is.null(bp_max)) {
     bp_max <- floor((1 - trim) * N)
   }
-  width <- bp_min - 1
+  width <- bp_min
 
   steps <- c(0, 0.2, 0.4, 0.6, 0.8, 0.9, 0.95, 0.975, 1)
 
-  .rss <- Inf
-  .bps <- rep(0, breaks)
+  SSR <- Inf
+  resBreaks <- rep(0, breaks)
 
   for (alpha in steps) {
     if (breaks == 1) {
@@ -232,12 +207,11 @@ segments.GLS <- function(
 
         c_bar <- N * (alpha - 1)
         r_GLS <- GLS.reg(y, x, c_bar)$residuals
+        loopSSR <- sum(r_GLS^2)
 
-        .rss_loop <- sum(r_GLS^2)
-
-        if (.rss_loop < .rss) {
-          .rss <- .rss_loop
-          .bps <- c(bp1)
+        if (loopSSR < SSR) {
+          SSR <- loopSSR
+          resBreaks <- c(bp1)
         }
       }
     } else if (breaks == 2) {
@@ -254,12 +228,11 @@ segments.GLS <- function(
 
           c_bar <- N * (alpha - 1)
           r_GLS <- GLS.reg(y, x, c_bar)$residuals
+          loopSSR <- sum(r_GLS^2)
 
-          .rss_loop <- sum(r_GLS^2)
-
-          if (.rss_loop < .rss) {
-            .rss <- .rss_loop
-            .bps <- c(bp1, bp2)
+          if (loopSSR < SSR) {
+            SSR <- loopSSR
+            resBreaks <- c(bp1, bp2)
           }
         }
       }
@@ -280,12 +253,11 @@ segments.GLS <- function(
 
             c_bar <- N * (alpha - 1)
             r_GLS <- GLS.reg(y, x, c_bar)$residuals
+            loopSSR <- sum(r_GLS^2)
 
-            .rss_loop <- sum(r_GLS^2)
-
-            if (.rss_loop < .rss) {
-              .rss <- .rss_loop
-              .bps <- c(bp1, bp2, bp3)
+            if (loopSSR < SSR) {
+              SSR <- loopSSR
+              resBreaks <- c(bp1, bp2, bp3)
             }
           }
         }
@@ -293,5 +265,5 @@ segments.GLS <- function(
     }
   }
 
-  .bps
+  resBreaks
 }

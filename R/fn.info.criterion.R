@@ -29,31 +29,26 @@
 #' https://doi.org/10.1111/1468-0262.00256.
 #'
 #' @export
-info.criterions <- function(resids,
-                            extra,
-                            modification = FALSE,
-                            alpha = 0,
-                            y = NULL) {
-  if (!is.matrix(resids)) resids <- as.matrix(resids)
+info.criterions <- function(
+  resids,
+  extra,
+  modification = FALSE,
+  alpha = 0,
+  y = NULL
+) {
+  N <- length(resids)
+  s2 <- sum(resids^2) / N
 
-  rows <- !is.na(resids)
-  if (!is.null(y)) rows <- rows & !is.na(y)
-
-  cN <- sum(rows)
-
-  if (modification) {
-    s2 <- sum(resids[rows]^2) / cN
-    tau <- (alpha^2) * sum(y[rows]^2) / s2
+  tau <- if (modification) {
+    (alpha^2) * sum(y^2) / s2
   } else {
-    tau <- 0
+    0
   }
 
-  .log_rss <- log(sum(resids[rows]^2) / cN)
-
   list(
-    aic = .log_rss + 2 * (tau + extra) / cN,
-    bic = .log_rss + (tau + extra) * log(cN) / cN,
-    hq  = .log_rss + 2 * (tau + extra) * log(log(cN)) / cN,
-    lwz = .log_rss + 0.299 * (tau + extra) * (log(cN))^2.1
+    aic = log(s2) + 2 * (tau + extra) / N,
+    bic = log(s2) + (tau + extra) * log(N) / N,
+    hq = log(s2) + 2 * (tau + extra) * log(log(N)) / N,
+    lwz = log(s2) + 0.299 * (tau + extra) * (log(N))^2.1
   )
 }

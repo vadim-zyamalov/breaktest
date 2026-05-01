@@ -1,10 +1,10 @@
 #' Calculating long-run variance or covariance matrix
 #'
 #' @details
-#' The code provided is based on the original code by Kurozumi, Sul et al.
-#' ported to R.
+#' The code provided is based on the original code by Kurozumi, Sul et al. ported to R.
 #'
 #' @param u A time series of interest.
+#'
 #' @param kernel A kernel to be used:
 #' * `Truncated`: \eqn{\left\{\begin{array}{ll}
 #' 1 & |x| \leq 1 \\
@@ -26,21 +26,30 @@
 #' * `Quadratic`: \eqn{
 #' \frac{25}{12 \pi^2 x^2}
 #' \left(\frac{\sin(6 \pi x / 5)}{6 \pi x / 5} - \cos(6 \pi x / 5)\right)}.
+#'
 #' @param bw.selector A method to select bandwidth:
 #' * `Bartlett`: \eqn{1.1447 (N \alpha(1))^{1 / 3}},
 #' * `Parzen`: \eqn{2.6614 (N \alpha(2))^{1 / 5}},
 #' * `Tukey-Hanning`: \eqn{1.7462 (N \alpha(2))^{1 / 5}},
-#' * `Quadratic`: \eqn{1.3221 (N \alpha(2))^{1 / 5}}.
-#' @param bw.limit A limiting parameter for Kurozumi's proposal. If `NULL` no limiting is done.
-#' @param lag.selector How to limit the number of lags in formulae:
+#' * `Quadratic`: \eqn{1.3221 (N \alpha(2))^{1 / 5}},
 #' * `kpss-q`: \eqn{4 * \left(\frac{N}{100}\right)^{1 / 4}},
 #' * `kpss-m`: \eqn{12 * \left(\frac{N}{100}\right)^{1 / 4}},
 #' * `full`: \eqn{N-1},
-#' * NULL: number of lags equals bandwidth.
+#'
+#' @param bw.limit A limiting parameter for Kurozumi's proposal. If `NULL` no limiting is done.
+#'
+#' @param full Whether all possible lags shouls be used to compute variance.
+#' By default use number of lags that equals bandwidth.
+#'
 #' @param recolor Whether the correction by Sul et al. (2005) should be used.
+#'
 #' @param recolor.lag Maximum number of lags used in AR regresion during
 #' recolorization. Otherwize ignored.
+#'
 #' @param criterion The information crietreion: bic, aic or lwz.
+#'
+#' @param demean Whether `u` should be demeaned.
+#' @param whiten Whether an AR(1) approximation by Andrews & Monahan (1992) should be used.
 #'
 #' @references
 #' Andrews, Donald W. K.
@@ -64,13 +73,15 @@
 #' @keywords internal
 LR.variance.single <- function(
   u,
-  kernel = "bartlett",
-  bw.selector = "bartlett",
+  kernel = "Bartlett",
+  bw.selector = "Bartlett",
   bw.limit = NULL,
-  lag.selector = NULL,
+  full = FALSE,
   recolor = FALSE,
   recolor.lag = 0,
-  criterion = "bic"
+  criterion = "bic",
+  demean = TRUE,
+  whiten = FALSE
 ) {
   N <- length(u)
 
@@ -92,25 +103,28 @@ LR.variance.single <- function(
     }
   }
 
-  u <- u - mean(u)
+  if (demean) {
+    u <- u - mean(u)
+  }
 
-  rho <- sum(u[1:(N - 1)] * u[2:N]) / sum(u[2:N]^2)
+  # Andrews and Monahan (1992, pag. 958) approximation
+  rho <- if (whiten) {
+    sum(u[1:(N - 1)] * u[2:N]) / sum(u[2:N]^2)
+  } else {
+    0
+  }
 
-  lmtL <- .lr.lag.limit(lag.selector)
-  lmtF <- .lr.bandwidth(bw.selector, .alpha.single, N)
+  lmtL <- .lr.bandwidth(bw.selector, .alpha.single, N)
   wgtF <- .lr.weight(kernel)
 
-  bw <- lmtF(rho, N)
-  if (!is.null(bw.limit)) {
-    bw <- min(bw, lmtF(bw.limit, N))
-  }
-  bw <- trunc(bw)
+  bw <- lmtL(rho, N)
 
-  lags <- if (is.null(lmtL)) {
-    bw
-  } else {
-    lmtL(N)
+  # Kurozumi proposal
+  if (!is.null(bw.limit)) {
+    bw <- min(bw, lmtL(bw.limit, N))
   }
+  bw <- round(bw)
+  lags <- if (full) N - 1 else bw
 
   lrv <- sum(u^2) / N
   for (i in 1:lags) {
@@ -129,89 +143,112 @@ LR.variance.single <- function(
 #' @rdname LR.variance.single
 #' @order 2
 .lr.var.bartlett <- function(y) {
-  LR.variance.single(
-    y,
-    kernel = "Bartlett",
-    bw.selector = "Bartlett",
-    lag.selector = "kpss-q"
-  )
+  N <- length(y)
+  m <- round(.lr.bandwidth(NULL, N, "kpss-q"))
+  wgtF <- .lr.weight("Bartlett")
+
+  lrv <- sum(y^2) / N
+  for (i in 1:(N - 1)) {
+    lrv <- lrv + 2 * sum(y[1:(N - i)] * y[(1 + i):N]) * wgtF(i, m) / N
+  }
+
+  lrv
 }
 
 #' @rdname LR.variance.single
 #' @order 3
 .lr.var.quad <- function(y) {
-  LR.variance.single(
-    y,
-    kernel = "Quadratic",
-    bw.selector = "Quadratic",
-    lag.selector = "full"
-  )
+  N <- length(y)
+  a <- sum(y[1:(N - 1)] * y[2:N]) / sum(y[2:N]^2)
+  a <- .alpha.single(a)$q2
+  m <- .lr.bandwidth(a, N, "Quadratic")
+  wgtF <- .lr.weight("Quadratic")
+
+  lrv <- sum(y^2) / N
+  for (i in 1:(N - 1)) {
+    lrv <- lrv + 2 * sum(y[1:(N - i)] * y[(1 + i):N]) * wgtF(i - 1, m) / N
+  }
+
+  lrv
 }
 
 #' @rdname LR.variance.single
 #' @order 4
-.lr.var.kurozumi <- function(y) {
-  LR.variance.single(
-    y,
-    kernel = "Bartlett",
-    bw.selector = "Bartlett",
-    bw.limit = 0.8
+.lr.var.kurozumi <- function(y, k = 0.8) {
+  N <- length(y)
+
+  a <- sum(y[1:(N - 1)] * y[2:N]) / sum(y[2:N]^2)
+  a <- .alpha.single(a)$q1
+  k <- .alpha.single(k)$q1
+
+  m <- min(
+    .lr.bandwidth(a, N, "Bartlett"),
+    .lr.bandwidth(k, N, "Bartlett")
   )
+  m <- trunc(m)
+
+  wgtF <- .lr.weight("Bartlett")
+
+  lrv <- sum(y^2) / N
+  for (i in 1:m) {
+    lrv <- lrv + 2 * sum(y[1:(N - i)] * y[(1 + i):N]) * wgtF(i, m) / N
+  }
+
+  lrv
 }
 
 #' @rdname LR.variance.single
 #' @order 5
 .lr.var.spc <- function(
   y,
-  max.lag = 0,
+  kmax = 0,
   kernel = "Bartlett",
   criterion = "bic"
 ) {
-  LR.variance.single(
-    y,
-    kernel = kernel,
-    bw.selector = kernel,
-    criterion = criterion,
-    recolor = TRUE,
-    recolor.lag = max.lag
-  )
-}
+  N <- length(y)
 
+  kmax <- max(kmax, 0)
 
-.lr.lag.limit <- function(selector) {
-  if (is.null(selector)) {
-    return(NULL)
+  min_IC <- log(sum(y^2) / (N - kmax))
+
+  arModel <- AR.reg(y, NULL, kmax, criterion)
+  IC <- info.criterions(arModel$residuals, arModel$lag)[[criterion]]
+
+  # Sul, Phillips and Choi (2003)
+  if (min_IC < IC) {
+    return((sum(y^2) / N) * min(1, N * 0.15))
   }
-  switch(
-    selector,
-    "kpss-q" = function(N) {
-      4 * (N / 100)^(1 / 4)
-    },
-    "kpss-m" = function(N) {
-      12 * (N / 100)^(1 / 4)
-    },
-    "full" = function(N) {
-      N - 1
-    }
-  )
+
+  rho <- arModel$coefficients
+  res <- arModel$residuals
+  N <- length(res)
+
+  a <- sum(y[1:(N - 1)] * y[2:N]) / sum(y[2:N]^2)
+  a <- .alpha.single(a)$q1
+  m <- trunc(.lr.bandwidth(a, N, kernel))
+  wgtF <- .lr.weight(kernel)
+
+  lrv <- sum(y^2) / N
+  for (i in 1:m) {
+    lrv <- lrv + 2 * sum(y[1:(N - i)] * y[(1 + i):N]) * wgtF(i, m) / N
+  }
+
+  lrv_recolored <- lrv / (1 - sum(rho))^2
+
+  min(lrv_recolored, lrv * N * 0.15)
 }
 
 
-.lr.bandwidth <- function(selector, alpha, N) {
+.lr.bandwidth <- function(alpha, N, selector = "Bartlett") {
   switch(
     selector,
-    "Bartlett" = function(r, N) {
-      1.1447 * (N * alpha(r)$q1)^(1 / 3)
-    },
-    "Parzen" = function(r, N) {
-      2.6614 * (N * alpha(r)$q2)^(1 / 5)
-    },
-    "Tuckey-Hanning" = function(r, N) {
-      1.7462 * (N * alpha(r)$q2)^(1 / 5)
-    },
-    "Quadratic" = function(r, N) {
-      1.3221 * (N * alpha(r)$q2)^(1 / 5)
-    },
+    "Bartlett" = 1.1447 * (N * alpha)^(1 / 3),
+    "Parzen" = 2.6614 * (N * alpha)^(1 / 5),
+    "Tuckey-Hanning" = 1.7462 * (N * alpha)^(1 / 5),
+    "Quadratic" = 1.3221 * (N * alpha)^(1 / 5),
+    "kpss-q" = 4 * (N / 100)^(1 / 4),
+    "kpss-m" = 12 * (N / 100)^(1 / 4),
+    "full" = N - 1,
     stop("LR.variance: Unknown banwidth selector!")
   )
 }

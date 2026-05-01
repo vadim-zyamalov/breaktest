@@ -12,19 +12,21 @@
 
 .lr.var.quad(y)
 
-.lr.var.kurozumi(y)
+.lr.var.kurozumi(y, k = 0.8)
 
-.lr.var.spc(y, max.lag = 0, kernel = "Bartlett", criterion = "bic")
+.lr.var.spc(y, kmax = 0, kernel = "Bartlett", criterion = "bic")
 
 LR.variance.single(
   u,
-  kernel = "bartlett",
-  bw.selector = "bartlett",
+  kernel = "Bartlett",
+  bw.selector = "Bartlett",
   bw.limit = NULL,
-  lag.selector = NULL,
+  full = FALSE,
   recolor = FALSE,
   recolor.lag = 0,
-  criterion = "bic"
+  criterion = "bic",
+  demean = TRUE,
+  whiten = FALSE
 )
 }
 \arguments{
@@ -61,30 +63,31 @@ LR.variance.single(
 \item \code{Bartlett}: \eqn{1.1447 (N \alpha(1))^{1 / 3}},
 \item \code{Parzen}: \eqn{2.6614 (N \alpha(2))^{1 / 5}},
 \item \code{Tukey-Hanning}: \eqn{1.7462 (N \alpha(2))^{1 / 5}},
-\item \code{Quadratic}: \eqn{1.3221 (N \alpha(2))^{1 / 5}}.
+\item \code{Quadratic}: \eqn{1.3221 (N \alpha(2))^{1 / 5}},
+\item \code{kpss-q}: \eqn{4 * \left(\frac{N}{100}\right)^{1 / 4}},
+\item \code{kpss-m}: \eqn{12 * \left(\frac{N}{100}\right)^{1 / 4}},
+\item \code{full}: \eqn{N-1},
 }}
 
 \item{bw.limit}{A limiting parameter for Kurozumi's proposal. If \code{NULL} no limiting is done.}
 
-\item{lag.selector}{How to limit the number of lags in formulae:
-\itemize{
-\item \code{kpss-q}: \eqn{4 * \left(\frac{N}{100}\right)^{1 / 4}},
-\item \code{kpss-m}: \eqn{12 * \left(\frac{N}{100}\right)^{1 / 4}},
-\item \code{full}: \eqn{N-1},
-\item NULL: number of lags equals bandwidth.
-}}
+\item{full}{Whether all possible lags shouls be used to compute variance.
+By default use number of lags that equals bandwidth.}
 
 \item{recolor}{Whether the correction by Sul et al. (2005) should be used.}
 
 \item{recolor.lag}{Maximum number of lags used in AR regresion during
 recolorization. Otherwize ignored.}
+
+\item{demean}{Whether \code{u} should be demeaned.}
+
+\item{whiten}{Whether an AR(1) approximation by Andrews & Monahan (1992) should be used.}
 }
 \description{
 Calculating long-run variance or covariance matrix
 }
 \details{
-The code provided is based on the original code by Kurozumi, Sul et al.
-ported to R.
+The code provided is based on the original code by Kurozumi, Sul et al. ported to R.
 }
 \references{
 Andrews, Donald W. K.

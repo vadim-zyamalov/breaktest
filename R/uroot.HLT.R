@@ -13,15 +13,16 @@
 #' “Unit Root Testing under a Local Break in Trend.”
 #' Journal of Econometrics 167, no. 1 (2012): 140–67.
 #'
+#' @importFrom Rfast spdinv
 #' @export
-ur.KPSS.HLT <- function(y, const = FALSE, trim = 0.15) {
+uroot.HLT <- function(y, const = FALSE, trim = 0.15) {
   if (!is.matrix(y)) {
     y <- as.matrix(y)
   }
 
   N <- nrow(y)
-  m.ksi <- ifelse(const, 1.052, 0.853)
-  dy <- diff(y)
+  m_xi <- ifelse(const, 1.052, 0.853)
+  dy <- .diffn(y)[-1, , drop = FALSE]
 
   bp.min <- trunc(trim * N)
   bp.max <- trunc((1 - trim) * N)
@@ -29,8 +30,8 @@ ur.KPSS.HLT <- function(y, const = FALSE, trim = 0.15) {
   t0 <- -Inf
   t1 <- -Inf
 
-  var.y <- NA
-  var.dy <- NA
+  KPSS_y <- NA
+  KPSS_dy <- NA
 
   for (bp in bp.min:bp.max) {
     du <- .du(bp, N)
@@ -43,45 +44,43 @@ ur.KPSS.HLT <- function(y, const = FALSE, trim = 0.15) {
     )
 
     .model <- OLS.reg(y, x)
+    r <- .model$residuals
+    lrv_y <- .lr.var.bartlett(r)
+    invxx <- spdinv(t(x) %*% x)
 
-    .y.lr.var <- .lr.var.bartlett(.model$residuals)
-    .xx.inv <- qr.solve(t(x) %*% x)
-
-    .t0 <- abs(
+    t0_stats <- abs(
       .model$coefficients[ncol(x)] /
-        sqrt(.y.lr.var * .xx.inv[ncol(x), ncol(x)])
+        sqrt(lrv_y * invxx[ncol(x), ncol(x)])
     )
+
+    if (t0_stats > t0) {
+      t0 <- t0_stats
+      KPSS_y <- .kpss.statistic(r, lrv_y)
+    }
 
     x <- cbind(
       .const(N),
       if (const) .diffn(du) else NULL,
       du
-    )[-1, ]
+    )[2:N, ]
 
     .model <- OLS.reg(dy, x)
+    r <- .model$residuals
+    lrv_dy <- .lr.var.bartlett(r)
+    invxx <- spdinv(t(x) %*% x)
 
-    .dy.lr.var <- .lr.var.bartlett(.model$residuals)
-    .xx.inv <- qr.solve(t(x) %*% x)
-
-    .t1 <- abs(
+    t1_stats <- abs(
       .model$coefficients[ncol(x)] /
-        sqrt(.dy.lr.var * .xx.inv[ncol(x), ncol(x)])
+        sqrt(lrv_dy * invxx[ncol(x), ncol(x)])
     )
 
-    if (.t0 > t0) {
-      t0 <- .t0
-      var.y <- .y.lr.var
-    }
-    if (.t1 > t1) {
-      t1 <- .t1
-      var.dy <- .dy.lr.var
+    if (t1_stats > t1) {
+      t1 <- t1_stats
+      KPSS_dy <- .kpss.statistic(r, lrv_dy)
     }
   }
 
-  .kpss.y <- .kpss.statistic(.model$residuals, var.y)
-  .kpss.dy <- .kpss.statistic(.model$residuals, var.dy)
+  lam_KPSS <- exp(-(500 * KPSS_y * KPSS_dy)^2)
 
-  .kpss.lmb <- exp(-((500 * .kpss.y * .kpss.dy)^2))
-
-  .kpss.lmb * t0 + m.ksi * (1 - .kpss.lmb) * t1
+  lam_KPSS * t0 + m_xi * (1 - lam_KPSS) * t1
 }

@@ -4,7 +4,7 @@
 \alias{segments.BP}
 \title{Find \eqn{m + 1} optimal partitions using sequential procedure}
 \usage{
-segments.BP(y, x, m = 1, width = 2, SSR.data = NULL)
+segments.BP(y, x, m = 1, h = 2, SSR.data = NULL)
 }
 \arguments{
 \item{y}{(Tx1)-vector of the dependent variable.}
@@ -13,9 +13,9 @@ segments.BP(y, x, m = 1, width = 2, SSR.data = NULL)
 
 \item{m}{Number of breaks.}
 
-\item{width}{Minimum spacing between the breaks.}
-
 \item{SSR.data}{Optional matrix of recursive SSR's.}
+
+\item{width}{Minimum spacing between the breaks.}
 }
 \value{
 A list of:

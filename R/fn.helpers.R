@@ -20,7 +20,9 @@
     }
   }
 
-  if (!is.matrix(x)) x <- as.matrix(x)
+  if (!is.matrix(x)) {
+    x <- as.matrix(x)
+  }
   apply(x, 2, (function(col) .lag(col, i, na)))
 }
 
@@ -36,17 +38,16 @@
 #' @return Vector or matrix of differences.
 #'
 #' @keywords internal
-.diffn <- function(x,
-                   lag = 1,
-                   differences = 1,
-                   na = NA) {
+.diffn <- function(x, lag = 1, differences = 1, na = NA) {
   .diff <- function(x, l, d, na) {
     N <- length(x)
     tmp <- diff(x, lag = l, differences = d)
     c(rep(na, N - length(tmp)), tmp)
   }
 
-  if (!is.matrix(x)) x <- as.matrix(x)
+  if (!is.matrix(x)) {
+    x <- as.matrix(x)
+  }
   apply(x, 2, (function(col) .diff(col, lag, differences, na)))
 }
 
@@ -58,12 +59,9 @@
 #' @param variance A value of the long-run variance.
 #'
 #' @keywords internal
-.kpss.statistic <- function(resids,
-                            variance) {
-  if (!is.matrix(resids)) resids <- as.matrix(resids)
-  N <- nrow(resids)
-  s_t <- apply(resids, 2, cumsum)
-  drop(t(s_t) %*% s_t) / (N^2 * variance)
+.kpss.statistic <- function(resids, variance) {
+  N <- length(resids)
+  sum(cumsum(resids)^2) / (N^2 * variance)
 }
 
 
@@ -89,16 +87,14 @@
 #' Kennedy School of Government, Harvard University, 1990.
 #'
 #' @keywords internal
-.mz.statistics <- function(y,
-                           l,
-                           const = FALSE,
-                           trend = FALSE) {
+.mz.statistics <- function(y, l, const = FALSE, trend = FALSE) {
   n_obs <- nrow(y)
   .adf <- ADF.test(y, const, trend, l, criterion = NULL)
 
   denom <- 1 - sum(.adf$coefficients) + .adf$alpha
   s_2 <- drop(t(.adf$residuals) %*% .adf$residuals) /
-    (nrow(.adf$residuals) - (1 + l)) / denom^2
+    (nrow(.adf$residuals) - (1 + l)) /
+    denom^2
   sum_y2 <- sum(.adf$yd[1:(n_obs - 1)]^2)
 
   mza <- (y[n_obs]^2 / n_obs - s_2) / (2 * sum_y2 / n_obs^2)

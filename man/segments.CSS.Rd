@@ -4,14 +4,14 @@
 \alias{segments.CSS}
 \title{Procedure to minimize the SSR for 1 break point}
 \usage{
-segments.CSS(beg, end, bp.min, bp.max, len, SSR.data)
+segments.CSS(beg, end, bp.min, bp.max, N, SSR.data)
 }
 \arguments{
 \item{beg}{Start of the sample.}
 
 \item{end}{End of the sample.}
 
-\item{len}{Total number of observations.}
+\item{N}{Total number of observations.}
 
 \item{SSR.data}{The matrix of recursive SSR values.}
 

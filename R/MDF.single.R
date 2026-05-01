@@ -128,17 +128,14 @@ MDF.1br <- function(
   ## OLS/GLS Part ##
   ## Mean case
   r_OLS_m <- OLS.reg(y, x[, 1, drop = FALSE])$residuals
-  k_m <- max(
-    1,
-    ADF.test(
-      r_OLS_m,
-      const = FALSE,
-      trend = FALSE,
-      max.lag = max.lag,
-      criterion = "aic",
-      modified.criterion = TRUE
-    )$lag
-  )
+  k_m <- ADF.test(
+    r_OLS_m,
+    const = FALSE,
+    trend = FALSE,
+    max.lag = max.lag,
+    criterion = "aic",
+    modified.criterion = TRUE
+  )$lag
 
   DF_OLS_m <- ADF.test(
     r_OLS_m,
@@ -159,17 +156,14 @@ MDF.1br <- function(
 
   ## Trend case
   r_OLS_t <- OLS.reg(y, x[, 1:2])$residuals
-  k_t <- max(
-    1,
-    ADF.test(
-      r_OLS_t,
-      const = FALSE,
-      trend = FALSE,
-      max.lag = max.lag,
-      criterion = "aic",
-      modified.criterion = TRUE
-    )$lag
-  )
+  k_t <- ADF.test(
+    r_OLS_t,
+    const = FALSE,
+    trend = FALSE,
+    max.lag = max.lag,
+    criterion = "aic",
+    modified.criterion = TRUE
+  )$lag
 
   DF_OLS_t <- ADF.test(
     r_OLS_t,
@@ -201,17 +195,14 @@ MDF.1br <- function(
     )
 
     r_OLS <- OLS.reg(y, z)$residuals
-    k_tb <- max(
-      1,
-      ADF.test(
-        r_OLS,
-        const = FALSE,
-        trend = FALSE,
-        max.lag = max.lag,
-        criterion = "aic",
-        modified.criterion = TRUE
-      )$lag
-    )
+    k_tb <- ADF.test(
+      r_OLS,
+      const = FALSE,
+      trend = FALSE,
+      max.lag = max.lag,
+      criterion = "aic",
+      modified.criterion = TRUE
+    )$lag
 
     DF1 <- ADF.test(
       r_OLS,
@@ -220,7 +211,7 @@ MDF.1br <- function(
       max.lag = k_tb,
       criterion = NULL
     )
-    DF1_tb <- N * DF1$alpha / (1 - sum(DF1$coefficients) + DF1$alpha)
+    DF1_tb <- N * DF1$alpha / (1 - sum(DF1$model$coefficients) + DF1$alpha)
 
     r_GLS <- GLS.reg(y, z, -17.6)$residuals
     DF2_tb <- ADF.test(
@@ -235,7 +226,7 @@ MDF.1br <- function(
     MDF_GLS <- min(MDF_GLS, DF2_tb)
   }
 
-  t_HLT <- ur.KPSS.HLT(y, const, trim)
+  t_HLT <- uroot.HLT(y, const, trim)
 
   tmp.PY <- PY.statistic(y, const, trend, criterion, trim, max.lag)
   t_PY <- tmp.PY$statistic

@@ -38,7 +38,7 @@ robust.tests.multiple <- function(
     y = y,
     const = const,
     breaks = breaks,
-    criterion = "aic",
+    criterion = "bic",
     trim = trim
   )
 
@@ -132,17 +132,14 @@ MDF.mlt <- function(
   ## GLS case
   r_GLS_t <- GLS.reg(y, x, -13.5)$residuals
   r_OLS_t <- OLS.reg(y, x)$residuals
-  k_t <- max(
-    1,
-    ADF.test(
-      r_OLS_t,
-      const = FALSE,
-      trend = FALSE,
-      max.lag = kmax,
-      criterion = "aic",
-      modified.criterion = TRUE
-    )$lag
-  )
+  k_t <- ADF.test(
+    r_OLS_t,
+    const = FALSE,
+    trend = FALSE,
+    max.lag = kmax,
+    criterion = "aic",
+    modified.criterion = TRUE
+  )$lag
 
   DF_GLS_t <- ADF.test(
     r_GLS_t,
@@ -175,17 +172,14 @@ MDF.mlt <- function(
     )
 
     r_OLS <- OLS.reg(y, x)$residuals
-    k_t <- max(
-      1,
-      ADF.test(
-        r_OLS,
-        const = FALSE,
-        trend = FALSE,
-        max.lag = kmax,
-        criterion = "aic",
-        modified.criterion = TRUE
-      )$lag
-    )
+    k_t <- ADF.test(
+      r_OLS,
+      const = FALSE,
+      trend = FALSE,
+      max.lag = kmax,
+      criterion = "aic",
+      modified.criterion = TRUE
+    )$lag
 
     DF1 <- ADF.test(
       r_OLS,
@@ -197,7 +191,7 @@ MDF.mlt <- function(
     MDF_OLS1 <- min(
       MDF_OLS1,
       if (!ZA) {
-        denom <- 1 - sum(DF1$coefficients) + DF1$alpha
+        denom <- 1 - sum(DF1$model$coefficients) + DF1$alpha
         N * DF1$alpha / denom
       } else {
         DF1$t.alpha
@@ -231,17 +225,14 @@ MDF.mlt <- function(
       )
 
       r_OLS <- OLS.reg(y, x)$residuals
-      k_t <- max(
-        1,
-        ADF.test(
-          r_OLS,
-          const = FALSE,
-          trend = FALSE,
-          max.lag = kmax,
-          criterion = "aic",
-          modified.criterion = TRUE
-        )$lag
-      )
+      k_t <- ADF.test(
+        r_OLS,
+        const = FALSE,
+        trend = FALSE,
+        max.lag = kmax,
+        criterion = "aic",
+        modified.criterion = TRUE
+      )$lag
 
       DF2 <- ADF.test(
         r_OLS,
@@ -253,7 +244,7 @@ MDF.mlt <- function(
       MDF_OLS2 <- min(
         MDF_OLS2,
         if (!ZA) {
-          denom <- 1 - sum(DF2$coefficients) + DF2$alpha
+          denom <- 1 - sum(DF2$model$coefficients) + DF2$alpha
           N * DF2$alpha / denom
         } else {
           DF2$t.alpha
@@ -291,17 +282,14 @@ MDF.mlt <- function(
         )
 
         r_OLS <- OLS.reg(y, x)$residuals
-        k_t <- max(
-          1,
-          ADF.test(
-            r_OLS,
-            const = FALSE,
-            trend = FALSE,
-            max.lag = kmax,
-            criterion = "aic",
-            modified.criterion = TRUE
-          )$lag
-        )
+        k_t <- ADF.test(
+          r_OLS,
+          const = FALSE,
+          trend = FALSE,
+          max.lag = kmax,
+          criterion = "aic",
+          modified.criterion = TRUE
+        )$lag
 
         DF3 <- ADF.test(
           r_OLS,
@@ -313,7 +301,7 @@ MDF.mlt <- function(
         MDF_OLS3 <- min(
           MDF_OLS3,
           if (!ZA) {
-            denom <- 1 - sum(DF3$coefficients) + DF3$alpha
+            denom <- 1 - sum(DF3$model$coefficients) + DF3$alpha
             N * DF3$alpha / denom
           } else {
             DF3$t.alpha
@@ -600,7 +588,7 @@ breaktest.KP <- function(
   y,
   const = FALSE,
   breaks = 1,
-  criterion = "aic",
+  criterion = "bic",
   trim = 0.15
 ) {
   if (!is.matrix(y)) {
@@ -679,13 +667,13 @@ KP.seq.statistic <- function(
 
   model <- ifelse(const, 2, 1)
   R <- .cval_PY_sequential[[model]]$R
-  v.t <- .cval_PY_sequential[[model]]$v.t
+  v_t <- .cval_PY_sequential[[model]]$v.t
 
   N <- nrow(y)
   h <- trunc(trim * N)
 
   if (breaks == 0) {
-    datevec <- c(1, N + 1)
+    datevec <- c(0, N)
   } else {
     SSR.data <- SSR.matrix(y, cbind(.const(N), .trend(N)), h)
     dates <- segments.BP(
@@ -695,7 +683,7 @@ KP.seq.statistic <- function(
       h,
       SSR.data
     )
-    datevec <- c(1, sort(drop(dates$break.point)), N + 1)
+    datevec <- c(0, sort(drop(dates$break.point)), N)
   }
   wald <- NULL
 
@@ -703,47 +691,49 @@ KP.seq.statistic <- function(
     T_i <- datevec[i + 1] - datevec[i]
     vect1 <- NULL
 
-    t.low <- max(trunc(datevec[i] + T_i * trim), max.lag + 2)
-    t.high <- trunc(datevec[i + 1] - T_i * trim)
+    tbL <- max(trunc(datevec[i] + T_i * trim), max.lag + 2)
+    tbH <- trunc(datevec[i + 1] - T_i * trim)
 
-    if (t.low < t.high - 1) {
-      for (tb in t.low:t.high) {
-        lam1 <- (tb - 1) / (datevec[i + 1] - 1)
+    if (tbL < tbH - 1) {
+      for (tb in tbL:tbH) {
+        lam1 <- tb / datevec[i + 1]
 
         reg <- cbind(
           .const(N),
-          if (const) .du(tb - 1, N) else NULL,
-          .trend(N) - (datevec[i] - 1),
-          .dt(tb - 1, N)
+          if (const) .du(tb, N) else NULL,
+          .trend(N) - datevec[i],
+          .dt(tb, N)
         )
 
-        y_i <- y[datevec[i]:(datevec[i + 1] - 1), , drop = FALSE]
-        reg_i <- reg[datevec[i]:(datevec[i + 1] - 1), , drop = FALSE]
+        y_i <- y[(datevec[i] + 1):datevec[i + 1], , drop = FALSE]
+        reg_i <- reg[(datevec[i] + 1):datevec[i + 1], , drop = FALSE]
 
         khat <- max(1, AR.reg(y_i, reg_i, max.lag, criterion)$lag)
 
-        u <- OLS.reg(y_i, reg_i)$residuals
+        #u <- OLS.reg(y_i, reg_i)$residuals
+        u <- y_i - reg_i %*% solve(t(reg_i) %*% reg_i, t(reg_i) %*% y_i)
         du <- .diffn(u, na = 0)
 
-        depu <- u[khat:length(u)]
         regu <- .lagn(u, 1, na = 0)
         for (l in seq_len(khat - 1)) {
           regu <- cbind(regu, .lagn(du, l, na = 0))
         }
+
+        depu <- u[khat:length(u)]
         regu <- regu[khat:length(u), , drop = FALSE]
 
         tmp.OLS <- OLS.reg(depu, regu)
         b <- tmp.OLS$coefficients
         ehat <- tmp.OLS$residuals
 
-        VCV <- solve(t(regu) %*% regu) * sum(ehat^2) / length(ehat)
+        VCV <- spdinv(t(regu) %*% regu) * sum(ehat^2) / length(ehat)
 
         ahat <- b[1]
         vahat <- VCV[1, 1]
         tau1 <- (ahat - 1) / sqrt(vahat)
 
         # Upper Biased Estimator
-        t05 <- v.t[ceiling(lam1 * 10)]
+        t05 <- v_t[ceiling(lam1 * 10)]
 
         IP <- trunc((khat + 1) / 2)
         r <- ncol(reg)
@@ -779,14 +769,14 @@ KP.seq.statistic <- function(
         }
 
         gdep <- rbind(
-          y[datevec[i], , drop = FALSE],
-          y[(datevec[i] + 1):(datevec[i + 1] - 1), , drop = FALSE] -
-            amus * y[datevec[i]:(datevec[i + 1] - 2), , drop = FALSE] # nolint
+          y[datevec[i] + 1, , drop = FALSE],
+          y[(datevec[i] + 2):datevec[i + 1], , drop = FALSE] -
+            amus * y[(datevec[i] + 1):(datevec[i + 1] - 1), , drop = FALSE] # nolint
         )
         greg <- rbind(
-          reg[datevec[i], , drop = FALSE],
-          reg[(datevec[i] + 1):(datevec[i + 1] - 1), , drop = FALSE] -
-            amus * reg[datevec[i]:(datevec[i + 1] - 2), , drop = FALSE] # nolint
+          reg[datevec[i] + 1, , drop = FALSE],
+          reg[(datevec[i] + 2):datevec[i + 1], , drop = FALSE] -
+            amus * reg[(datevec[i] + 1):(datevec[i + 1] - 1), , drop = FALSE] # nolint
         )
 
         tmp.OLS <- OLS.reg(gdep, greg)
@@ -817,19 +807,20 @@ KP.seq.statistic <- function(
               for (ki in seq_len(khat - 1)) {
                 regki <- cbind(
                   .const(N),
-                  .du(tb - ki - 1, N),
+                  .du(tb - ki, N),
                   .trend(N),
-                  .du(tb - ki - 1, N) * (.trend(N) - (tb - 1))
+                  .du(tb - ki, N) * (.trend(N) - tb)
                 )
                 gdepki <- rbind(
-                  y[datevec[i], , drop = FALSE],
-                  y[(datevec[i] + 1):(datevec[i + 1] - 1), , drop = FALSE] - # nolint
-                    amus * y[(datevec[i]):(datevec[i + 1] - 2), , drop = FALSE] # nolint
+                  y[datevec[i] + 1, , drop = FALSE],
+                  y[(datevec[i] + 2):datevec[i + 1], , drop = FALSE] - # nolint
+                    amus *
+                      y[(datevec[i] + 1):(datevec[i + 1] - 1), , drop = FALSE] # nolint
                 )
                 gregki <- rbind(
-                  reg[datevec[i], ],
-                  regki[(datevec[i] + 1):(datevec[i + 1] - 1), ] - # nolint
-                    amus * regki[datevec[i]:(datevec[i + 1] - 2), ] # nolint
+                  reg[datevec[i] + 1, ],
+                  regki[(datevec[i] + 2):datevec[i + 1], ] - # nolint
+                    amus * regki[(datevec[i] + 1):(datevec[i + 1] - 1), ] # nolint
                 )
                 vbeta[ki, ] <- drop(OLS.reg(gdepki, gregki)$coefficients)
               }
@@ -853,9 +844,9 @@ KP.seq.statistic <- function(
         )
       }
 
-      wald <- c(wald, log(sum(exp(vect1 / 2)) / T_i))
+      wald <- max(wald, log(sum(exp(vect1 / 2)) / T_i))
     }
   }
 
-  max(wald)
+  wald
 }

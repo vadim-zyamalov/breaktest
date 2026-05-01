@@ -4,7 +4,7 @@
 \alias{breaktest.KP}
 \title{Kejrival-Perron procedure of breaks number detection}
 \usage{
-breaktest.KP(y, const = FALSE, breaks = 1, criterion = "aic", trim = 0.15)
+breaktest.KP(y, const = FALSE, breaks = 1, criterion = "bic", trim = 0.15)
 }
 \arguments{
 \item{y}{An input series of interest.}

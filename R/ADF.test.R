@@ -105,12 +105,12 @@ ADF.test <- function(
     y <- as.matrix(y)
   }
 
-  cN <- nrow(y)
-  rows <- (1 + max.lag):cN
+  N <- nrow(y)
+  rows <- (2 + max.lag):N
 
   mDeter <- cbind(
-    if (const) .const(cN) else NULL,
-    if (trend) .trend(cN) else NULL
+    if (const) .const(N) else NULL,
+    if (trend) .trend(N) else NULL
   )
 
   ## Detrending
@@ -125,11 +125,8 @@ ADF.test <- function(
 
   diffY <- .diffn(y)
   mX <- .lagn(y, 1)
-  if (max.lag > 0) {
-    mX <- cbind(
-      mX,
-      apply(as.array(1:max.lag), 1, function(l) .lagn(diffY, l))
-    )
+  for (l in seq_len(max.lag)) {
+    mX <- cbind(mX, .lagn(diffY, l))
   }
 
   if (is.null(criterion)) {
@@ -160,11 +157,7 @@ ADF.test <- function(
     )[[criterion]]
     rLag <- 0
 
-    for (l in 1:max.lag) {
-      if (max.lag == 0) {
-        break
-      }
-
+    for (l in seq_len(max.lag)) {
       if (rescale.criterion) {
         tmp.rescale <- rescale.CPST(diffY, mX, mDeter, l, max.lag)
         diffYr <- tmp.rescale$d.y
@@ -201,22 +194,17 @@ ADF.test <- function(
     mX[rows, 1:(1 + rLag), drop = FALSE]
   )
 
-  dZstat <- (cN - rLag - 1) * drop(res.OLS$coefficients[1] - 1)
+  dZstat <- (N - rLag - 1) * drop(res.OLS$coefficients[1] - 1)
 
   result <- list(
-    # y = drop(y),
-    # yd = drop(diffY),
     const = const,
     trend = trend,
     model = res.OLS,
-    # coefs = res.OLS$coefficients,
-    # t.stats = drop(res.OLS$t.stats),
     alpha = as.numeric(res.OLS$coefficients[1]),
     t.alpha = as.numeric(res.OLS$t.stats[1]),
     Z.stat = dZstat,
     lag = rLag,
     recursive = recursive
-    # residuals = res.OLS$residuals,
   )
   class(result) <- "bt_adf"
 

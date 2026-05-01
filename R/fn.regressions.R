@@ -13,7 +13,9 @@
 #' * `predict`: forecasted values,
 #' * `t.beta`: \eqn{t}-statistics for `beta`.
 #'
-#' @importFrom stats .lm.fit
+#' @importFrom Rfast rowAll
+#' @importFrom Rfast lmfit
+#' @importFrom Rfast spdinv
 #'
 #' @keywords internal
 OLS.reg <- function(y, x) {
@@ -26,29 +28,30 @@ OLS.reg <- function(y, x) {
 
   N <- length(y)
 
-  yrows <- apply(y, 1, function(r) any(is.na(r)))
-  xrows <- apply(x, 1, function(r) any(is.na(r)))
-  rows <- !yrows & !xrows
+  rows <- rowAll(!is.na(y)) & rowAll(!is.na(x))
 
   y <- y[rows, , drop = FALSE]
   x <- x[rows, , drop = FALSE]
 
-  .model <- lm.fit(x, y)
+  .model <- lmfit(x, y)
   r <- .model$residuals
-  cf <- .model$coefficients
+  cf <- drop(.model$be)
   s.sq <- sum(r^2) / (nrow(x) - ncol(x))
-  se.cf <- sqrt(diag(s.sq * solve(t(x) %*% x)))
+  se.cf <- sqrt(diag(s.sq * spdinv(t(x) %*% x)))
   t.beta <- cf / se.cf
 
   resid <- rep(NA, N)
   resid[rows] <- r
 
+  fitted <- rep(NA, N)
+  fitted[rows] <- y - r
+
   result <- list(
-    coefficients = as.matrix(cf),
+    coefficients = cf,
     se.coefs = se.cf,
     t.stats = t.beta,
     residuals = resid,
-    fitted.values = .model$fitted.values,
+    fitted.values = fitted,
     endog = y,
     exog = x
   )

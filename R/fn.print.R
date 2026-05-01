@@ -232,6 +232,12 @@ print.bt_robustUR <- function(obj, ...) {
 #' @export
 print.bt_robustURN <- function(obj, ...) {
   cat(sprintf("Estimated break moment: %d\n", obj$breaks.star))
+  cat(sprintf(
+    "Statistic F(%d,%d) = %.4f\n",
+    obj$KP.sequential$breaks,
+    obj$KP.sequential$breaks + 1,
+    obj$KP.sequential$statistic
+  ))
   cat("\t\tstat\tc.v.\n\n")
   for (v in c("MDF.GLS.1", "MDF.OLS.1", "MDF.GLS.2", "MDF.OLS.2")) {
     cat(
