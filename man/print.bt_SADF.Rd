@@ -8,6 +8,8 @@
 \alias{print.cointGH}
 \alias{print.bt_robustUR}
 \alias{print.bt_robustURN}
+\alias{print.bt_cointPR}
+\alias{print.bt_confSet}
 \title{Custom functions for printing results in a nice way.}
 \usage{
 \method{print}{bt_SADF}(x, ...)
@@ -23,6 +25,10 @@
 \method{print}{bt_robustUR}(obj, ...)
 
 \method{print}{bt_robustURN}(obj, ...)
+
+\method{print}{bt_cointPR}(obj, ...)
+
+\method{print}{bt_confSet}(obj, ...)
 }
 \arguments{
 \item{x}{An object containing results.}

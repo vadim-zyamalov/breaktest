@@ -250,3 +250,44 @@ print.bt_robustURN <- function(obj, ...) {
     )
   }
 }
+
+
+#' @rdname print.bt_SADF
+#' @keywords internal
+#' @export
+print.bt_cointPR <- function(obj, ...) {
+  mstr <- max(mapply(nchar, names(obj)))
+  cat("Perron-Rodríguez testing procedure\n\n")
+  cat(sprintf(paste0("%", mstr, "s \tstat.\tcr.value\n"), ""))
+  for (v in names(obj)) {
+    if (v == "lag") {
+      cat(sprintf("\n\nInternal ADF lag length: %d", obj[[v]]))
+    } else {
+      cat(sprintf(
+        paste0("%", mstr, "s:\t% 6.3f\t% 6.3f\n"),
+        v,
+        obj[[v]]$statistic,
+        obj[[v]]$c.value
+      ))
+    }
+  }
+}
+
+#' @rdname print.bt_SADF
+#' @keywords internal
+#' @export
+print.bt_confSet <- function(obj, ...) {
+  cat(
+    "Kurozumi-Skrobotov procedure to find confidence intervals",
+    "for a structural break date",
+    sep = "\n"
+  )
+  for (v in names(obj)) {
+    if (v == "td") {
+      cat(sprintf("Break date: %i\n\n", which(obj[[v]] == -1)))
+    } else {
+      Ts <- which(obj[[v]] == 1)
+      if (!length(Ts) == 0) cat(sprintf("%8s: [%i, %i]\n", v, min(Ts), max(Ts)))
+    }
+  }
+}

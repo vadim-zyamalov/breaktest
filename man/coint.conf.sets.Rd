@@ -9,8 +9,8 @@ coint.conf.sets(
   trend = FALSE,
   zb = NULL,
   zf = NULL,
-  z.lead = NULL,
-  z.lag = NULL,
+  nF = NULL,
+  nL = NULL,
   conf.level = 0.9,
   trim = 0.05,
   criterion = "bic"
@@ -25,7 +25,7 @@ coint.conf.sets(
 
 \item{zf}{I(1) regressors without break.}
 
-\item{z.lead, z.lag}{Number of leads and lags of \code{z} regressors.
+\item{nF, nL}{Number of leads and lags of \code{z} regressors.
 If any is NULL then both are estimated using informational \code{criterion}.}
 
 \item{conf.level}{Confidence level to obtain appropriate critical values.}

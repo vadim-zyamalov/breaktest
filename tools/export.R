@@ -11,8 +11,10 @@ source("tools/cvals_MDF_single.R")
 source("tools/cvals_MDF_multiple.R")
 source("tools/cvals_MDF_CHLT.R")
 source("tools/cbar_PR.R")
+source("tools/cvals_PR.R")
 
-save(.cval_kpss_1p,
+save(
+  .cval_kpss_1p,
   .cval_kpss_2p,
   .cval_SADF_without_const,
   .cval_SADF_with_const,
@@ -28,6 +30,7 @@ save(.cval_kpss_1p,
   .cval_MDF_multiple,
   .cval_MDF_CHLT,
   .cbar_PR,
+  .cval_PR,
   file = "sysdata.rda",
   compress = "xz"
 )

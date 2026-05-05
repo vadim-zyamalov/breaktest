@@ -5,13 +5,9 @@
 \title{Internal procedure for calculating test statistics from
 Perron-Rodriguez (2016)}
 \usage{
-statistics.PR(ud, min.lag, max.lag, c.bar, deter)
+statistics.PR(u, kmin, kmax, c.bar, deter)
 }
 \arguments{
-\item{ud}{A vector of residuals for testing.}
-
-\item{min.lag, max.lag}{Minimum and maximum lag number.}
-
 \item{c.bar}{A \code{c} parameter used for GLS detrending purposes.}
 
 \item{deter}{A value equal to
@@ -20,6 +16,10 @@ statistics.PR(ud, min.lag, max.lag, c.bar, deter)
 \item 2: quasi-detrended y and x,
 \item 3: quasi-demeaned y and quasi-detrended x.
 }}
+
+\item{ud}{A vector of residuals for testing.}
+
+\item{min.lag, max.lag}{Minimum and maximum lag number.}
 }
 \value{
 A list of:

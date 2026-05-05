@@ -10,4 +10,13 @@ res4 <- breaktest::PY.statistic(data$gdp, criterion = "bic", const = TRUE, trend
 res5 <- breaktest::KP.seq.statistic(data$gdp, breaks = 0, criterion = "bic", const = TRUE)
 
 res6 <- robust.tests.single(data$gdp, TRUE, TRUE)
+res6
+
 res7 <- robust.tests.multiple(data$gdp, TRUE, FALSE)
+res7
+
+res8 <- coint.PR(data$gdp, data$cons, 1)
+res8
+
+res9 <- coint.conf.sets(data$gdp, zb = data$cons)
+res9

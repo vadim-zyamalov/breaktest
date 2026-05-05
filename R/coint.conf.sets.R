@@ -9,7 +9,7 @@
 #' @param trend Whether the trend is to be included.
 #' @param zb I(1) regressors with break.
 #' @param zf I(1) regressors without break.
-#' @param z.lead,z.lag Number of leads and lags of `z` regressors.
+#' @param nF,nL Number of leads and lags of `z` regressors.
 #' If any is NULL then both are estimated using informational `criterion`.
 #' @param conf.level Confidence level to obtain appropriate critical values.
 #' @param trim The trimming parameter to find the lower and upper bounds of
@@ -31,8 +31,8 @@ coint.conf.sets <- function(
   trend = FALSE,
   zb = NULL,
   zf = NULL,
-  z.lead = NULL,
-  z.lag = NULL,
+  nF = NULL,
+  nL = NULL,
   conf.level = 0.9,
   trim = 0.05,
   criterion = "bic"
@@ -47,15 +47,15 @@ coint.conf.sets <- function(
     zf <- as.matrix(zf)
   }
 
-  if (is.null(z.lead) || is.null(z.lag)) {
-    ll.est <- select.lead.lag.KS(y, trend, zb, zf, trim, criterion)
-    z.lead <- ll.est$lead
-    z.lag <- ll.est$lag
+  if (is.null(nF) || is.null(nL)) {
+    estLF <- segments.KS(y, trend, zb, zf, trim, criterion)
+    nF <- estLF$lead
+    nL <- estLF$lag
   }
 
   N <- nrow(y)
-  td <- 1:N
-  rows <- (z.lag + 2):(N - z.lead)
+  td <- .trend(N)
+  rows <- (nL + 2):(N - nF)
 
   wb <- cbind(
     .const(N),
@@ -63,235 +63,159 @@ coint.conf.sets <- function(
     zb
   )
   z <- cbind(zb, zf)
-  d.z <- .diffn(z)
+  dz <- .diffn(z)
 
-  p.zb <- if (!is.null(zb)) ncol(zb) else 0
-  p.zf <- if (!is.null(zf)) ncol(zf) else 0
+  Nzb <- if (!is.null(zb)) ncol(zb) else 0
+  Nzf <- if (!is.null(zf)) ncol(zf) else 0
 
-  wf <- cbind(zf, d.z)
-
-  if (z.lead > 0) {
-    wf <- cbind(
-      wf,
-      apply(as.array(1:z.lead), 1, function(l) .lagn(d.z, -l))
-    )
+  wf <- cbind(zf, dz)
+  for (f in seq_len(nF)) {
+    wf <- cbind(wf, .lagn(dz, -f))
   }
-  if (z.lag > 0) {
-    wf <- cbind(
-      wf,
-      apply(as.array(1:z.lag), 1, function(l) .lagn(d.z, l))
-    )
+  for (l in seq_len(nL)) {
+    wf <- cbind(wf, .lagn(dz, l))
   }
 
-  td <- td[rows, , drop = FALSE]
+  td <- td[rows]
   y <- y[rows, , drop = FALSE]
   wb <- wb[rows, , drop = FALSE]
   wf <- wf[rows, , drop = FALSE]
 
-  N2 <- nrow(y)
-  lowerBreak1 <- trunc(2 * trim * N2)
-  upperBreak1 <- trunc((1 - 2 * trim) * N2)
-  lowerBreak2 <- trunc(trim * N2)
-  upperBreak2 <- trunc((1 - trim) * N2)
+  N <- nrow(y)
+  tb_L1 <- trunc(2 * trim * N)
+  tb_U1 <- trunc((1 - 2 * trim) * N)
+  tb_L2 <- trunc(trim * N)
+  tb_U2 <- trunc((1 - trim) * N)
 
-  cset.sup <- numeric(N2)
-  cset.avg <- numeric(N2)
-  cset.exp <- numeric(N2)
-  cset.bls <- numeric(N2)
+  csetSUP <- numeric(N)
+  csetAVG <- numeric(N)
+  csetEXP <- numeric(N)
+  csetBLS <- numeric(N)
 
   w <- cbind(wb, wf)
-  u.hat <- OLS.reg(y, w)$residuals
-  ssr.0 <- c(t(u.hat) %*% u.hat)
-  est.date <- N2
+  uhat <- OLS.reg(y, w)$residuals
+  minSSR <- sum(uhat^2)
+  Tb <- N
 
-  for (tb in lowerBreak1:upperBreak1) {
+  for (tb in tb_L1:tb_U1) {
     wb1 <- rbind(
       matrix(0, tb, ncol(wb)),
-      as.matrix(wb[(tb + 1):N2, ])
+      as.matrix(wb[(tb + 1):N, ])
     )
     w <- cbind(wb, wb1, wf)
-    u.hat <- OLS.reg(y, w)$residuals
-    ssr.1 <- sum(u.hat^2)
-    if (ssr.1 < ssr.0) {
-      ssr.0 <- ssr.1
-      est.date <- tb
+    uhat <- OLS.reg(y, w)$residuals
+    loopSSR <- sum(uhat^2)
+    if (loopSSR < minSSR) {
+      minSSR <- loopSSR
+      Tb <- tb
     }
   }
 
   wb1e <- rbind(
-    matrix(0, est.date, ncol(wb)),
-    as.matrix(wb[(est.date + 1):N2, ])
+    matrix(0, Tb, ncol(wb)),
+    as.matrix(wb[(Tb + 1):N, ])
   )
-  td[est.date, 1] <- -1
+  td[Tb] <- -1
 
   w <- cbind(wb1e, wb, wf)
-  b.hat <- solve(t(w) %*% w) %*% t(w) %*% y
-  u.hat <- y - w %*% b.hat
+  model <- OLS.reg(y, w)
+  bhat <- model$coefficients
+  uhat <- model$residuals
 
-  lrv.u <- LR.variance.single(
-    u.hat,
-    kernel = "Quadratic",
-    bw.selector = "Bartlett"
-  )
+  lrvU <- .lr.var.kurozumi(uhat)
 
-  l.hat <- (wb[est.date, ] %*% b.hat[seq_len(ncol(wb))])^2 / lrv.u
-  if (conf.level == 0.9) {
-    c.bls <- 7.686962
+  l.hat <- (wb[Tb, ] %*% bhat[seq_len(ncol(wb))])^2 / lrvU
+  c.bls <- if (conf.level == 0.9) {
+    7.686962
   } else if (conf.level == 0.95) {
-    c.bls <- 11.03281
+    11.03281
   }
 
   bdd <- trunc(c.bls / l.hat)
-  bls.l <- est.date - bdd - 1
-  bls.u <- est.date + bdd + 1
-  if (bls.l < 1) {
-    bls.l <- 1
-  }
-  if (bls.u > N2) {
-    bls.u <- N2
-  }
+  blsL <- max(1, Tb - bdd - 1)
+  blsU <- min(Tb + bdd + 1, N)
 
-  cset.bls[bls.l:bls.u] <- 1
+  csetBLS[blsL:blsU] <- 1
 
-  for (tb in lowerBreak1:upperBreak1) {
-    lambda.1 <- tb / N2
+  for (tb in tb_L1:tb_U1) {
+    lmb1 <- tb / N
 
     wb1 <- rbind(
       matrix(0, tb, ncol(wb)),
-      as.matrix(wb[(tb + 1):N2, ])
+      as.matrix(wb[(tb + 1):N, ])
     )
 
     w <- cbind(wb, wb1, wf)
 
-    y.hat <- OLS.reg(y, w)$residuals
+    yhat <- OLS.reg(y, w)$residuals
 
-    if (abs(tb - est.date) > ncol(wb)) {
-      we <- cbind(w, wb1e)
-    } else {
-      we <- w
-    }
-    be.hat <- solve(t(we) %*% we) %*% t(we) %*% y
-    u.hat <- y - we %*% be.hat
-    lrv.u2 <- LR.variance.single(
-      u.hat,
-      kernel = "Quadratic",
-      bw.selector = "Bartlett"
-    )
+    we <- cbind(w, if (abs(tb - Tb) > ncol(wb)) wb1e else NULL)
+    lrvU2 <- .lr.var.kurozumi(OLS.reg(y, we)$residuals)
 
-    sup.stat <- 0
-    avg.stat <- 0
-    exp.stat <- 0
+    SUPstat <- 0
+    AVGstat <- 0
+    EXPstat <- 0
 
     nbreak <- 0
     dbreak <- 0
 
-    for (tb2 in lowerBreak2:upperBreak2) {
-      lambda.2 <- tb2 / N2
+    for (tb2 in tb_L2:tb_U2) {
+      lmb2 <- tb2 / N
 
-      if (abs(lambda.2 - lambda.1) <= 0.05) {
+      if (abs(lmb2 - lmb1) <= 0.05) {
         dbreak <- dbreak + 1
       } else {
         wb2 <- rbind(
           matrix(0, tb2, ncol(wb)),
-          as.matrix(wb[(tb2 + 1):N2, ])
+          as.matrix(wb[(tb2 + 1):N, ])
         )
 
-        r <- wb2 - wb1
-        br.hat <- solve(t(w) %*% w) %*% t(w) %*% r
-        r.hat <- r - w %*% br.hat
+        r <- (wb2 - wb1)
+        rhat <- r - w %*% solve(crossprod(w), crossprod(w, r))
 
-        g <- t(r.hat) %*% y.hat
-        h <- t(r.hat) %*% r.hat
-        ghg <- c(t(g) %*% solve(h) %*% g) / lrv.u2
+        g <- crossprod(rhat, as.matrix(yhat))
+        h <- crossprod(rhat)
+        ghg <- c(t(g) %*% spdinv(h) %*% g) / lrvU2
 
-        if (sup.stat < ghg) {
-          sup.stat <- ghg
-        }
-
-        avg.stat <- avg.stat + ghg
-        exp.stat <- exp.stat + exp(ghg / 2)
+        SUPstat <- min(SUPstat, ghg)
+        AVGstat <- AVGstat + ghg
+        EXPstat <- EXPstat + exp(ghg / 2)
 
         nbreak <- nbreak + 1
       }
     }
 
-    avg.stat <- avg.stat / (nbreak - dbreak)
-    exp.stat <- log(exp.stat / (nbreak - dbreak))
+    AVGstat <- AVGstat / (nbreak - dbreak)
+    EXPstat <- log(EXPstat / (nbreak - dbreak))
 
     cv <- get.cv.coint.conf.sets(
-      lambda.1,
+      lmb1,
       trend,
       conf.level,
-      p.zb,
-      p.zf
+      Nzb,
+      Nzf
     )
-    if (sup.stat <= cv$cval_sup) {
-      cset.sup[tb] <- 1
+    if (SUPstat <= cv$cval_sup) {
+      csetSUP[tb] <- 1
     }
-    if (avg.stat <= cv$cval_avg) {
-      cset.avg[tb] <- 1
+    if (AVGstat <= cv$cval_avg) {
+      csetAVG[tb] <- 1
     }
-    if (exp.stat <= cv$cval_exp) {
-      cset.exp[tb] <- 1
+    if (EXPstat <= cv$cval_exp) {
+      csetEXP[tb] <- 1
     }
   }
 
-  if (z.lead == 0) {
-    td <- rbind(
-      matrix(0, (z.lag + 1), 1),
-      td
-    )
-    cset.sup <- rbind(
-      matrix(0, (z.lag + 1), 1),
-      matrix(cset.sup, N2, 1)
-    )
-    cset.avg <- rbind(
-      matrix(0, (z.lag + 1), 1),
-      matrix(cset.avg, N2, 1)
-    )
-    cset.exp <- rbind(
-      matrix(0, (z.lag + 1), 1),
-      matrix(cset.exp, N2, 1)
-    )
-    cset.bls <- rbind(
-      matrix(0, (z.lag + 1), 1),
-      matrix(cset.bls, N2, 1)
-    )
-  } else {
-    td <- rbind(
-      matrix(0, (z.lag + 1), 1),
-      td,
-      matrix(0, z.lead, 1)
-    )
-    cset.sup <- rbind(
-      matrix(0, (z.lag + 1), 1),
-      matrix(cset.sup, N2, 1),
-      matrix(0, z.lead, 1)
-    )
-    cset.avg <- rbind(
-      matrix(0, (z.lag + 1), 1),
-      matrix(cset.avg, N2, 1),
-      matrix(0, z.lead, 1)
-    )
-    cset.exp <- rbind(
-      matrix(0, (z.lag + 1), 1),
-      matrix(cset.exp, N2, 1),
-      matrix(0, z.lead, 1)
-    )
-    cset.bls <- rbind(
-      matrix(0, (z.lag + 1), 1),
-      matrix(cset.bls, N2, 1),
-      matrix(0, z.lead, 1)
-    )
-  }
-
-  list(
-    td = td,
-    cset.sup = cset.sup,
-    cset.avg = cset.avg,
-    cset.exp = cset.exp,
-    cset.bls = cset.bls
+  result <- list(
+    td = c(rep(0, nL + 1), td, rep(0, nF)),
+    cset.sup = c(rep(0, nL + 1), csetSUP, rep(0, nF)),
+    cset.avg = c(rep(0, nL + 1), csetAVG, rep(0, nF)),
+    cset.exp = c(rep(0, nL + 1), csetEXP, rep(0, nF)),
+    cset.bls = c(rep(0, nL + 1), csetBLS, rep(0, nF))
   )
+  class(result) <- "bt_confSet"
+
+  result
 }
 
 
@@ -318,7 +242,7 @@ coint.conf.sets <- function(
 #' https://doi.org/10.1111/obes.12223.
 #'
 #' @keywords internal
-select.lead.lag.KS <- function(
+segments.KS <- function(
   y,
   trend = TRUE,
   zb = NULL,
@@ -342,8 +266,8 @@ select.lead.lag.KS <- function(
 
   N <- nrow(y)
 
-  first.break <- trunc(2 * trim * N)
-  last.break <- trunc((1 - 2 * trim) * N)
+  tb_L <- trunc(2 * trim * N)
+  tb_U <- trunc((1 - 2 * trim) * N)
 
   wb <- cbind(
     .const(N),
@@ -353,85 +277,88 @@ select.lead.lag.KS <- function(
 
   z <- cbind(zb, zf)
   w <- cbind(wb, zf)
-  d.z <- .diffn(z)
+  uhat <- OLS.reg(y, w)$residuals
+  minSSR <- sum(uhat^2)
+  Tb <- N
+  wbb <- NULL
 
-  wf <- cbind(zf, d.z)
+  for (tb in tb_L:tb_U) {
+    loopWb <- rbind(matrix(0, tb, ncol(wb)), wb[(tb + 1):N, , drop = FALSE])
+    w <- cbind(wb, loopWb, zf)
+    uhat <- OLS.reg(y, w)$residuals
+    loopSSR <- sum(uhat^2)
 
-  u.hat <- OLS.reg(y, w)$residuals
-  ssr.0 <- drop(t(u.hat) %*% u.hat)
-  est.date <- N
-
-  for (t in first.break:last.break) {
-    wb1 <- rbind(rep(0, t), wb[(t + 1):N, , drop = FALSE])
-    w <- cbind(wb, wb1, zf)
-    u.hat <- OLS.reg(y, w)$residuals
-    ssr.1 <- drop(t(u.hat) %*% u.hat)
-
-    if (ssr.1 < ssr.0) {
-      ssr.0 <- ssr.1
-      est.date <- t
+    if (loopSSR < minSSR) {
+      minSSR <- loopSSR
+      Tb <- tb
+      wbb <- loopWb
     }
   }
 
-  est.dt <- wb[(est.date + 1):N, , drop = FALSE]
+  dz <- .diffn(z)
+  wf <- cbind(zf, dz)
+
   y <- y[2:N, , drop = FALSE]
   wb <- wb[2:N, , drop = FALSE]
   wf <- wf[2:N, , drop = FALSE]
+  wbb <- wbb[2:N, , drop = FALSE]
+  dz <- dz[2:N, , drop = FALSE]
 
   N <- nrow(y)
 
-  max.lead.lag <- trunc(4 * (N / 100)^(1 / 4))
-  if ((est.date - max.lead.lag - 1) <= ncol(wb)) {
-    max.lead.lag <- est.date - ncol(wb) - 2
-  } else if ((N - max.lead.lag - est.date) <= ncol(wb)) {
-    max.lead.lag <- N - est.date - ncol(wb) - 1
+  maxLF <- trunc(4 * (N / 100)^(1 / 4))
+  if ((Tb - maxLF - 1) <= ncol(wb)) {
+    maxLF <- Tb - ncol(wb) - 2
+  } else if ((N - maxLF - Tb) <= ncol(wb)) {
+    maxLF <- N - Tb - ncol(wb) - 1
   }
 
-  y.0 <- as.matrix(y[(max.lead.lag + 1):(N - max.lead.lag), ])
-  w.0 <- cbind(
-    as.matrix(wb[(max.lead.lag + 1):(N - max.lead.lag), ]),
-    as.matrix(est.dt[(max.lead.lag + 1):(N - max.lead.lag), ]),
-    as.matrix(wf[(max.lead.lag + 1):(N - max.lead.lag), ])
+  y0 <- y[(maxLF + 1):(N - maxLF), ]
+  w0 <- cbind(
+    wb[(maxLF + 1):(N - maxLF), ],
+    wbb[(maxLF + 1):(N - maxLF), ],
+    wf[(maxLF + 1):(N - maxLF), ]
   )
 
-  u.hat <- OLS.reg(y.0, w.0)$residuals
-  min.ic <- info.criterions(u.hat, ncol(w.0))[[criterion]]
-  est.lead <- 0
-  est.lag <- 0
+  uhat <- OLS.reg(y0, w0)$residuals
+  minIC <- info.criterions(uhat, ncol(w0))[[criterion]]
+  estL <- 0
+  estF <- 0
 
-  for (cur.lead in 1:max.lead.lag) {
-    for (cur.lag in 1:max.lead.lag) {
-      w.1 <- w.0
-      for (k in 1:cur.lead) {
-        w.1 <- cbind(
-          w.1,
+  for (loopL in 1:maxLF) {
+    for (loopF in 1:maxLF) {
+      loopW <- w0
+      for (k in 1:loopL) {
+        loopW <- cbind(
+          loopW,
           as.matrix(
-            d.z[(max.lead.lag + 1 - k):(N - max.lead.lag - k), ]
+            dz[(maxLF + 1 - k):(N - maxLF - k), ]
           )
         )
       }
-      for (k in 1:cur.lag) {
-        w.1 <- cbind(
-          w.1,
+      for (k in 1:loopF) {
+        loopW <- cbind(
+          loopW,
           as.matrix(
-            d.z[(max.lead.lag + 1 + k):(N - max.lead.lag + k), ]
+            dz[(maxLF + 1 + k):(N - maxLF + k), ]
           )
         )
       }
 
-      u.hat <- OLS.reg(y.0, w.1)$residuals
+      uhat <- OLS.reg(y0, loopW)$residuals
 
-      cur.ic <- info.criterions(u.hat, ncol(w.1))[[criterion]]
-      if (cur.ic < min.ic) {
-        est.lead <- cur.lead
-        est.lag <- cur.lag
-        min.ic <- cur.ic
+      loopIC <- info.criterions(uhat, ncol(loopW))[[criterion]]
+      if (loopIC < minIC) {
+        estL <- loopL
+        estF <- loopF
+        minIC <- loopIC
       }
     }
   }
 
   list(
-    lead = est.lead,
-    lag = est.lag
+    bp = Tb,
+    lead = estF,
+    lag = estL
   )
 }
