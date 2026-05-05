@@ -11,7 +11,7 @@
 #' @param trim Trimming value for a possible break date bounds.
 #'
 #' @export
-robust.tests.single <- function(
+uroot.robust <- function(
   y,
   const = FALSE,
   trend = FALSE,
@@ -128,7 +128,7 @@ MDF.1br <- function(
   ## OLS/GLS Part ##
   ## Mean case
   r_OLS_m <- OLS.reg(y, x[, 1, drop = FALSE])$residuals
-  k_m <- ADF.test(
+  k_m <- uroot.ADF(
     r_OLS_m,
     const = FALSE,
     trend = FALSE,
@@ -137,7 +137,7 @@ MDF.1br <- function(
     modified.criterion = TRUE
   )$lag
 
-  DF_OLS_m <- ADF.test(
+  DF_OLS_m <- uroot.ADF(
     r_OLS_m,
     const = FALSE,
     trend = FALSE,
@@ -146,7 +146,7 @@ MDF.1br <- function(
   )$t.alpha
 
   r_GLS_m <- GLS.reg(y, x[, 1, drop = FALSE], -7)$residuals
-  DF_GLS_m <- ADF.test(
+  DF_GLS_m <- uroot.ADF(
     r_GLS_m,
     const = FALSE,
     trend = FALSE,
@@ -156,7 +156,7 @@ MDF.1br <- function(
 
   ## Trend case
   r_OLS_t <- OLS.reg(y, x[, 1:2])$residuals
-  k_t <- ADF.test(
+  k_t <- uroot.ADF(
     r_OLS_t,
     const = FALSE,
     trend = FALSE,
@@ -165,7 +165,7 @@ MDF.1br <- function(
     modified.criterion = TRUE
   )$lag
 
-  DF_OLS_t <- ADF.test(
+  DF_OLS_t <- uroot.ADF(
     r_OLS_t,
     const = FALSE,
     trend = FALSE,
@@ -174,7 +174,7 @@ MDF.1br <- function(
   )$t.alpha
 
   r_GLS_t <- GLS.reg(y, x[, 1:2], -13.5)$residuals
-  DF_GLS_t <- ADF.test(
+  DF_GLS_t <- uroot.ADF(
     r_GLS_t,
     const = FALSE,
     trend = FALSE,
@@ -195,7 +195,7 @@ MDF.1br <- function(
     )
 
     r_OLS <- OLS.reg(y, z)$residuals
-    k_tb <- ADF.test(
+    k_tb <- uroot.ADF(
       r_OLS,
       const = FALSE,
       trend = FALSE,
@@ -204,7 +204,7 @@ MDF.1br <- function(
       modified.criterion = TRUE
     )$lag
 
-    DF1 <- ADF.test(
+    DF1 <- uroot.ADF(
       r_OLS,
       const = FALSE,
       trend = FALSE,
@@ -214,7 +214,7 @@ MDF.1br <- function(
     DF1_tb <- N * DF1$alpha / (1 - sum(DF1$model$coefficients) + DF1$alpha)
 
     r_GLS <- GLS.reg(y, z, -17.6)$residuals
-    DF2_tb <- ADF.test(
+    DF2_tb <- uroot.ADF(
       r_GLS,
       const = FALSE,
       trend = FALSE,

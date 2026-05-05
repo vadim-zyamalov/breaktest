@@ -80,7 +80,7 @@
 #' @importFrom utils setTxtProgressBar
 #'
 #' @export
-ADF.test <- function(
+uroot.ADF <- function(
   y,
   const = TRUE,
   trend = FALSE,

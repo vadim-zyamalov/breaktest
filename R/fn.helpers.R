@@ -88,17 +88,18 @@
 #'
 #' @keywords internal
 .mz.statistics <- function(y, l, const = FALSE, trend = FALSE) {
-  n_obs <- nrow(y)
-  .adf <- ADF.test(y, const, trend, l, criterion = NULL)
+  N <- nrow(y)
+  .adf <- uroot.ADF(y, const, trend, l, criterion = NULL)
+  r_ADF <- .adf$model$residuals
+  b_ADF <- .adf$model$coefficients
+  a_ADF <- .adf$alpha
 
-  denom <- 1 - sum(.adf$coefficients) + .adf$alpha
-  s_2 <- drop(t(.adf$residuals) %*% .adf$residuals) /
-    (nrow(.adf$residuals) - (1 + l)) /
-    denom^2
-  sum_y2 <- sum(.adf$yd[1:(n_obs - 1)]^2)
+  denom <- if (l > 0) 1 - sum(b_ADF) + a_ADF else 1
+  s_2 <- sum(r_ADF^2) / (length(r_ADF) - (1 + l)) / denom^2
+  sum_y2 <- sum(y[1:(N - 1)]^2)
 
-  mza <- (y[n_obs]^2 / n_obs - s_2) / (2 * sum_y2 / n_obs^2)
-  msb <- sqrt(sum_y2 / s_2 / n_obs^2)
+  mza <- (y[N]^2 / N - s_2) / (2 * sum_y2 / N^2)
+  msb <- sqrt(sum_y2 / s_2 / N^2)
   mzt <- mza * msb
 
   list(

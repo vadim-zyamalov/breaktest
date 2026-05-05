@@ -3,7 +3,7 @@
 #' @order 1
 #'
 #' @description
-#' `SADF.test` is a test statistic equal to the minimum value of [ADF.test] for
+#' `SADF.test` is a test statistic equal to the minimum value of [uroot.ADF] for
 #' subsamples starting at \eqn{t = 1}.
 #'
 #' `GSADF.test` is a generalized version of `SADF.test`. Subsamples are allowed
@@ -35,20 +35,24 @@
 #' https://doi.org/10.1093/jjfinec/nbac004.
 #'
 #' @export
-SADF.test <- function(y,
-                      trim = 0.01 + 1.8 / sqrt(length(y)),
-                      const = TRUE,
-                      add.p.value = TRUE,
-                      boot.p = FALSE,
-                      boot.iter = 999) {
+uroot.SADF <- function(
+  y,
+  trim = 0.01 + 1.8 / sqrt(length(y)),
+  const = TRUE,
+  add.p.value = TRUE,
+  boot.p = FALSE,
+  boot.iter = 999
+) {
   N <- length(y)
 
-  if (!const) y <- y - y[1]
+  if (!const) {
+    y <- y - y[1]
+  }
 
   t.values <- c()
   m <- 1
   for (j in (floor(trim * N)):N) {
-    model <- ADF.test(y[1:j], const = const)
+    model <- uroot.ADF(y[1:j], const = const)
     t.values[m] <- model$t.alpha
     m <- m + 1
   }
@@ -70,31 +74,37 @@ SADF.test <- function(y,
     result$p.value <- get.p.values.SADF(SADF.value, N, cr.values)
   }
 
-  if (boot.p) result$boot.p.value <- bootstrap(result, boot.iter)
+  if (boot.p) {
+    result$boot.p.value <- bootstrap(result, boot.iter)
+  }
 
   result
 }
 
 
-#' @rdname SADF.test
+#' @rdname uroot.SADF
 #' @order 2
 #'
 #' @export
-GSADF.test <- function(y,
-                       trim = 0.01 + 1.8 / sqrt(length(y)),
-                       const = TRUE,
-                       add.p.value = TRUE,
-                       boot.p = FALSE,
-                       boot.iter = 999) {
+uroot.GSADF <- function(
+  y,
+  trim = 0.01 + 1.8 / sqrt(length(y)),
+  const = TRUE,
+  add.p.value = TRUE,
+  boot.p = FALSE,
+  boot.iter = 999
+) {
   N <- length(y)
 
-  if (const == FALSE) y <- y - y[1]
+  if (const == FALSE) {
+    y <- y - y[1]
+  }
 
   t.values <- c()
   m <- 1
   for (i in 1:(N - floor(trim * N) + 1)) {
     for (j in (i + floor(trim * N) - 1):N) {
-      model <- ADF.test(y[i:j], const = const)
+      model <- uroot.ADF(y[i:j], const = const)
       t.values[m] <- model$t.alpha
       m <- m + 1
     }
@@ -113,11 +123,17 @@ GSADF.test <- function(y,
   class(result) <- c("bt_GSADF", "bt_SADF")
 
   if (add.p.value) {
-    cr.values <- ifelse(const, .cval_GSADF_with_const, .cval_GSADF_without_const)
+    cr.values <- ifelse(
+      const,
+      .cval_GSADF_with_const,
+      .cval_GSADF_without_const
+    )
     result$p.value <- get.p.values.SADF(GSADF.value, N, cr.values)
   }
 
-  if (boot.p) result$boot.p.value <- bootstrap(result, boot.iter)
+  if (boot.p) {
+    result$boot.p.value <- bootstrap(result, boot.iter)
+  }
 
   result
 }

@@ -109,9 +109,9 @@ statistics.PR <- function(u, kmin, kmax, c.bar, deter) {
   sum_ud <- sum(u[1:N]^2)
   uT <- u[N + 1]
 
-  klag <- ADF.test(u, FALSE, FALSE, kmax, "aic", TRUE)$lag
+  klag <- uroot.ADF(u, FALSE, FALSE, kmax, "aic", TRUE)$lag
   klag <- max(kmin, klag)
-  model_2 <- ADF.test(u, FALSE, FALSE, klag, NULL)
+  model_2 <- uroot.ADF(u, FALSE, FALSE, klag, NULL)
 
   e2 <- na.omit(model_2$model$residuals)
   sk2 <- sum(e2^2) / N

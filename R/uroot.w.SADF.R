@@ -59,13 +59,15 @@
 #' @importFrom utils setTxtProgressBar
 #'
 #' @export
-weighted.SADF.test <- function(y,
-                               trim = 0.01 + 1.8 / sqrt(length(y)),
-                               const = TRUE,
-                               alpha = 0.05,
-                               iter = 4 * 200,
-                               urs = TRUE,
-                               seed = round(10^4 * sd(y))) {
+uroot.w.SADF <- function(
+  y,
+  trim = 0.01 + 1.8 / sqrt(length(y)),
+  const = TRUE,
+  alpha = 0.05,
+  iter = 4 * 200,
+  urs = TRUE,
+  seed = round(10^4 * sd(y))
+) {
   N <- length(y)
 
   ## Find supBZ.value.
@@ -81,31 +83,35 @@ weighted.SADF.test <- function(y,
   progress <- function(n) setTxtProgressBar(progress.bar, n)
 
   cluster <- makeCluster(max(cores - 1, 1))
-  clusterExport(cluster, c(
-    "ADF.test",
-    "SADF.test",
-    "supBZ.statistic",
-    ".cval_SADF_without_const",
-    ".cval_SADF_with_const",
-    ".diffn"
-  ))
+  clusterExport(
+    cluster,
+    c(
+      "ADF.test",
+      "SADF.test",
+      "supBZ.statistic",
+      ".cval_SADF_without_const",
+      ".cval_SADF_with_const",
+      ".diffn"
+    )
+  )
   registerDoSNOW(cluster)
 
   SADF.supBZ.bootstrap.values <- foreach(
     i = 1:iter,
     .combine = rbind,
     .options.snow = list(progress = progress)
-  ) %dopar% {
-    y.star <- cumsum(rnorm(N - 1) * .diffn(y, na = 0))
-    tmp.SADF.value <- NA
-    if (urs) {
-      tmp.sadf.model <- SADF.test(y.star, trim, const)
-      tmp.SADF.value <- tmp.sadf.model$SADF.value
+  ) %dopar%
+    {
+      y.star <- cumsum(rnorm(N - 1) * .diffn(y, na = 0))
+      tmp.SADF.value <- NA
+      if (urs) {
+        tmp.sadf.model <- uroot.SADF(y.star, trim, const)
+        tmp.SADF.value <- tmp.sadf.model$SADF.value
+      }
+      tmp.supBZ.model <- supBZ.statistic(y.star, trim, sigma.sq)
+      tmp.supBZ.value <- tmp.supBZ.model$supBZ.value
+      c(tmp.SADF.value, tmp.supBZ.value)
     }
-    tmp.supBZ.model <- supBZ.statistic(y.star, trim, sigma.sq)
-    tmp.supBZ.value <- tmp.supBZ.model$supBZ.value
-    c(tmp.SADF.value, tmp.supBZ.value)
-  }
 
   stopCluster(cluster)
 
@@ -121,7 +127,7 @@ weighted.SADF.test <- function(y,
   ## A union of rejections strategy.
   if (urs == TRUE) {
     ## Find SADF.value.
-    sadf.model <- SADF.test(y, trim, const)
+    sadf.model <- uroot.SADF(y, trim, const)
     t.values <- sadf.model$t.values
     SADF.value <- sadf.model$SADF.value
 
@@ -198,7 +204,7 @@ weighted.SADF.test <- function(y,
 }
 
 
-#' @rdname weighted.SADF.test
+#' @rdname uroot.w.SADF
 #' @order 2
 #'
 #' @import doSNOW
@@ -211,13 +217,15 @@ weighted.SADF.test <- function(y,
 #' @importFrom utils setTxtProgressBar
 #'
 #' @export
-weighted.GSADF.test <- function(y,
-                                trim = 0.01 + 1.8 / sqrt(length(y)),
-                                const = TRUE,
-                                alpha = 0.05,
-                                iter = 4 * 200,
-                                urs = TRUE,
-                                seed = round(10^4 * sd(y))) {
+uroot.w.GSADF <- function(
+  y,
+  trim = 0.01 + 1.8 / sqrt(length(y)),
+  const = TRUE,
+  alpha = 0.05,
+  iter = 4 * 200,
+  urs = TRUE,
+  seed = round(10^4 * sd(y))
+) {
   N <- length(y)
 
   ## Find supBZ.value.
@@ -233,31 +241,35 @@ weighted.GSADF.test <- function(y,
   progress <- function(n) setTxtProgressBar(progress.bar, n)
 
   cluster <- makeCluster(max(cores - 1, 1))
-  clusterExport(cluster, c(
-    "ADF.test",
-    "GSADF.test",
-    "supBZ.statistic",
-    ".cval_GSADF_without_const",
-    ".cval_GSADF_with_const",
-    ".diffn"
-  ))
+  clusterExport(
+    cluster,
+    c(
+      "ADF.test",
+      "GSADF.test",
+      "supBZ.statistic",
+      ".cval_GSADF_without_const",
+      ".cval_GSADF_with_const",
+      ".diffn"
+    )
+  )
   registerDoSNOW(cluster)
 
   SADF.supBZ.bootstrap.values <- foreach(
     step = 1:iter,
     .combine = rbind,
     .options.snow = list(progress = progress)
-  ) %dopar% {
-    y.star <- cumsum(rnorm(N - 1) * .diffn(y, na = 0))
-    tmp.GSADF.value <- NA
-    if (urs) {
-      gsadf.model <- GSADF.test(y.star, trim, const)
-      tmp.GSADF.value <- gsadf.model$GSADF.value
+  ) %dopar%
+    {
+      y.star <- cumsum(rnorm(N - 1) * .diffn(y, na = 0))
+      tmp.GSADF.value <- NA
+      if (urs) {
+        gsadf.model <- uroot.GSADF(y.star, trim, const)
+        tmp.GSADF.value <- gsadf.model$GSADF.value
+      }
+      supBZ.model <- supBZ.statistic(y.star, trim, sigma.sq)
+      tmp.supBZ.value <- supBZ.model$supBZ.value
+      c(tmp.GSADF.value, tmp.supBZ.value)
     }
-    supBZ.model <- supBZ.statistic(y.star, trim, sigma.sq)
-    tmp.supBZ.value <- supBZ.model$supBZ.value
-    c(tmp.GSADF.value, tmp.supBZ.value)
-  }
 
   stopCluster(cluster)
 
@@ -273,7 +285,7 @@ weighted.GSADF.test <- function(y,
   ## A union of rejections strategy.
   if (urs) {
     ## Find sadf.value.
-    gsadf.model <- GSADF.test(y, trim, const)
+    gsadf.model <- uroot.GSADF(y, trim, const)
     t.values <- gsadf.model$t.values
     GSADF.value <- gsadf.model$GSADF.value
 
@@ -376,10 +388,12 @@ weighted.GSADF.test <- function(y,
 #' https://doi.org/10.1080/07474938.2018.1536099.
 #'
 #' @keywords internal
-supBZ.statistic <- function(y,
-                            trim = 0.01 + 1.8 / sqrt(length(y)),
-                            sigma.sq = NULL,
-                            generalized = FALSE) {
+supBZ.statistic <- function(
+  y,
+  trim = 0.01 + 1.8 / sqrt(length(y)),
+  sigma.sq = NULL,
+  generalized = FALSE
+) {
   n.obs <- length(y)
 
   if (is.null(sigma.sq)) {
@@ -407,7 +421,7 @@ supBZ.statistic <- function(y,
     for (j in (floor(trim * n.obs)):n.obs) {
       BZ.values[m] <-
         sum(d.y[1:(j - 1)] * l.y[1:(j - 1)] / sigma.sq[1:(j - 1)]) /
-          (sum(l.y[1:(j - 1)]^2 / sigma.sq[1:(j - 1)]))^0.5
+        (sum(l.y[1:(j - 1)]^2 / sigma.sq[1:(j - 1)]))^0.5
       m <- m + 1
     }
   } else {
@@ -415,7 +429,7 @@ supBZ.statistic <- function(y,
       for (j in (i + floor(trim * n.obs) - 1):n.obs) {
         BZ.values[m] <-
           sum(d.y[i:(j - 1)] * l.y[i:(j - 1)] / sigma.sq[i:(j - 1)]) /
-            (sum(l.y[i:(j - 1)]^2 / sigma.sq[i:(j - 1)]))^0.5
+          (sum(l.y[i:(j - 1)]^2 / sigma.sq[i:(j - 1)]))^0.5
         m <- m + 1
       }
     }

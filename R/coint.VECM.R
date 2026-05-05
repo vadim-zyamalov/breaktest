@@ -34,10 +34,7 @@
 #' https://doi.org/10.1016/j.jeconom.2016.02.010.
 #'
 #' @export
-VECM.test <- function(y,
-                      r,
-                      max.lag,
-                      trim = 0.15) {
+coint.VECM <- function(y, r, max.lag, trim = 0.15) {
   N <- nrow(y)
   Nc <- ncol(y)
 
@@ -66,23 +63,25 @@ VECM.test <- function(y,
     -2 * t(loglp[1, nc]) + log(N) * (Nc^2 * (1:max.lag))
   )
   pbr <- which.min(
-    -2 * diag(loglbp[bhatrp.index[1, rc], nc]) +
-      log(N) * (Nc^2 * (1:max.lag))
+    -2 * diag(loglbp[bhatrp.index[1, rc], nc]) + log(N) * (Nc^2 * (1:max.lag))
   )
 
   brphat.index <- bhatrp.index[rc[pbr]]
 
   tr0.phat <- ifelse(
     2 * (loglp[nc[p]] - loglp[rc[p]]) > .cval_VECM$trend[Nc - r],
-    1, 0
+    1,
+    0
   )
   tr1.VECM.phat <- ifelse(
     2 * (loglbp[brphat.index, nc[pbr]] - loglbp[brphat.index, rc[pbr]]) >
       .cval_VECM$br[Nc - r, round(10 * breaks.list[brphat.index] / N) - 1],
-    1, 0
+    1,
+    0
   )
 
-  SC1r <- -2 * loglbp[brphat.index, rc[pbr]] +
+  SC1r <- -2 *
+    loglbp[brphat.index, rc[pbr]] +
     (Nc + r + 2 + (Nc^2) * pbr) * log(N)
   SC0r <- -2 * loglp[rc[p]] + (Nc^2) * p * log(N)
 
@@ -115,9 +114,10 @@ VECM.test <- function(y,
 #' if the function with breaks is called.
 #'
 #' @keywords internal
-VECM.logl <- function(y,
-                      p) {
-  if (!is.matrix(y)) y <- as.matrix(y)
+VECM.logl <- function(y, p) {
+  if (!is.matrix(y)) {
+    y <- as.matrix(y)
+  }
 
   N <- nrow(y)
   d.y <- .diffn(y)
@@ -141,14 +141,22 @@ VECM.logl <- function(y,
   lam <- cbind(
     c(
       0,
-      rev(sort(eigen(
-        Li %*% t(r1) %*% r0 %*%
-          solve.qr(t(r0) %*% r0) %*%
-          t(r0) %*% r1 %*% t(Li)
-      )$values))[2:nrow(Li)]
+      rev(sort(
+        eigen(
+          Li %*%
+            t(r1) %*%
+            r0 %*%
+            solve.qr(t(r0) %*% r0) %*%
+            t(r0) %*%
+            r1 %*%
+            t(Li)
+        )$values
+      ))[2:nrow(Li)]
     )
   )
-  logL <- -(N - p) / 2 * log(det((t(r0) %*% r0) / (N - p))) +
+  logL <- -(N - p) /
+    2 *
+    log(det((t(r0) %*% r0) / (N - p))) +
     cumsum(log(1 - lam))
 
   rownames(logL) <- NULL
@@ -160,10 +168,10 @@ VECM.logl <- function(y,
 #' @rdname VECM.logl
 #' @order 2
 #' @keywords internal
-VECM.break.logl <- function(y,
-                            p,
-                            breaks.list) {
-  if (!is.matrix(y)) y <- as.matrix(y)
+VECM.break.logl <- function(y, p, breaks.list) {
+  if (!is.matrix(y)) {
+    y <- as.matrix(y)
+  }
   N <- nrow(y)
 
   d.y <- .diffn(y)
@@ -177,7 +185,9 @@ VECM.break.logl <- function(y,
 
     D <- NULL
     if (p > 0) {
-      for (j in 1:p) D <- cbind(D, ifelse(1:N == (b + j), 1, 0))
+      for (j in 1:p) {
+        D <- cbind(D, ifelse(1:N == (b + j), 1, 0))
+      }
     }
 
     E1 <- ifelse(1:N <= b, 1, 0)
@@ -188,7 +198,9 @@ VECM.break.logl <- function(y,
 
     Xp <- cbind(E1, E2, D)
     if (p > 0) {
-      for (j in 1:p) Xp <- cbind(Xp, .lagn(d.y, j))
+      for (j in 1:p) {
+        Xp <- cbind(Xp, .lagn(d.y, j))
+      }
     }
     Xp <- Xp[-seq_len(p), , drop = FALSE]
 
@@ -198,14 +210,22 @@ VECM.break.logl <- function(y,
     lam <- cbind(
       c(
         0,
-        rev(sort(eigen(
-          Li %*% t(r1) %*% r0 %*%
-            Rfast::spdinv(t(r0) %*% r0) %*%
-            t(r0) %*% r1 %*% t(Li)
-        )$values))[2:nrow(Li)]
+        rev(sort(
+          eigen(
+            Li %*%
+              t(r1) %*%
+              r0 %*%
+              Rfast::spdinv(t(r0) %*% r0) %*%
+              t(r0) %*%
+              r1 %*%
+              t(Li)
+          )$values
+        ))[2:nrow(Li)]
       )
     )
-    logLb <- -(N - p) / 2 * log(det((t(r0) %*% r0) / (N - p))) +
+    logLb <- -(N - p) /
+      2 *
+      log(det((t(r0) %*% r0) / (N - p))) +
       cumsum(log(1 - lam))
 
     logL <- rbind(logL, logLb)

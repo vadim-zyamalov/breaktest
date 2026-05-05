@@ -35,13 +35,15 @@
 #' @importFrom utils setTxtProgressBar
 #'
 #' @export
-sb.GSADF.test <- function(y,
-                          trim = 0.01 + 1.8 / sqrt(length(y)),
-                          const = TRUE,
-                          alpha = 0.05,
-                          iter = 999,
-                          urs = TRUE,
-                          seed = round(10^4 * sd(y))) {
+uroot.sb.GSADF <- function(
+  y,
+  trim = 0.01 + 1.8 / sqrt(length(y)),
+  const = TRUE,
+  alpha = 0.05,
+  iter = 999,
+  urs = TRUE,
+  seed = round(10^4 * sd(y))
+) {
   N <- length(y)
 
   ## Find supSBADF_value.
@@ -55,30 +57,34 @@ sb.GSADF.test <- function(y,
   progress <- function(n) setTxtProgressBar(progress.bar, n)
 
   cluster <- makeCluster(max(cores - 1, 1))
-  clusterExport(cluster, c(
-    "ADF.test",
-    "GSADF.test",
-    # "supSBADF.statistic",
-    ".cval_GSADF_without_const",
-    ".cval_GSADF_with_const",
-    ".diffn"
-  ))
+  clusterExport(
+    cluster,
+    c(
+      "ADF.test",
+      "GSADF.test",
+      # "supSBADF.statistic",
+      ".cval_GSADF_without_const",
+      ".cval_GSADF_with_const",
+      ".diffn"
+    )
+  )
   registerDoSNOW(cluster)
 
   GSADF.bootstrap.values <- foreach(
     i = 1:iter,
     .combine = rbind,
     .options.snow = list(progress = progress)
-  ) %dopar% {
-    y.star <- cumsum(rnorm(N) * .diffn(y, na = 0))
-    res <- c(NA, NA)
-    if (urs) {
-      gsadf.model <-
-        res[1] <- GSADF.test(y.star, trim, const)$GSADF.value
+  ) %dopar%
+    {
+      y.star <- cumsum(rnorm(N) * .diffn(y, na = 0))
+      res <- c(NA, NA)
+      if (urs) {
+        gsadf.model <-
+          res[1] <- uroot.GSADF(y.star, trim, const)$GSADF.value
+      }
+      res[2] <- supSBADF.statistic(y.star, trim)$statistic
+      res
     }
-    res[2] <- supSBADF.statistic(y.star, trim)$statistic
-    res
-  }
 
   stopCluster(cluster)
 
@@ -94,7 +100,7 @@ sb.GSADF.test <- function(y,
   ## A union of rejections strategy.
   if (urs) {
     ## Find sadf_value.
-    gsadf.model <- GSADF.test(y, trim, const)
+    gsadf.model <- uroot.GSADF(y, trim, const)
     t.values <- gsadf.model$t.values
     GSADF.value <- gsadf.model$GSADF.value
 
@@ -119,7 +125,8 @@ sb.GSADF.test <- function(y,
       U.bootstrap.values[b] <- max(
         GSADF.bootstrap.values[b],
         GSADF.cr.value /
-          supSBADF.cr.value * supSBADF.bootstrap.values[b]
+          supSBADF.cr.value *
+          supSBADF.bootstrap.values[b]
       )
     }
 
@@ -168,7 +175,6 @@ sb.GSADF.test <- function(y,
     )
   }
 
-
   result
 }
 
@@ -196,9 +202,11 @@ sb.GSADF.test <- function(y,
 #' https://doi.org/10.1017/S0266466619000057.
 #'
 #' @keywords internal
-supSBADF.statistic <- function(y,
-                               trim = 0.01 + 1.8 / sqrt(length(y)),
-                               generalized = FALSE) {
+supSBADF.statistic <- function(
+  y,
+  trim = 0.01 + 1.8 / sqrt(length(y)),
+  generalized = FALSE
+) {
   N <- length(y)
 
   ## Calculate C.t.

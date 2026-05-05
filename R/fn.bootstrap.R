@@ -24,20 +24,19 @@ bootstrap <- function(obj, ...) UseMethod("bootstrap")
 bootstrap.bt_adf <- function(obj, iter = 999, ...) {
   vCoefs <- obj$model$coefficients[-1]
   vEps <- obj$model$residuals
+
   cLag <- obj$lag
+
   cN <- length(vEps)
   mDeter <- cbind(
     if (obj$const) .const(cN) else NULL,
     if (obj$trend) .trend(cN) else NULL
   )
-
   progress.bar <- txtProgressBar(max = iter, style = 3)
   progress <- function(n) setTxtProgressBar(progress.bar, n)
-
   cores <- detectCores()
   cluster <- makeCluster(max(cores - 1, 1), type = "SOCK")
   registerDoSNOW(cluster)
-
   tmp.stats <- foreach(
     i = 1:iter,
     .combine = c,
@@ -45,41 +44,37 @@ bootstrap.bt_adf <- function(obj, iter = 999, ...) {
     .errorhandling = "remove",
     .packages = c("breaktest"),
     .options.snow = list(progress = progress)
-  ) %dopar% {
-    u <- rep(0, cLag + cN)
-    eps <- sample(vEps, cN, replace = TRUE)
-
-    if (cLag > 0) {
-      for (s in 1:cN) {
-        u[cLag + s] <- u[(cLag + s - 1):s] %*% vCoefs + eps[s]
+  ) %dopar%
+    {
+      u <- rep(0, cLag + cN)
+      eps <- sample(vEps, cN, replace = TRUE)
+      if (cLag > 0) {
+        for (s in 1:cN) {
+          u[cLag + s] <- u[(cLag + s - 1):s] %*% vCoefs + eps[s]
+        }
+        u <- u[-(1:cLag)]
+      } else {
+        for (s in 1:cN) {
+          u[s] <- eps[s]
+        }
       }
-      u <- u[-(1:cLag)]
-    } else {
-      for (s in 1:cN) {
-        u[s] <- eps[s]
+      tmp.y <- as.matrix(cumsum(u))
+      if (obj$recursive) {
+        tmp.y <- detrend.recursively(
+          tmp.y,
+          mDeter,
+          obj$recursive.params$cc,
+          obj$recursive.params$gamma,
+          obj$recursive.params$trim
+        )
       }
-    }
-
-    tmp.y <- as.matrix(cumsum(u))
-    if (obj$recursive) {
-      tmp.y <- detrend.recursively(
+      tmp.res <- OLS.reg(
         tmp.y,
-        mDeter,
-        obj$recursive.params$cc,
-        obj$recursive.params$gamma,
-        obj$recursive.params$trim
+        obj$model$exog
       )
+      tmp.res$t.stats[1]
     }
-    tmp.res <- OLS.reg(
-      tmp.y,
-      obj$model$exog
-    )
-
-    tmp.res$t.stats[1]
-  }
-
   stopCluster(cluster)
-
   sum(tmp.stats < obj$t.alpha) / iter
 }
 
@@ -104,18 +99,18 @@ bootstrap.bt_adf <- function(obj, iter = 999, ...) {
 #' @export
 bootstrap.bt_kpss <- function(obj, iter = 999, boot.type = "sample", ...) {
   xreg <- obj$exog
+
   u <- obj$residuals
+
   max.lag <- obj$lr.var.max.lag
+
   kernel <- obj$lr.var.kernel
 
   cores <- detectCores()
-
   .progress <- txtProgressBar(max = iter, style = 3)
   progress <- function(n) setTxtProgressBar(.progress, n)
-
   cluster <- makeCluster(max(cores - 1, 1))
   registerDoSNOW(cluster)
-
   result <- foreach(
     i = 1:iter,
     .combine = c,
@@ -123,25 +118,28 @@ bootstrap.bt_kpss <- function(obj, iter = 999, boot.type = "sample", ...) {
     .errorhandling = "remove",
     .packages = c("breaktest"),
     .options.snow = list(progress = progress)
-  ) %dopar% {
-    y.loop <- switch(boot.type,
-      "sample" = sample(u, length(u), replace = TRUE),
-      "Cavaliere-Taylor" = rnorm(length(u)) * u,
-      "Rademacher" = sample(c(-1, 1), length(u), replace = TRUE) * u,
-      stop("ERROR! bootstsrap.bt_kpss: Unknown bootstrap type '", boot.type, "'")
-    )
+  ) %dopar%
+    {
+      y.loop <- switch(
+        boot.type,
+        "sample" = sample(u, length(u), replace = TRUE),
+        "Cavaliere-Taylor" = rnorm(length(u)) * u,
+        "Rademacher" = sample(c(-1, 1), length(u), replace = TRUE) * u,
+        stop(
+          "ERROR! bootstsrap.bt_kpss: Unknown bootstrap type '",
+          boot.type,
+          "'"
+        )
+      )
+      resids <- OLS.reg(y.loop, xreg)$residuals
 
-    resids <- OLS.reg(y.loop, xreg)$residuals
-
-    if (is.null(kernel)) {
-      .kpss.statistic(resids, .lr.var.kurozumi(resids))
-    } else {
-      .kpss.statistic(resids, .lr.var.spc(resids, max.lag, kernel))
+      if (is.null(kernel)) {
+        .kpss.statistic(resids, .lr.var.kurozumi(resids))
+      } else {
+        .kpss.statistic(resids, .lr.var.spc(resids, max.lag, kernel))
+      }
     }
-  }
-
   stopCluster(cluster)
-
   (1 / iter) * sum(obj$statistic <= result)
 }
 
@@ -149,7 +147,7 @@ bootstrap.bt_kpss <- function(obj, iter = 999, boot.type = "sample", ...) {
 #' @rdname bootstrap
 #' @description
 #' `SADF.bootstrap.test` is a wild bootstrapping procedure for estimating
-#' critical and \eqn{p}-values for [SADF.test].
+#' critical and \eqn{p}-values for [uroot.SADF].
 #'
 #' `GSADF.bootstrap.test` is the same procedure but for `GSADF.test`.
 #'
@@ -180,38 +178,36 @@ bootstrap.bt_kpss <- function(obj, iter = 999, boot.type = "sample", ...) {
 #' @importFrom utils setTxtProgressBar
 #'
 #' @export
-bootstrap.bt_SADF <- function(obj,
-                              iter = 999) {
+bootstrap.bt_SADF <- function(obj, iter = 999) {
   y <- obj$y
+
   trim <- obj$trim
+
   const <- obj$const
 
   N <- length(y)
-
   ## Find SADF.value.
-  model <- SADF.test(y, trim, const)
+
+  model <- uroot.SADF(y, trim, const)
   SADF.value <- model$SADF.value
 
   ## Do parallel.
-  cores <- detectCores()
 
+  cores <- detectCores()
   progress.bar <- txtProgressBar(max = iter, style = 3)
   progress <- function(n) setTxtProgressBar(progress.bar, n)
-
   cluster <- makeCluster(max(cores - 1, 1))
   registerDoSNOW(cluster)
-
   SADF.bootstrap.values <- foreach(
     step = 1:iter,
     .combine = c,
     .options.snow = list(progress = progress)
-  ) %dopar% {
-    y.star <- cumsum(rnorm(N - 1) * .diffn(y, na = 0))
-    SADF.test(y.star, trim, const)$SADF.value
-  }
-
+  ) %dopar%
+    {
+      y.star <- cumsum(rnorm(N - 1) * .diffn(y, na = 0))
+      uroot.SADF(y.star, trim, const)$SADF.value
+    }
   stopCluster(cluster)
-
   sum(SADF.bootstrap.values > SADF.value) / iter
 }
 
@@ -227,37 +223,148 @@ bootstrap.bt_SADF <- function(obj,
 #' @importFrom utils setTxtProgressBar
 #'
 #' @export
-bootstrap.bt_GSADF <- function(obj,
-                               iter = 999) {
+bootstrap.bt_GSADF <- function(obj, iter = 999) {
   y <- obj$y
+
   trim <- obj$trim
+
   const <- obj$const
 
   N <- length(y)
-
   ## Find GSADF.value.
-  model <- GSADF.test(y, trim, const)
+
+  model <- uroot.GSADF(y, trim, const)
   GSADF.value <- model$GSADF.value
 
   ## Do parallel.
-  cores <- detectCores()
 
+  cores <- detectCores()
   progress.bar <- txtProgressBar(max = iter, style = 3)
   progress <- function(n) setTxtProgressBar(progress.bar, n)
-
   cluster <- makeCluster(max(cores - 1, 1))
   clusterExport(cluster, c("GSADF.test", ".diffn"))
   registerDoSNOW(cluster)
-
   GSADF.bootstsrap.values <- foreach(
     step = 1:iter,
     .combine = c,
     .options.snow = list(progress = progress)
-  ) %dopar% {
-    y.star <- cumsum(rnorm(N - 1) * .diffn(y, na = 0))
-    GSADF.test(y.star, trim, const)$GSADF.value
-  }
+  ) %dopar%
+    {
+      y.star <- cumsum(rnorm(N - 1) * .diffn(y, na = 0))
+      uroot.GSADF(y.star, trim, const)$GSADF.value
+    }
   stopCluster(cluster)
-
   sum(GSADF.bootstsrap.values > GSADF.value) / iter
+}
+
+
+#' @rdname bootstrap
+#'
+#' @import doSNOW
+#' @import foreach
+#' @import parallel
+#' @importFrom stats rnorm
+#' @importFrom stats sd
+#' @importFrom utils txtProgressBar
+#' @importFrom utils setTxtProgressBar
+#'
+#' @export
+bootstrap.bt_mdfCHLT <- function(obj, iter = 999, y, ...) {
+  N <- length(y)
+  dy <- diff(y)
+  trim <- obj$params$trim
+
+  tb_dy <- obj$params$tb
+
+  tau_lam_MZ <- obj$params$MZ$tau
+
+  cbar_tau_lam_MZ <- obj$params$MZ$cbar
+
+  tau_lam_ADF <- obj$params$ADF$tau
+
+  cbar_tau_lam_ADF <- obj$params$ADF$cbar
+
+  ## Bootstrap
+
+  r <- c(
+    0,
+    OLS.reg(
+      dy,
+      cbind(.const(N), .du(tb_dy, N))[-1, ]
+    )$residuals
+  )
+  cores <- detectCores()
+  progress.bar <- txtProgressBar(max = iter, style = 3)
+  progress <- function(n) setTxtProgressBar(progress.bar, n)
+  cluster <- makeCluster(max(cores - 1, 1))
+  registerDoSNOW(cluster)
+  tmp.result <- foreach(
+    i = 1:iter,
+    .combine = rbind,
+    .options.snow = list(progress = progress)
+  ) %dopar%
+    {
+      z <- rnorm(N)
+      y_wb <- cumsum(r * z)
+      if (tau_lam_MZ < trim) {
+        r_GLS_t_wb <- GLS.reg(
+          y_wb,
+          cbind(.const(N), .trend(N)),
+          -13.5
+        )$residuals
+
+        MZ_wb <- .mz.statistics(r_GLS_t_wb, 0)
+        MZa_wb <- MZ_wb$mza
+
+        MSB_wb <- MZ_wb$msb
+
+        MZt_wb <- MZ_wb$mzt
+
+        rm(MZ_wb)
+      } else {
+        resid.wb <- GLS.bt(y, tau_lam_MZ, cbar_tau_lam_MZ)$residuals
+
+        MZ_wb <- .mz.statistics(resid.wb, 0)
+        MZa_wb <- MZ_wb$mza
+
+        MSB_wb <- MZ_wb$msb
+
+        MZt_wb <- MZ_wb$mzt
+
+        rm(MZ_wb)
+      }
+      if (tau_lam_ADF < trim) {
+        r_GLS_t_wb <- GLS.reg(
+          y_wb,
+          cbind(.const(N), .trend(N)),
+          -13.5
+        )$residuals
+
+        ers_ADF_wb <- uroot.ADF(
+          r_GLS_t_wb,
+          const = FALSE,
+          trend = FALSE,
+          max.lag = 0,
+          criterion = NULL
+        )$t.alpha
+      } else {
+        r_GLS_wb <- GLS.bt(y, tau_lam_ADF, cbar_tau_lam_ADF)$residuals
+
+        ers_ADF_wb <- uroot.ADF(
+          r_GLS_wb,
+          const = FALSE,
+          trend = FALSE,
+          max.lag = 0,
+          criterion = NULL
+        )$t.alpha
+      }
+      c(MZa_wb, MSB_wb, MZt_wb, ers_ADF_wb)
+    }
+  stopCluster(cluster)
+  list(
+    MZa = sort(tmp.result[, 1])[trunc(0.05 * iter)],
+    MSB = sort(tmp.result[, 2])[trunc(0.05 * iter)],
+    MZt = sort(tmp.result[, 3])[trunc(0.05 * iter)],
+    ADF = sort(tmp.result[, 4])[trunc(0.05 * iter)]
+  )
 }

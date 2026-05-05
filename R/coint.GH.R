@@ -41,12 +41,14 @@
 #' https://doi.org/10.1016/0304-4076(69)41685-7.
 #'
 #' @export
-coint.GH <- function(...,
-                     shift = "level",
-                     trim = 0.15,
-                     max.lag = 10,
-                     criterion = "aic",
-                     add.cvals = TRUE) {
+coint.GH <- function(
+  ...,
+  shift = "level",
+  trim = 0.15,
+  max.lag = 10,
+  criterion = "aic",
+  add.cvals = TRUE
+) {
   if (...length() < 2) {
     stop("ERROR! coint.test.GH: Two or more variables are needed")
   }
@@ -76,7 +78,8 @@ coint.GH <- function(...,
   for (tb in first.break:last.break) {
     phi <- .du(tb, N)
 
-    x <- switch(shift,
+    x <- switch(
+      shift,
       "level" = cbind(.const(N), phi, y2),
       "level-trend" = cbind(.const(N), phi, .trend(N), y2),
       "regime" = cbind(.const(N), phi, y2, phi * y2)
@@ -106,9 +109,10 @@ coint.GH <- function(...,
     )
 
     res.ADF <- min(
-      ADF.test(
+      uroot.ADF(
         e,
-        const = FALSE, trend = FALSE,
+        const = FALSE,
+        trend = FALSE,
         max.lag = max.lag,
         criterion = criterion,
         modified.criterion = TRUE

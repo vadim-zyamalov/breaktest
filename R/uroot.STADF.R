@@ -3,7 +3,7 @@
 #' @order 1
 #'
 #' @description
-#' See [SADF.test]. Tests with time transformation are the modified versions of
+#' See [uroot.SADF]. Tests with time transformation are the modified versions of
 #' the ordinary `SADF` and `GSADF` tests using Nadaraya-Watson residuals and
 #' reindexing procedure by Cavaliere-Taylor (2008).
 #'
@@ -66,16 +66,18 @@
 #' @importFrom stats sd
 #'
 #' @export
-STADF.test <- function(y,
-                       trim = 0.01 + 1.8 / sqrt(length(y)),
-                       const = FALSE,
-                       omega.est = TRUE,
-                       truncated = TRUE,
-                       is.reindex = TRUE,
-                       ksi.input = "auto",
-                       hc = 1,
-                       pc = 1,
-                       add.p.value = TRUE) {
+uroot.STADF <- function(
+  y,
+  trim = 0.01 + 1.8 / sqrt(length(y)),
+  const = FALSE,
+  omega.est = TRUE,
+  truncated = TRUE,
+  is.reindex = TRUE,
+  ksi.input = "auto",
+  hc = 1,
+  pc = 1,
+  add.p.value = TRUE
+) {
   n.obs <- length(y)
 
   ## Part 4.1. NW estimation.
@@ -202,22 +204,24 @@ STADF.test <- function(y,
 }
 
 
-#' @rdname STADF.test
+#' @rdname uroot.STADF
 #' @order 2
 #'
 #' @importFrom stats sd
 #'
 #' @export
-GSTADF.test <- function(y,
-                        trim = 0.01 + 1.8 / sqrt(length(y)),
-                        const = FALSE,
-                        omega.est = TRUE,
-                        truncated = TRUE,
-                        is.reindex = TRUE,
-                        ksi.input = "auto",
-                        hc = 1,
-                        pc = 1,
-                        add.p.value = TRUE) {
+uroot.GSTADF <- function(
+  y,
+  trim = 0.01 + 1.8 / sqrt(length(y)),
+  const = FALSE,
+  omega.est = TRUE,
+  truncated = TRUE,
+  is.reindex = TRUE,
+  ksi.input = "auto",
+  hc = 1,
+  pc = 1,
+  add.p.value = TRUE
+) {
   n.obs <- length(y)
 
   ## Part 4.1. NW estimation.

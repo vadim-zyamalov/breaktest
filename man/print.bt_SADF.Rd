@@ -10,6 +10,7 @@
 \alias{print.bt_robustURN}
 \alias{print.bt_cointPR}
 \alias{print.bt_confSet}
+\alias{print.bt_mdfCHLT}
 \title{Custom functions for printing results in a nice way.}
 \usage{
 \method{print}{bt_SADF}(x, ...)
@@ -29,6 +30,8 @@
 \method{print}{bt_cointPR}(obj, ...)
 
 \method{print}{bt_confSet}(obj, ...)
+
+\method{print}{bt_mdfCHLT}(obj, ...)
 }
 \arguments{
 \item{x}{An object containing results.}

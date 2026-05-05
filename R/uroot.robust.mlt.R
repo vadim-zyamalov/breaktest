@@ -12,7 +12,7 @@
 #' @param trim Trimming value for a possible break date bounds.
 #'
 #' @export
-robust.tests.multiple <- function(
+uroot.robust.mlt <- function(
   y,
   const = FALSE,
   season = FALSE,
@@ -132,7 +132,7 @@ MDF.mlt <- function(
   ## GLS case
   r_GLS_t <- GLS.reg(y, x, -13.5)$residuals
   r_OLS_t <- OLS.reg(y, x)$residuals
-  k_t <- ADF.test(
+  k_t <- uroot.ADF(
     r_OLS_t,
     const = FALSE,
     trend = FALSE,
@@ -141,7 +141,7 @@ MDF.mlt <- function(
     modified.criterion = TRUE
   )$lag
 
-  DF_GLS_t <- ADF.test(
+  DF_GLS_t <- uroot.ADF(
     r_GLS_t,
     const = FALSE,
     trend = FALSE,
@@ -150,7 +150,7 @@ MDF.mlt <- function(
   )$t.alpha
 
   ## OLS case
-  DF_OLS_t <- ADF.test(
+  DF_OLS_t <- uroot.ADF(
     r_OLS_t,
     const = FALSE,
     trend = FALSE,
@@ -172,7 +172,7 @@ MDF.mlt <- function(
     )
 
     r_OLS <- OLS.reg(y, x)$residuals
-    k_t <- ADF.test(
+    k_t <- uroot.ADF(
       r_OLS,
       const = FALSE,
       trend = FALSE,
@@ -181,7 +181,7 @@ MDF.mlt <- function(
       modified.criterion = TRUE
     )$lag
 
-    DF1 <- ADF.test(
+    DF1 <- uroot.ADF(
       r_OLS,
       const = FALSE,
       trend = FALSE,
@@ -199,7 +199,7 @@ MDF.mlt <- function(
     )
 
     r_GLS <- GLS.reg(y, x, -17.6)$residuals
-    DF1_tb <- ADF.test(
+    DF1_tb <- uroot.ADF(
       r_GLS,
       const = FALSE,
       trend = FALSE,
@@ -225,7 +225,7 @@ MDF.mlt <- function(
       )
 
       r_OLS <- OLS.reg(y, x)$residuals
-      k_t <- ADF.test(
+      k_t <- uroot.ADF(
         r_OLS,
         const = FALSE,
         trend = FALSE,
@@ -234,7 +234,7 @@ MDF.mlt <- function(
         modified.criterion = TRUE
       )$lag
 
-      DF2 <- ADF.test(
+      DF2 <- uroot.ADF(
         r_OLS,
         const = FALSE,
         trend = FALSE,
@@ -252,7 +252,7 @@ MDF.mlt <- function(
       )
 
       r_GLS <- GLS.reg(y, x, -21.5)$residuals
-      DF2_tb <- ADF.test(
+      DF2_tb <- uroot.ADF(
         r_GLS,
         const = FALSE,
         trend = FALSE,
@@ -282,7 +282,7 @@ MDF.mlt <- function(
         )
 
         r_OLS <- OLS.reg(y, x)$residuals
-        k_t <- ADF.test(
+        k_t <- uroot.ADF(
           r_OLS,
           const = FALSE,
           trend = FALSE,
@@ -291,7 +291,7 @@ MDF.mlt <- function(
           modified.criterion = TRUE
         )$lag
 
-        DF3 <- ADF.test(
+        DF3 <- uroot.ADF(
           r_OLS,
           const = FALSE,
           trend = FALSE,
@@ -309,7 +309,7 @@ MDF.mlt <- function(
         )
 
         r_GLS <- GLS.reg(y, x, -25.5)$residuals
-        DF3_tb <- ADF.test(
+        DF3_tb <- uroot.ADF(
           r_GLS,
           const = FALSE,
           trend = FALSE,

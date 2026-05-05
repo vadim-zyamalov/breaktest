@@ -6,6 +6,7 @@
 \alias{bootstrap.bt_kpss}
 \alias{bootstrap.bt_SADF}
 \alias{bootstrap.bt_GSADF}
+\alias{bootstrap.bt_mdfCHLT}
 \title{Functions to receive bootstrapped p-values.}
 \usage{
 bootstrap(obj, ...)
@@ -17,6 +18,8 @@ bootstrap(obj, ...)
 \method{bootstrap}{bt_SADF}(obj, iter = 999)
 
 \method{bootstrap}{bt_GSADF}(obj, iter = 999)
+
+\method{bootstrap}{bt_mdfCHLT}(obj, iter = 999, y, ...)
 }
 \arguments{
 \item{obj}{An object of class \code{bt_kpss}.}
@@ -49,7 +52,7 @@ A bootstrapped \eqn{p}-value.
 }
 \description{
 \code{SADF.bootstrap.test} is a wild bootstrapping procedure for estimating
-critical and \eqn{p}-values for \link{SADF.test}.
+critical and \eqn{p}-values for \link{uroot.SADF}.
 
 \code{GSADF.bootstrap.test} is the same procedure but for \code{GSADF.test}.
 }
