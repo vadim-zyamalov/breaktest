@@ -91,6 +91,7 @@ DOLS.many <- function(
   break.coint = FALSE,
   n.lags,
   n.leads,
+  max.ll = NULL,
   ...
 ) {
   if (!is.matrix(y)) {
@@ -103,6 +104,14 @@ DOLS.many <- function(
     x <- as.matrix(x)
   }
 
+  if (!is.null(max.ll)) {
+    max.lag <- max.ll[1]
+    max.lead <- max.ll[2]
+  } else {
+    max.lag <- n.lags
+    max.lead <- n.leads
+  }
+
   .vars_dols <- DOLS.mlt.regressors(
     y,
     x,
@@ -112,7 +121,8 @@ DOLS.many <- function(
     break.point,
     break.coint = FALSE,
     n.lags,
-    n.leads
+    n.leads,
+    max.ll
   )
 
   result <- OLS.reg(.vars_dols$yreg, .vars_dols$xreg)

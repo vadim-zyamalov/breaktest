@@ -47,14 +47,14 @@ An object of type \code{sadf}. It's a list of:
 }
 }
 \description{
+Supremum ADF tests
+}
+\details{
 \code{SADF.test} is a test statistic equal to the minimum value of \link{uroot.ADF} for
 subsamples starting at \eqn{t = 1}.
 
 \code{GSADF.test} is a generalized version of \code{SADF.test}. Subsamples are allowed
 to start at any point between 1 and \eqn{T (1 - trim)}.
-}
-\details{
-Refactored original code by Kurozumi et al.
 }
 \references{
 Kurozumi, Eiji, Anton Skrobotov, and Alexey Tsarev.

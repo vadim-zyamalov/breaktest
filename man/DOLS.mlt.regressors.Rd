@@ -13,7 +13,8 @@ DOLS.mlt.regressors(
   break.point,
   break.coint = FALSE,
   n.lags,
-  n.leads
+  n.leads,
+  max.ll = NULL
 )
 }
 \arguments{

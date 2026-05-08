@@ -42,9 +42,10 @@ trend.variables <- function(
   )
 
   for (i in seq_len(Nb)) {
-    xt <- switch(break.type[i],
-      "c"  = cbind(xt, .du(break.point[i], N)),
-      "t"  = cbind(xt, .dt(break.point[i], N)),
+    xt <- switch(
+      break.type[i],
+      "c" = cbind(xt, .du(break.point[i], N)),
+      "t" = cbind(xt, .dt(break.point[i], N)),
       "ct" = cbind(xt, .du(break.point[i], N), .dt(break.point[i], N)),
       stop("ERROR: kpss.multiple: unknown break value '", break.type[i], "'")
     )
@@ -69,6 +70,8 @@ trend.variables <- function(
 #'
 #' @return A list of LHS and RHS variables.
 #'
+#' @importFrom Rfast rowAll
+#'
 #' @keywords internal
 DOLS.mlt.regressors <- function(
   y,
@@ -79,13 +82,26 @@ DOLS.mlt.regressors <- function(
   break.point,
   break.coint = FALSE,
   n.lags,
-  n.leads
+  n.leads,
+  max.ll = NULL
 ) {
   if (is.null(x)) {
     stop("ERROR! dols.multiple: Explanatory variables needed for DOLS")
   }
-  if (!is.matrix(y)) y <- as.matrix(y)
-  if (!is.matrix(x)) x <- as.matrix(x)
+  if (!is.matrix(y)) {
+    y <- as.matrix(y)
+  }
+  if (!is.matrix(x)) {
+    x <- as.matrix(x)
+  }
+
+  if (!is.null(max.ll)) {
+    max.lag <- max.ll[1]
+    max.lead <- max.ll[2]
+  } else {
+    max.lag <- n.lags
+    max.lead <- n.leads
+  }
 
   N <- nrow(y)
 
@@ -112,9 +128,9 @@ DOLS.mlt.regressors <- function(
     }
   }
 
-  yrows <- apply(y, 1, function(r) any(is.na(r)))
-  xrows <- apply(x, 1, function(r) any(is.na(r)))
-  rows <- !yrows & !xrows
+  rows <- rowAll(!is.na(y)) & rowAll(!is.na(x))
+  rows[1:max.lag] <- FALSE
+  rows[(N - max.lead + 1):N] <- FALSE
 
   mX <- cbind(
     mDeter,

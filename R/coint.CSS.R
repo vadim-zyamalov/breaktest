@@ -2,26 +2,44 @@
 #' KPSS-based cointegration test with multiple known structural breaks
 #'
 #' @description
-#' Procedure to test the presence of cointegration in the case of  multiple known structural breaks using KPSS test
+#' Procedure to test the presence of cointegration in the case of multiple known structural breaks using KPSS test.
+#' This procedure is based on the procedures for one and two known breaks by Carrion-i-Silvestre and Sansó (2006, 2007).
+#'
+#' @details
+#' At the first step obtained are the residuals from the regression of LHS series \eqn{y}
+#' on the set of deterministic components and (if any) exogenous regressors \eqn{x}.
+#' Deterministic components may include
+#' * constant term,
+#' * trend component,
+#' * constant with break \eqn{{DU}_{t,\tau} = \mathrm{1}[t > \tau]},
+#' * trens with break \eqn{{DT}_{t,\tau} = \mathrm{1}[t > \tau](t - \tau)}.
+#'
+#' If \eqn{x} are weakly exogenous then the regression is estimated by OLS, if not then DOLS regression is applied.
+#' The procedure also allows for the break in the cointegrating equation,
+#' in that case products of \eqn{{DU}_{t,\tau}} and \eqn{x} are added to the regressors list.
+#'
+#' After the residuals are obtained KPSS test statistic is calculated using `kernel`.
+#' If it's not set then QS kernel is used with banwidth selection as in Andrews (1991),
+#' and with Kurozumi (2002) proposal of banwidth limiting.
+#' 
+#' p-value (if needed) is calculated by bootstrapping procedure.
 #'
 #' @param y A time series of interest.
 #' @param x A matrix of explanatory stochastic regressors.
 #' If it's NULL then the result of this function is just a KPSS test for y.
 #' @param const,trend Whether a constant or trend should be included.
 #' @param break.type A single value or vector of
-#' * "c": for the break in const,
-#' * "t": for the break in trend,
-#' * "ct": for the break in const and trend.
+#' * `c`: for the break in const,
+#' * `t`: for the break in trend,
+#' * `ct`: for the break in const and trend.
 #' @param break.point Array of structural break moments.
 #' @param break.coint Whether breaks in cointegrating relation are needed to be included.
 #' See Carrion-i-Silvestre & Sansó (2006) for details.
-#' @param weakly.exog Boolean where we specify
-#' whether the stochastic regressors are exogenous or not
+#' @param weakly.exog Boolean where we specify whether the stochastic regressors are exogenous or not
 #' * `TRUE`: if the regressors are weakly exogenous,
-#' * `FALSE`: if the regressors are not weakly exogenous
-#' (DOLS is used in this case).
-#' @param lags.init,leads.init Scalars defininig the initial number of lags and leads for DOLS.
-#' @param max.lag scalar, with the maximum order of the parametric correction.
+#' * `FALSE`: if the regressors are not weakly exogenous (DOLS is used in this case).
+#' @param max.lags,max.leads Scalars defininig the initial number of lags and leads for DOLS.
+#' @param lr.lag scalar, with the maximum order of the parametric correction.
 #' The final order of the parametric correction is selected using the BIC information criterion.
 #' @param kernel Kernel for calculating long-run variance
 #' * `bartlett`: for Bartlett kernel,
@@ -35,10 +53,6 @@
 #' * `Cavaliere-Taylor` --- multiplying residuals by \eqn{N(0, 1)},
 #' * `Rademacher` --- multiplying residuals by \eqn{\pm 1}.
 #' @param ... A dummy parameter for technical purposes. Just ignore it.
-#'
-#' @details
-#' The code provided is based on the original code
-#' by Carrion-i-Silvestre and Sansó.
 #'
 #' If you want to get results like in Carrion-i-Silvestre & Sansó (2006) then you should
 #' * provide a `break.point` of length 1;
@@ -84,6 +98,17 @@
 #' “The KPSS Test with Two Structural Breaks.”
 #' Spanish Economic Review 9, no. 2 (May 16, 2007): 105–27.
 #' https://doi.org/10.1007/s10108-006-9017-8.
+#' 
+#' #' Andrews, Donald W. K.
+#' “Heteroskedasticity and Autocorrelation Consistent
+#' Covariance Matrix Estimation.”
+#' Econometrica 59, no. 3 (1991): 817–58.
+#' https://doi.org/10.2307/2938229.
+#' 
+#' Kurozumi, Eiji.
+#' “Testing for Stationarity with a Break.”
+#' Journal of Econometrics 108, no. 1 (May 1, 2002): 63–99.
+#' https://doi.org/10.1016/S0304-4076(01)00106-3.
 #'
 #' @export
 coint.CSS <- function(
@@ -95,17 +120,21 @@ coint.CSS <- function(
   break.point,
   break.coint = FALSE,
   weakly.exog = TRUE,
-  lags.init,
-  leads.init,
-  max.lag,
+  max.lags,
+  max.leads,
+  lr.lag,
   kernel,
   criterion = "bic",
   boot.p = FALSE,
   boot.type = "sample",
   boot.iter = 999
 ) {
-  if (!is.matrix(y)) y <- as.matrix(y)
-  if (!is.null(x) && !is.matrix(x)) x <- as.matrix(x)
+  if (!is.matrix(y)) {
+    y <- as.matrix(y)
+  }
+  if (!is.null(x) && !is.matrix(x)) {
+    x <- as.matrix(x)
+  }
 
   N <- nrow(y)
 
@@ -137,8 +166,8 @@ coint.CSS <- function(
     )
   } else {
     minIC <- Inf
-    for (nL in rev(seq_len(lags.init))) {
-      for (nF in rev(seq_len(leads.init))) {
+    for (nL in rev(seq_len(max.lags))) {
+      for (nF in rev(seq_len(max.leads))) {
         model.est <- DOLS.many(
           y,
           x,
@@ -148,7 +177,8 @@ coint.CSS <- function(
           break.point,
           break.coint,
           nL,
-          nF
+          nF,
+          c(max.lags, max.leads)
         )
         .ic <- model.est$criterions
         if (.ic[[criterion]] < minIC) {
@@ -159,13 +189,14 @@ coint.CSS <- function(
     }
   }
 
-  test <- ifelse(is.null(kernel),
+  test <- ifelse(
+    is.null(kernel),
     .kpss.statistic(result$residuals, .lr.var.kurozumi(result$residuals)),
-    .kpss.statistic(result$residuals, .lr.var.spc(result$residuals, max.lag, kernel))
+    .kpss.statistic(result$residuals, .lr.var.spc(result$residuals, lr.lag, kernel))
   )
 
   result$statistic <- test
-  result$lr.var.max.lag <- max.lag
+  result$lr.var.max.lag <- lr.lag
   result$lr.var.kernel <- kernel
   class(result) <- "bt_kpss"
 

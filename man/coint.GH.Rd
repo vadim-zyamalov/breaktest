@@ -40,6 +40,10 @@ An object of type \code{cointGH}. It's a list of
 \description{
 Gregory and Hansen (1996) test for the null hypothesis of no cointegration
 under a possible structural break at the unknown moment of time.
+}
+\details{
+Gregory and Hansen (1996) test for the null hypothesis of no cointegration
+under a possible structural break at the unknown moment of time.
 
 The authors proposed ADF- and Z-type tests, slightly modified to allow
 the presence of a possible regime shift. Three type of shifts are allowed:

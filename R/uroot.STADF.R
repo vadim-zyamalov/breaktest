@@ -2,13 +2,10 @@
 #' Supremum ADF tests with time transformation
 #' @order 1
 #'
-#' @description
+#' @details
 #' See [uroot.SADF]. Tests with time transformation are the modified versions of
 #' the ordinary `SADF` and `GSADF` tests using Nadaraya-Watson residuals and
 #' reindexing procedure by Cavaliere-Taylor (2008).
-#'
-#' @details
-#' Refactored original code by Kurozumi et al.
 #'
 #' @param y A time series of interest.
 #' @param trim A trimming parameter to determine the lower and upper bounds for

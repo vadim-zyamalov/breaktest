@@ -73,9 +73,6 @@ if \code{urs} is \code{TRUE} the following items are also included:
 \description{
 Weighted supremum ADF test
 }
-\details{
-Refactored original code by Kurozumi et al.
-}
 \references{
 Harvey, David I., Stephen J. Leybourne, and Yang Zu.
 “Testing Explosive Bubbles with Time-Varying Volatility.”

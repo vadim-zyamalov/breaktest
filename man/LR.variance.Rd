@@ -5,7 +5,7 @@
 \alias{.lr.var.quad}
 \alias{.lr.var.kurozumi}
 \alias{.lr.var.spc}
-\alias{LR.variance.single}
+\alias{LR.variance}
 \title{Calculating long-run variance or covariance matrix}
 \usage{
 .lr.var.bartlett(y)
@@ -15,21 +15,14 @@
 .lr.var.kurozumi(y, k = 0.8)
 
 .lr.var.spc(y, kmax = 0, kernel = "Bartlett", criterion = "bic")
-
-LR.variance.single(
-  u,
-  kernel = "Bartlett",
-  bw.selector = "Bartlett",
-  bw.limit = NULL,
-  full = FALSE,
-  recolor = FALSE,
-  recolor.lag = 0,
-  criterion = "bic",
-  demean = TRUE,
-  whiten = FALSE
-)
 }
 \arguments{
+\item{y}{A time series of interest.}
+
+\item{k}{A limiting parameter for Kurozumi's proposal.}
+
+\item{kmax}{A maximum number of lars for recoloring procedure from Sul et al. (2005).}
+
 \item{kernel}{A kernel to be used:
 \itemize{
 \item \code{Truncated}: \eqn{\left\{\begin{array}{ll}
@@ -54,40 +47,10 @@ LR.variance.single(
 \left(\frac{\sin(6 \pi x / 5)}{6 \pi x / 5} - \cos(6 \pi x / 5)\right)}.
 }}
 
-\item{criterion}{The information crietreion: bic, aic or lwz.}
-
-\item{u}{A time series of interest.}
-
-\item{bw.selector}{A method to select bandwidth:
-\itemize{
-\item \code{Bartlett}: \eqn{1.1447 (N \alpha(1))^{1 / 3}},
-\item \code{Parzen}: \eqn{2.6614 (N \alpha(2))^{1 / 5}},
-\item \code{Tukey-Hanning}: \eqn{1.7462 (N \alpha(2))^{1 / 5}},
-\item \code{Quadratic}: \eqn{1.3221 (N \alpha(2))^{1 / 5}},
-\item \code{kpss-q}: \eqn{4 * \left(\frac{N}{100}\right)^{1 / 4}},
-\item \code{kpss-m}: \eqn{12 * \left(\frac{N}{100}\right)^{1 / 4}},
-\item \code{full}: \eqn{N-1},
-}}
-
-\item{bw.limit}{A limiting parameter for Kurozumi's proposal. If \code{NULL} no limiting is done.}
-
-\item{full}{Whether all possible lags shouls be used to compute variance.
-By default use number of lags that equals bandwidth.}
-
-\item{recolor}{Whether the correction by Sul et al. (2005) should be used.}
-
-\item{recolor.lag}{Maximum number of lags used in AR regresion during
-recolorization. Otherwize ignored.}
-
-\item{demean}{Whether \code{u} should be demeaned.}
-
-\item{whiten}{Whether an AR(1) approximation by Andrews & Monahan (1992) should be used.}
+\item{criterion}{An information criterion for recoloring lag selection.}
 }
 \description{
 Calculating long-run variance or covariance matrix
-}
-\details{
-The code provided is based on the original code by Kurozumi, Sul et al. ported to R.
 }
 \references{
 Andrews, Donald W. K.

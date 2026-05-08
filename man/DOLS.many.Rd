@@ -14,6 +14,7 @@ DOLS.many(
   break.coint = FALSE,
   n.lags,
   n.leads,
+  max.ll = NULL,
   ...
 )
 }

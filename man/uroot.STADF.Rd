@@ -87,12 +87,12 @@ s.e. if \code{ksi.input} equals \code{auto},
 }
 }
 \description{
+Supremum ADF tests with time transformation
+}
+\details{
 See \link{uroot.SADF}. Tests with time transformation are the modified versions of
 the ordinary \code{SADF} and \code{GSADF} tests using Nadaraya-Watson residuals and
 reindexing procedure by Cavaliere-Taylor (2008).
-}
-\details{
-Refactored original code by Kurozumi et al.
 }
 \references{
 Cavaliere, Giuseppe, and A. M. Robert Taylor.

@@ -1,10 +1,22 @@
 #' @title
 #' Functions to receive bootstrapped p-values.
 #'
-#' @param obj An object containing test results.
-#' @param ... Any additional arguments for [bootstrap] function.
+#' @param obj An object of class `bt_kpss`.
+#' @param iter Number of bootstrap iterations.
+#' @param boot.type Type of bootstrapping:
+#' * `"sample"`: sampling from residuals with replacement,
+#' * `"Cavaliere-Taylor"`: multiplying residuals by \eqn{N(0, 1)}-distributed
+#' variable,
+#' * `"Rademacher"`: multiplying residuals by Rademacher-distributed variable.
 #'
-#' @return A bootstrapped \eqn{p}-value.
+#' @import doSNOW
+#' @import foreach
+#' @import parallel
+#' @importFrom stats quantile
+#' @importFrom stats rnorm
+#' @importFrom stats sd
+#' @importFrom utils txtProgressBar
+#' @importFrom utils setTxtProgressBar
 #'
 #' @keywords internal
 #' @export
@@ -12,13 +24,6 @@ bootstrap <- function(obj, ...) UseMethod("bootstrap")
 
 
 #' @rdname bootstrap
-#'
-#' @import doSNOW
-#' @import foreach
-#' @import parallel
-#' @importFrom utils txtProgressBar
-#' @importFrom utils setTxtProgressBar
-#'
 #' @keywords internal
 #' @export
 bootstrap.bt_adf <- function(obj, iter = 999, ...) {
@@ -80,21 +85,6 @@ bootstrap.bt_adf <- function(obj, iter = 999, ...) {
 
 
 #' @rdname bootstrap
-#' @param obj An object of class `bt_kpss`.
-#' @param iter Number of bootstrap iterations.
-#' @param boot.type Type of bootstrapping:
-#' * `"sample"`: sampling from residuals with replacement,
-#' * `"Cavaliere-Taylor"`: multiplying residuals by \eqn{N(0, 1)}-distributed
-#' variable,
-#' * `"Rademacher"`: multiplying residuals by Rademacher-distributed variable.
-#'
-#' @import doSNOW
-#' @import foreach
-#' @import parallel
-#' @importFrom stats rnorm
-#' @importFrom utils txtProgressBar
-#' @importFrom utils setTxtProgressBar
-#'
 #' @keywords internal
 #' @export
 bootstrap.bt_kpss <- function(obj, iter = 999, boot.type = "sample", ...) {
@@ -145,38 +135,7 @@ bootstrap.bt_kpss <- function(obj, iter = 999, boot.type = "sample", ...) {
 
 
 #' @rdname bootstrap
-#' @description
-#' `SADF.bootstrap.test` is a wild bootstrapping procedure for estimating
-#' critical and \eqn{p}-values for [uroot.SADF].
-#'
-#' `GSADF.bootstrap.test` is the same procedure but for `GSADF.test`.
-#'
-#' @details
-#' Refactored original code by Kurozumi et al.
-#'
-#' @param y A time series of interest.
-#' @param trim A trimming parameter to determine the lower and upper bounds for
-#' a possible break point.
-#' @param const Whether the constant needs to be included.
-#' @param alpha The significance level of interest.
-#' @param iter The number of iterations.
-#' @param seed The seed parameter for the random number generator.
-#'
-#' @references
-#' Kurozumi, Eiji, Anton Skrobotov, and Alexey Tsarev.
-#' “Time-Transformed Test for Bubbles under Non-Stationary Volatility.”
-#' Journal of Financial Econometrics, April 23, 2022.
-#' https://doi.org/10.1093/jjfinec/nbac004.
-#'
-#' @import doSNOW
-#' @import foreach
-#' @import parallel
-#' @importFrom stats quantile
-#' @importFrom stats rnorm
-#' @importFrom stats sd
-#' @importFrom utils txtProgressBar
-#' @importFrom utils setTxtProgressBar
-#'
+#' @keywords internal
 #' @export
 bootstrap.bt_SADF <- function(obj, iter = 999) {
   y <- obj$y
@@ -213,15 +172,7 @@ bootstrap.bt_SADF <- function(obj, iter = 999) {
 
 
 #' @rdname bootstrap
-#'
-#' @import doSNOW
-#' @import foreach
-#' @import parallel
-#' @importFrom stats rnorm
-#' @importFrom stats sd
-#' @importFrom utils txtProgressBar
-#' @importFrom utils setTxtProgressBar
-#'
+#' @keywords internal
 #' @export
 bootstrap.bt_GSADF <- function(obj, iter = 999) {
   y <- obj$y
@@ -259,15 +210,7 @@ bootstrap.bt_GSADF <- function(obj, iter = 999) {
 
 
 #' @rdname bootstrap
-#'
-#' @import doSNOW
-#' @import foreach
-#' @import parallel
-#' @importFrom stats rnorm
-#' @importFrom stats sd
-#' @importFrom utils txtProgressBar
-#' @importFrom utils setTxtProgressBar
-#'
+#' @keywords internal
 #' @export
 bootstrap.bt_mdfCHLT <- function(obj, iter = 999, y, ...) {
   N <- length(y)

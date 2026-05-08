@@ -28,12 +28,16 @@ A list of:
 This procedure is aimed on the problem of testing for the cointegration rank
 of a vector autoregressive process in the case where a trend break may
 potentially be present in the data.
+}
+\details{
+This procedure is aimed on the problem of testing for the cointegration rank
+of a vector autoregressive process in the case where a trend break may
+potentially be present in the data.
 
 The test is based on estimating the quasi log likelihood for two situations,
 with break, and without it. The one with the smallest value is considered to
 be the result.
-}
-\details{
+
 The code provided is the original GAUSS code by Harris et al.
 ported to R.
 }

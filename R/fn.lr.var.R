@@ -1,10 +1,7 @@
 #' Calculating long-run variance or covariance matrix
+#' @name LR.variance
 #'
-#' @details
-#' The code provided is based on the original code by Kurozumi, Sul et al. ported to R.
-#'
-#' @param u A time series of interest.
-#'
+#' @param y A time series of interest.
 #' @param kernel A kernel to be used:
 #' * `Truncated`: \eqn{\left\{\begin{array}{ll}
 #' 1 & |x| \leq 1 \\
@@ -26,30 +23,9 @@
 #' * `Quadratic`: \eqn{
 #' \frac{25}{12 \pi^2 x^2}
 #' \left(\frac{\sin(6 \pi x / 5)}{6 \pi x / 5} - \cos(6 \pi x / 5)\right)}.
-#'
-#' @param bw.selector A method to select bandwidth:
-#' * `Bartlett`: \eqn{1.1447 (N \alpha(1))^{1 / 3}},
-#' * `Parzen`: \eqn{2.6614 (N \alpha(2))^{1 / 5}},
-#' * `Tukey-Hanning`: \eqn{1.7462 (N \alpha(2))^{1 / 5}},
-#' * `Quadratic`: \eqn{1.3221 (N \alpha(2))^{1 / 5}},
-#' * `kpss-q`: \eqn{4 * \left(\frac{N}{100}\right)^{1 / 4}},
-#' * `kpss-m`: \eqn{12 * \left(\frac{N}{100}\right)^{1 / 4}},
-#' * `full`: \eqn{N-1},
-#'
-#' @param bw.limit A limiting parameter for Kurozumi's proposal. If `NULL` no limiting is done.
-#'
-#' @param full Whether all possible lags shouls be used to compute variance.
-#' By default use number of lags that equals bandwidth.
-#'
-#' @param recolor Whether the correction by Sul et al. (2005) should be used.
-#'
-#' @param recolor.lag Maximum number of lags used in AR regresion during
-#' recolorization. Otherwize ignored.
-#'
-#' @param criterion The information crietreion: bic, aic or lwz.
-#'
-#' @param demean Whether `u` should be demeaned.
-#' @param whiten Whether an AR(1) approximation by Andrews & Monahan (1992) should be used.
+#' @param k A limiting parameter for Kurozumi's proposal.
+#' @param kmax A maximum number of lars for recoloring procedure from Sul et al. (2005).
+#' @param criterion An information criterion for recoloring lag selection.
 #'
 #' @references
 #' Andrews, Donald W. K.
@@ -71,77 +47,11 @@
 #' @importFrom stats na.omit
 #'
 #' @keywords internal
-LR.variance.single <- function(
-  u,
-  kernel = "Bartlett",
-  bw.selector = "Bartlett",
-  bw.limit = NULL,
-  full = FALSE,
-  recolor = FALSE,
-  recolor.lag = 0,
-  criterion = "bic",
-  demean = TRUE,
-  whiten = FALSE
-) {
-  N <- length(u)
-
-  if (recolor) {
-    minIC <- log(sum(u^2) / (N - recolor.lag))
-
-    arModel <- AR.reg(u, NULL, recolor.lag, criterion)
-    arIC <- info.criterions(arModel$residuals, arModel$lag)[[
-      criterion
-    ]]
-
-    if (minIC < arIC) {
-      # Sul, Phillips and Choi (2003)
-      return((sum(u^2) / N) * min(1, N * 0.15))
-    } else {
-      arCoefs <- arModel$coefficients
-      u <- arModel$residuals
-      N <- length(u)
-    }
-  }
-
-  if (demean) {
-    u <- u - mean(u)
-  }
-
-  # Andrews and Monahan (1992, pag. 958) approximation
-  rho <- if (whiten) {
-    sum(u[1:(N - 1)] * u[2:N]) / sum(u[2:N]^2)
-  } else {
-    0
-  }
-
-  lmtL <- .lr.bandwidth(bw.selector, .alpha.single, N)
-  wgtF <- .lr.weight(kernel)
-
-  bw <- lmtL(rho, N)
-
-  # Kurozumi proposal
-  if (!is.null(bw.limit)) {
-    bw <- min(bw, lmtL(bw.limit, N))
-  }
-  bw <- round(bw)
-  lags <- if (full) N - 1 else bw
-
-  lrv <- sum(u^2) / N
-  for (i in 1:lags) {
-    lrv <- lrv + 2 * sum(u[1:(N - i)] * u[(1 + i):N]) * wgtF(i, bw) / N
-  }
-
-  if (recolor) {
-    lrvR <- lrv / (1 - sum(arCoefs))^2
-    return(min(lrvR, N * 0.15 * lrv))
-  }
-
-  lrv
-}
+NULL
 
 
-#' @rdname LR.variance.single
-#' @order 2
+#' @rdname LR.variance
+#' @order 1
 .lr.var.bartlett <- function(y) {
   N <- length(y)
   m <- round(.lr.bandwidth(NULL, N, "kpss-q"))
@@ -155,8 +65,8 @@ LR.variance.single <- function(
   lrv
 }
 
-#' @rdname LR.variance.single
-#' @order 3
+#' @rdname LR.variance
+#' @order 2
 .lr.var.quad <- function(y) {
   N <- length(y)
   a <- sum(y[1:(N - 1)] * y[2:N]) / sum(y[2:N]^2)
@@ -172,8 +82,8 @@ LR.variance.single <- function(
   lrv
 }
 
-#' @rdname LR.variance.single
-#' @order 4
+#' @rdname LR.variance
+#' @order 3
 .lr.var.kurozumi <- function(y, k = 0.8) {
   N <- length(y)
 
@@ -197,8 +107,8 @@ LR.variance.single <- function(
   lrv
 }
 
-#' @rdname LR.variance.single
-#' @order 5
+#' @rdname LR.variance
+#' @order 4
 .lr.var.spc <- function(
   y,
   kmax = 0,

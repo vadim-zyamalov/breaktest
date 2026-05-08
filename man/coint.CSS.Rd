@@ -13,9 +13,9 @@ coint.CSS(
   break.point,
   break.coint = FALSE,
   weakly.exog = TRUE,
-  lags.init,
-  leads.init,
-  max.lag,
+  max.lags,
+  max.leads,
+  lr.lag,
   kernel,
   criterion = "bic",
   boot.p = FALSE,
@@ -33,9 +33,9 @@ If it's NULL then the result of this function is just a KPSS test for y.}
 
 \item{break.type}{A single value or vector of
 \itemize{
-\item "c": for the break in const,
-\item "t": for the break in trend,
-\item "ct": for the break in const and trend.
+\item \code{c}: for the break in const,
+\item \code{t}: for the break in trend,
+\item \code{ct}: for the break in const and trend.
 }}
 
 \item{break.point}{Array of structural break moments.}
@@ -43,17 +43,15 @@ If it's NULL then the result of this function is just a KPSS test for y.}
 \item{break.coint}{Whether breaks in cointegrating relation are needed to be included.
 See Carrion-i-Silvestre & Sansó (2006) for details.}
 
-\item{weakly.exog}{Boolean where we specify
-whether the stochastic regressors are exogenous or not
+\item{weakly.exog}{Boolean where we specify whether the stochastic regressors are exogenous or not
 \itemize{
 \item \code{TRUE}: if the regressors are weakly exogenous,
-\item \code{FALSE}: if the regressors are not weakly exogenous
-(DOLS is used in this case).
+\item \code{FALSE}: if the regressors are not weakly exogenous (DOLS is used in this case).
 }}
 
-\item{lags.init, leads.init}{Scalars defininig the initial number of lags and leads for DOLS.}
+\item{max.lags, max.leads}{Scalars defininig the initial number of lags and leads for DOLS.}
 
-\item{max.lag}{scalar, with the maximum order of the parametric correction.
+\item{lr.lag}{scalar, with the maximum order of the parametric correction.
 The final order of the parametric correction is selected using the BIC information criterion.}
 
 \item{kernel}{Kernel for calculating long-run variance
@@ -76,32 +74,7 @@ The final order of the parametric correction is selected using the BIC informati
 
 \item{boot.iter}{The number of bootstrap iterations,}
 
-\item{...}{A dummy parameter for technical purposes. Just ignore it.}
-}
-\value{
-An object of class \code{bt_kpss} containing
-\itemize{
-\item \code{statistic}: the value of test statistic,
-\item \code{coefficients}: OLS/DOLS estimates of the coefficients,
-\item \code{se.coefs}: standard errors of the coefficients above,
-\item \code{t.stats}: \eqn{t}-statistics for the coefficients above,
-\item \code{residuals}: Residuals of the model,
-\item \code{t.beta}: \eqn{t}-statistics for \code{beta},
-\item \code{fitted.values}: fitted values of the estimated model,
-\item \code{endog}: final \eqn{y} vector used in the estimated model,
-\item \code{exog}: final \eqn{x} matrix used in the estimated model,
-\item \code{DOLS.lags}: The estimated number of lags and leads in DOLS,
-\item \code{break.type}, \code{break.point}, \code{break.coint}: breaks specification,
-\item \code{criterions}: values of the information criterions for the estimated model,
-\item \code{lags}, \code{leads}: number of lags and leads in the estimated model.
-}
-}
-\description{
-Procedure to test the presence of cointegration in the case of  multiple known structural breaks using KPSS test
-}
-\details{
-The code provided is based on the original code
-by Carrion-i-Silvestre and Sansó.
+\item{...}{A dummy parameter for technical purposes. Just ignore it.
 
 If you want to get results like in Carrion-i-Silvestre & Sansó (2006) then you should
 \itemize{
@@ -124,7 +97,50 @@ If you want to get results like in Carrion-i-Silvestre & Sansó (2007) then you 
 \item for the specification of \code{AB-BA} set \code{const=TRUE}, \code{trend=FALSE}, \code{break.type=c("c", "t")};
 \item for the specification of \code{AC-CA} set \code{const=TRUE}, \code{trend=TRUE}, \code{break.type=c("c", "ct")};
 \item for the specification of \code{BC-CB} set \code{const=TRUE}, \code{trend=TRUE}, \code{break.type=c("t", "ct")}.
+}}
 }
+\value{
+An object of class \code{bt_kpss} containing
+\itemize{
+\item \code{statistic}: the value of test statistic,
+\item \code{coefficients}: OLS/DOLS estimates of the coefficients,
+\item \code{se.coefs}: standard errors of the coefficients above,
+\item \code{t.stats}: \eqn{t}-statistics for the coefficients above,
+\item \code{residuals}: Residuals of the model,
+\item \code{t.beta}: \eqn{t}-statistics for \code{beta},
+\item \code{fitted.values}: fitted values of the estimated model,
+\item \code{endog}: final \eqn{y} vector used in the estimated model,
+\item \code{exog}: final \eqn{x} matrix used in the estimated model,
+\item \code{DOLS.lags}: The estimated number of lags and leads in DOLS,
+\item \code{break.type}, \code{break.point}, \code{break.coint}: breaks specification,
+\item \code{criterions}: values of the information criterions for the estimated model,
+\item \code{lags}, \code{leads}: number of lags and leads in the estimated model.
+}
+}
+\description{
+Procedure to test the presence of cointegration in the case of multiple known structural breaks using KPSS test.
+This procedure is based on the procedures for one and two known breaks by Carrion-i-Silvestre and Sansó (2006, 2007).
+}
+\details{
+At the first step obtained are the residuals from the regression of LHS series \eqn{y}
+on the set of deterministic components and (if any) exogenous regressors \eqn{x}.
+Deterministic components may include
+\itemize{
+\item constant term,
+\item trend component,
+\item constant with break \eqn{{DU}_{t,\tau} = \mathrm{1}[t > \tau]},
+\item trens with break \eqn{{DT}_{t,\tau} = \mathrm{1}[t > \tau](t - \tau)}.
+}
+
+If \eqn{x} are weakly exogenous then the regression is estimated by OLS, if not then DOLS regression is applied.
+The procedure also allows for the break in the cointegrating equation,
+in that case products of \eqn{{DU}_{t,\tau}} and \eqn{x} are added to the regressors list.
+
+After the residuals are obtained KPSS test statistic is calculated using \code{kernel}.
+If it's not set then QS kernel is used with banwidth selection as in Andrews (1991),
+and with Kurozumi (2002) proposal of banwidth limiting.
+
+p-value (if needed) is calculated by bootstrapping procedure.
 }
 \references{
 Carrion-i-Silvestre, Josep Lluís, and Andreu Sansó.
@@ -136,4 +152,15 @@ Carrion-i-Silvestre, Josep Lluís, and Andreu Sansó.
 “The KPSS Test with Two Structural Breaks.”
 Spanish Economic Review 9, no. 2 (May 16, 2007): 105–27.
 https://doi.org/10.1007/s10108-006-9017-8.
+
+#' Andrews, Donald W. K.
+“Heteroskedasticity and Autocorrelation Consistent
+Covariance Matrix Estimation.”
+Econometrica 59, no. 3 (1991): 817–58.
+https://doi.org/10.2307/2938229.
+
+Kurozumi, Eiji.
+“Testing for Stationarity with a Break.”
+Journal of Econometrics 108, no. 1 (May 1, 2002): 63–99.
+https://doi.org/10.1016/S0304-4076(01)00106-3.
 }

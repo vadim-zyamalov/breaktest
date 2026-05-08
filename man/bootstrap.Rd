@@ -24,9 +24,7 @@ bootstrap(obj, ...)
 \arguments{
 \item{obj}{An object of class \code{bt_kpss}.}
 
-\item{...}{Any additional arguments for \link{bootstrap} function.}
-
-\item{iter}{The number of iterations.}
+\item{iter}{Number of bootstrap iterations.}
 
 \item{boot.type}{Type of bootstrapping:
 \itemize{
@@ -35,34 +33,8 @@ bootstrap(obj, ...)
 variable,
 \item \code{"Rademacher"}: multiplying residuals by Rademacher-distributed variable.
 }}
-
-\item{y}{A time series of interest.}
-
-\item{trim}{A trimming parameter to determine the lower and upper bounds for
-a possible break point.}
-
-\item{const}{Whether the constant needs to be included.}
-
-\item{alpha}{The significance level of interest.}
-
-\item{seed}{The seed parameter for the random number generator.}
-}
-\value{
-A bootstrapped \eqn{p}-value.
 }
 \description{
-\code{SADF.bootstrap.test} is a wild bootstrapping procedure for estimating
-critical and \eqn{p}-values for \link{uroot.SADF}.
-
-\code{GSADF.bootstrap.test} is the same procedure but for \code{GSADF.test}.
-}
-\details{
-Refactored original code by Kurozumi et al.
-}
-\references{
-Kurozumi, Eiji, Anton Skrobotov, and Alexey Tsarev.
-“Time-Transformed Test for Bubbles under Non-Stationary Volatility.”
-Journal of Financial Econometrics, April 23, 2022.
-https://doi.org/10.1093/jjfinec/nbac004.
+Functions to receive bootstrapped p-values.
 }
 \keyword{internal}
