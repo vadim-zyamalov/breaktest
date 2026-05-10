@@ -42,8 +42,7 @@ trend.variables <- function(
   )
 
   for (i in seq_len(Nb)) {
-    xt <- switch(
-      break.type[i],
+    xt <- switch(break.type[i],
       "c" = cbind(xt, .du(break.point[i], N)),
       "t" = cbind(xt, .dt(break.point[i], N)),
       "ct" = cbind(xt, .du(break.point[i], N), .dt(break.point[i], N)),
@@ -52,97 +51,6 @@ trend.variables <- function(
   }
 
   xt
-}
-
-
-#' @title
-#' Preparing variables for DOLS regression with multiple known break points
-#'
-#' @param y A time series of interest.
-#' @param x A matrix of explanatory stochastic regressors.
-#' @param model A scalar or vector of
-#' * 1: for the break in const.
-#' * 2: for the break in trend.
-#' * 3: for the break in const and trend.
-#' @param break.point An array of moments of structural breaks.
-#' @param const,trend Whether a constant or trend are to be included.
-#' @param k.lags,k.leads A number of lags and leads in DOLS regression.
-#'
-#' @return A list of LHS and RHS variables.
-#'
-#' @importFrom Rfast rowAll
-#'
-#' @keywords internal
-DOLS.mlt.regressors <- function(
-  y,
-  x,
-  const = FALSE,
-  trend = FALSE,
-  break.type,
-  break.point,
-  break.coint = FALSE,
-  n.lags,
-  n.leads,
-  max.ll = NULL
-) {
-  if (is.null(x)) {
-    stop("ERROR! dols.multiple: Explanatory variables needed for DOLS")
-  }
-  if (!is.matrix(y)) {
-    y <- as.matrix(y)
-  }
-  if (!is.matrix(x)) {
-    x <- as.matrix(x)
-  }
-
-  if (!is.null(max.ll)) {
-    max.lag <- max.ll[1]
-    max.lead <- max.ll[2]
-  } else {
-    max.lag <- n.lags
-    max.lead <- n.leads
-  }
-
-  N <- nrow(y)
-
-  mDeter <- trend.variables(break.type, N, break.point, const, trend)
-
-  mXdu <- NULL
-  if (break.coint) {
-    for (bp in break.point) {
-      mXdu <- cbind(mXdu, sweep(x, 1, .du(bp, N), `*`))
-    }
-  }
-
-  mDx <- .diffn(x)
-  mLagLead <- mDx
-
-  if (n.lags > 0) {
-    for (i in 1:n.lags) {
-      mLagLead <- cbind(mLagLead, .lagn(mDx, i))
-    }
-  }
-  if (n.leads > 0) {
-    for (i in 1:n.leads) {
-      mLagLead <- cbind(mLagLead, .lagn(mDx, -i))
-    }
-  }
-
-  rows <- rowAll(!is.na(y)) & rowAll(!is.na(x))
-  rows[1:max.lag] <- FALSE
-  rows[(N - max.lead + 1):N] <- FALSE
-
-  mX <- cbind(
-    mDeter,
-    mXdu,
-    x,
-    mLagLead
-  )
-
-  list(
-    yreg = y[rows, 1, drop = FALSE],
-    xreg = mX[rows, , drop = FALSE]
-  )
 }
 
 

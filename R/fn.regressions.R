@@ -62,83 +62,6 @@ OLS.reg <- function(y, x) {
 
 
 #' @title
-#' Estimating DOLS regression for multiple known break points
-#'
-#' @param y A time series of interest.
-#' @param x A matrix of explanatory stochastic regressors.
-#' @param model A scalar or vector of break types:
-#' * 1: for the break in const.
-#' * 2: for the break in trend.
-#' * 3: for the break in const and trend.
-#' @param break.point An array of moments of structural breaks.
-#' @param const,trend Whether a constant or trend are to be included.
-#' @param k.lags,k.leads A number of lags and leads in DOLS regression.
-#'
-#' @return A list of:
-#' * Estimates of coefficients,
-#' * Estimates of residuals,
-#' * A set of informational criterions values,
-#' * \eqn{t}-statistics for the estimates of coefficients.
-#'
-#' @keywords internal
-DOLS.many <- function(
-  y,
-  x,
-  const = FALSE,
-  trend = FALSE,
-  break.type,
-  break.point,
-  break.coint = FALSE,
-  n.lags,
-  n.leads,
-  max.ll = NULL,
-  ...
-) {
-  if (!is.matrix(y)) {
-    y <- as.matrix(y)
-  }
-  if (is.null(x)) {
-    stop("ERROR! DOLS.multiple: explanatory variables needed for DOLS")
-  }
-  if (!is.matrix(x)) {
-    x <- as.matrix(x)
-  }
-
-  if (!is.null(max.ll)) {
-    max.lag <- max.ll[1]
-    max.lead <- max.ll[2]
-  } else {
-    max.lag <- n.lags
-    max.lead <- n.leads
-  }
-
-  .vars_dols <- DOLS.mlt.regressors(
-    y,
-    x,
-    const = FALSE,
-    trend = FALSE,
-    break.type,
-    break.point,
-    break.coint = FALSE,
-    n.lags,
-    n.leads,
-    max.ll
-  )
-
-  result <- OLS.reg(.vars_dols$yreg, .vars_dols$xreg)
-  result$break.type <- break.type
-  result$break.point <- break.point
-  result$break.coint <- break.coint
-  result$criterions <- info.criterions(result$residuals, ncol(.vars_dols$xreg))
-  result$lags <- n.lags
-  result$leads <- n.leads
-
-  class(result) <- "bt_dols"
-  result
-}
-
-
-#' @title
 #' Custom GLS with extra information
 #'
 #' @description
@@ -213,6 +136,7 @@ GLS.reg <- function(y, z, c) {
 #' * `t.beta`: \eqn{t}-statistics for `beta`,
 #' * `lag`: estimated number of lags.
 #'
+#' @importFrom Rfast rowAll
 #' @keywords internal
 AR.reg <- function(
   y,
@@ -235,49 +159,159 @@ AR.reg <- function(
 
   if (!is.null(x)) {
     Nx <- ncol(x)
-    mRHS <- x
+    mX <- x
   } else {
     Nx <- 0
-    mRHS <- NULL
+    mX <- NULL
   }
 
   for (l in seq_len(max.lag)) {
-    mRHS <- cbind(mRHS, .lagn(y, l))
+    mX <- cbind(mX, .lagn(y, l))
   }
 
-  yrows <- apply(y, 1, function(r) any(is.na(r)))
-  xrows <- apply(mRHS, 1, function(r) any(is.na(r)))
-  rows <- !yrows & !xrows
-
-  vLHS <- y[rows, , drop = FALSE]
-  mRHS <- mRHS[rows, , drop = FALSE]
+  rows <- rowAll(!is.na(y)) & rowAll(!is.na(mX))
 
   if (is.null(criterion)) {
     resLag <- max.lag
-    result <- OLS.reg(vLHS, mRHS[, 1:(Nx + resLag), drop = FALSE])
   } else {
     resLag <- 0
-
-    result <- NULL
     minIC <- Inf
 
     for (l in 0:max.lag) {
-      loopModel <- OLS.reg(vLHS, mRHS[, 1:(Nx + l), drop = FALSE])
+      loopModel <- OLS.reg(y[rows], mX[rows, 1:(Nx + l)])
       loopIC <- info.criterions(loopModel$residuals, Nx + l)[[criterion]]
 
       if (loopIC < minIC) {
         minIC <- loopIC
         resLag <- l
-        result <- loopModel
       }
     }
   }
+
+  rows <- rowAll(!is.na(y)) & rowAll(!is.na(mX[, 1:(Nx + resLag), drop = FALSE]))
+  result <- OLS.reg(y[rows], mX[rows, 1:(Nx + resLag)])
 
   result$lag <- resLag
   result$criterion <- minIC
   result$criterion.name <- criterion
 
   class(result) <- "bt_ar"
+  result
+}
+
+
+#' @title
+#' Estimating DOLS regression for multiple known break points
+#'
+#' @param y A time series of interest.
+#' @param x A matrix of explanatory stochastic regressors.
+#' @param model A scalar or vector of break types:
+#' * 1: for the break in const.
+#' * 2: for the break in trend.
+#' * 3: for the break in const and trend.
+#' @param break.point An array of moments of structural breaks.
+#' @param const,trend Whether a constant or trend are to be included.
+#' @param k.lags,k.leads A number of lags and leads in DOLS regression.
+#'
+#' @return A list of:
+#' * Estimates of coefficients,
+#' * Estimates of residuals,
+#' * A set of informational criterions values,
+#' * \eqn{t}-statistics for the estimates of coefficients.
+#'
+#' @importFrom Rfast rowAll
+#' @keywords internal
+DOLS.reg <- function(
+  y,
+  x,
+  const = FALSE,
+  trend = FALSE,
+  break.type,
+  break.point,
+  break.coint = FALSE,
+  n.lags,
+  n.leads,
+  criterion = "aic"
+) {
+  if (!is.matrix(y)) {
+    y <- as.matrix(y)
+  }
+  if (is.null(x)) {
+    stop("ERROR! DOLS.multiple: explanatory variables needed for DOLS")
+  }
+  if (!is.matrix(x)) {
+    x <- as.matrix(x)
+  }
+
+  if (!is.null(x)) {
+    Nx <- ncol(x)
+    mX <- x
+  } else {
+    Nx <- 0
+    mX <- NULL
+  }
+
+  N <- nrow(y)
+  deter <- trend.variables(break.type, N, break.point, const, trend)
+
+  xdu <- NULL
+  if (break.coint) {
+    for (bp in break.point) {
+      xdu <- cbind(xdu, sweep(x, 1, .du(bp, N), `*`))
+      Nx <- Nx + ncol(x)
+    }
+  }
+
+  dX <- .diffn(x)
+
+  xL <- NULL
+  for (l in seq_len(n.lags)) {
+    xL <- cbind(xL, .lagn(dX, l))
+  }
+
+  xF <- NULL
+  for (l in seq_len(n.leads)) {
+    xF <- cbind(xF, .lagn(dX, -l))
+  }
+
+  mX <- cbind(deter, xdu, x, xL, xF)
+  rows <- rowAll(!is.na(y)) & rowAll(!is.na(mX))
+
+  if (is.null(criterion)) {
+    resLag <- n.lags
+    resLead <- n.leads
+  } else {
+    minIC <- Inf
+    resLag <- 0
+    resLead <- 0
+
+    for (l in c(0, seq_len(n.lags))) {
+      for (f in c(0, seq_len(n.leads))) {
+        mX <- cbind(deter, xdu, x, xL[, seq_len(l)], xF[, seq_len(f)])
+        loopModel <- OLS.reg(y[rows], mX[rows, ])
+        loopIC <- info.criterions(loopModel$residuals, Nx + l + f)[[criterion]]
+
+        if (loopIC < minIC) {
+          minIC <- loopIC
+          resLag <- l
+          resLead <- f
+        }
+      }
+    }
+  }
+
+  mX <- cbind(deter, xdu, x, xL[, seq_len(resLag)], xF[, seq_len(resLead)])
+  rows <- rowAll(!is.na(y)) & rowAll(!is.na(mX))
+
+  result <- OLS.reg(y[rows], mX[rows, ])
+  result$break.type <- break.type
+  result$break.point <- break.point
+  result$break.coint <- break.coint
+  result$criterions <- info.criterions(result$residuals, ncol(mX))
+  result$lags <- resLag
+  result$leads <- resLead
+
+  class(result) <- "bt_dols"
   result
 }
 

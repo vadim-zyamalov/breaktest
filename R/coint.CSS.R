@@ -21,7 +21,7 @@
 #' After the residuals are obtained KPSS test statistic is calculated using `kernel`.
 #' If it's not set then QS kernel is used with banwidth selection as in Andrews (1991),
 #' and with Kurozumi (2002) proposal of banwidth limiting.
-#' 
+#'
 #' p-value (if needed) is calculated by bootstrapping procedure.
 #'
 #' @param y A time series of interest.
@@ -98,13 +98,13 @@
 #' “The KPSS Test with Two Structural Breaks.”
 #' Spanish Economic Review 9, no. 2 (May 16, 2007): 105–27.
 #' https://doi.org/10.1007/s10108-006-9017-8.
-#' 
+#'
 #' #' Andrews, Donald W. K.
 #' “Heteroskedasticity and Autocorrelation Consistent
 #' Covariance Matrix Estimation.”
 #' Econometrica 59, no. 3 (1991): 817–58.
 #' https://doi.org/10.2307/2938229.
-#' 
+#'
 #' Kurozumi, Eiji.
 #' “Testing for Stationarity with a Break.”
 #' Journal of Econometrics 108, no. 1 (May 1, 2002): 63–99.
@@ -138,7 +138,7 @@ coint.CSS <- function(
 
   N <- nrow(y)
 
-  if (weakly.exog || is.null(x)) {
+  result <- if (weakly.exog || is.null(x)) {
     mXdu <- NULL
     if (!is.null(x) && break.coint) {
       for (bp in break.point) {
@@ -153,7 +153,7 @@ coint.CSS <- function(
     )
 
     result <- OLS.reg(y, mX)
-    result <- c(
+    c(
       result,
       list(
         break.type = break.type,
@@ -165,34 +165,26 @@ coint.CSS <- function(
       )
     )
   } else {
-    minIC <- Inf
-    for (nL in rev(seq_len(max.lags))) {
-      for (nF in rev(seq_len(max.leads))) {
-        model.est <- DOLS.many(
-          y,
-          x,
-          const,
-          trend,
-          break.type,
-          break.point,
-          break.coint,
-          nL,
-          nF,
-          c(max.lags, max.leads)
-        )
-        .ic <- model.est$criterions
-        if (.ic[[criterion]] < minIC) {
-          minIC <- .ic[[criterion]]
-          result <- model.est
-        }
-      }
-    }
+    DOLS.reg(
+      y,
+      x,
+      const,
+      trend,
+      break.type,
+      break.point,
+      break.coint,
+      max.lags,
+      max.leads
+    )
   }
 
   test <- ifelse(
     is.null(kernel),
     .kpss.statistic(result$residuals, .lr.var.kurozumi(result$residuals)),
-    .kpss.statistic(result$residuals, .lr.var.spc(result$residuals, lr.lag, kernel))
+    .kpss.statistic(
+      result$residuals,
+      .lr.var.spc(result$residuals, lr.lag, kernel)
+    )
   )
 
   result$statistic <- test
