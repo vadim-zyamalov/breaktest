@@ -4,27 +4,17 @@
 \alias{DOLS.reg}
 \title{Estimating DOLS regression for multiple known break points}
 \usage{
-DOLS.reg(
-  y,
-  x,
-  const = FALSE,
-  trend = FALSE,
-  break.type,
-  break.point,
-  break.coint = FALSE,
-  n.lags,
-  n.leads,
-  criterion = "aic"
-)
+DOLS.reg(y, x, z, n.lags, n.leads, criterion = "aic")
 }
 \arguments{
 \item{y}{A time series of interest.}
 
 \item{x}{A matrix of explanatory stochastic regressors.}
 
-\item{const, trend}{Whether a constant or trend are to be included.}
+\item{z}{A matrix of extra explanatory stochastic regressors.
+These variables are used as is without taking lagged or lead values.}
 
-\item{break.point}{An array of moments of structural breaks.}
+\item{criterion}{A criterion for lag/lead number selection.}
 
 \item{model}{A scalar or vector of break types:
 \itemize{

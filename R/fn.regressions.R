@@ -188,7 +188,8 @@ AR.reg <- function(
     }
   }
 
-  rows <- rowAll(!is.na(y)) & rowAll(!is.na(mX[, 1:(Nx + resLag), drop = FALSE]))
+  rows <- rowAll(!is.na(y)) &
+    rowAll(!is.na(mX[, 1:(Nx + resLag), drop = FALSE]))
   result <- OLS.reg(y[rows], mX[rows, 1:(Nx + resLag)])
 
   result$lag <- resLag
@@ -205,13 +206,14 @@ AR.reg <- function(
 #'
 #' @param y A time series of interest.
 #' @param x A matrix of explanatory stochastic regressors.
+#' @param z A matrix of extra explanatory stochastic regressors.
+#' These variables are used as is without taking lagged or lead values.
 #' @param model A scalar or vector of break types:
 #' * 1: for the break in const.
 #' * 2: for the break in trend.
 #' * 3: for the break in const and trend.
-#' @param break.point An array of moments of structural breaks.
-#' @param const,trend Whether a constant or trend are to be included.
 #' @param k.lags,k.leads A number of lags and leads in DOLS regression.
+#' @param criterion A criterion for lag/lead number selection.
 #'
 #' @return A list of:
 #' * Estimates of coefficients,
@@ -224,11 +226,7 @@ AR.reg <- function(
 DOLS.reg <- function(
   y,
   x,
-  const = FALSE,
-  trend = FALSE,
-  break.type,
-  break.point,
-  break.coint = FALSE,
+  z,
   n.lags,
   n.leads,
   criterion = "aic"
@@ -242,24 +240,8 @@ DOLS.reg <- function(
   if (!is.matrix(x)) {
     x <- as.matrix(x)
   }
-
-  if (!is.null(x)) {
-    Nx <- ncol(x)
-    mX <- x
-  } else {
-    Nx <- 0
-    mX <- NULL
-  }
-
-  N <- nrow(y)
-  deter <- trend.variables(break.type, N, break.point, const, trend)
-
-  xdu <- NULL
-  if (break.coint) {
-    for (bp in break.point) {
-      xdu <- cbind(xdu, sweep(x, 1, .du(bp, N), `*`))
-      Nx <- Nx + ncol(x)
-    }
+  if (!is.null(z) && !is.matrix(z)) {
+    z <- as.matrix(z)
   }
 
   dX <- .diffn(x)
@@ -274,7 +256,7 @@ DOLS.reg <- function(
     xF <- cbind(xF, .lagn(dX, -l))
   }
 
-  mX <- cbind(deter, xdu, x, xL, xF)
+  mX <- cbind(z, x, xL, xF)
   rows <- rowAll(!is.na(y)) & rowAll(!is.na(mX))
 
   if (is.null(criterion)) {
@@ -287,9 +269,9 @@ DOLS.reg <- function(
 
     for (l in c(0, seq_len(n.lags))) {
       for (f in c(0, seq_len(n.leads))) {
-        mX <- cbind(deter, xdu, x, xL[, seq_len(l)], xF[, seq_len(f)])
+        mX <- cbind(z, x, xL[, seq_len(l)], xF[, seq_len(f)])
         loopModel <- OLS.reg(y[rows], mX[rows, ])
-        loopIC <- info.criterions(loopModel$residuals, Nx + l + f)[[criterion]]
+        loopIC <- info.criterions(loopModel$residuals, ncol(mX))[[criterion]]
 
         if (loopIC < minIC) {
           minIC <- loopIC
@@ -300,14 +282,10 @@ DOLS.reg <- function(
     }
   }
 
-  mX <- cbind(deter, xdu, x, xL[, seq_len(resLag)], xF[, seq_len(resLead)])
+  mX <- cbind(z, x, xL[, seq_len(resLag)], xF[, seq_len(resLead)])
   rows <- rowAll(!is.na(y)) & rowAll(!is.na(mX))
 
   result <- OLS.reg(y[rows], mX[rows, ])
-  result$break.type <- break.type
-  result$break.point <- break.point
-  result$break.coint <- break.coint
-  result$criterions <- info.criterions(result$residuals, ncol(mX))
   result$lags <- resLag
   result$leads <- resLead
 

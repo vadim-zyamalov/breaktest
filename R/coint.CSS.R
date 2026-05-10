@@ -138,20 +138,16 @@ coint.CSS <- function(
 
   N <- nrow(y)
 
-  result <- if (weakly.exog || is.null(x)) {
-    mXdu <- NULL
-    if (!is.null(x) && break.coint) {
-      for (bp in break.point) {
-        mXdu <- cbind(mXdu, sweep(x, 1, .du(bp, N), `*`))
-      }
+  deter <- trend.variables(break.type, N, break.point, const, trend)
+  xdu <- NULL
+  if (!is.null(x) && break.coint) {
+    for (bp in break.point) {
+      xdu <- cbind(xdu, sweep(x, 1, .du(bp, N), `*`))
     }
+  }
 
-    mX <- cbind(
-      x,
-      trend.variables(break.type, N, break.point, const, trend),
-      mXdu
-    )
-
+  result <- if (weakly.exog || is.null(x)) {
+    mX <- cbind(deter, xdu, x)
     result <- OLS.reg(y, mX)
     c(
       result,
@@ -165,16 +161,26 @@ coint.CSS <- function(
       )
     )
   } else {
-    DOLS.reg(
+    z <- cbind(deter, xdu)
+    result <- DOLS.reg(
       y,
       x,
-      const,
-      trend,
-      break.type,
-      break.point,
-      break.coint,
+      z,
       max.lags,
-      max.leads
+      max.leads,
+      criterion
+    )
+    c(
+      result,
+      list(
+        break.type = break.type,
+        break.point = break.point,
+        break.coint = break.coint,
+        criterions = info.criterions(
+          result$residuals,
+          ncol(z) + ncol(x) * (1 + result$lags + result$leads)
+        )
+      )
     )
   }
 
