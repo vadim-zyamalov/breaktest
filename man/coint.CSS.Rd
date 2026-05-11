@@ -15,9 +15,9 @@ coint.CSS(
   weakly.exog = TRUE,
   max.lags,
   max.leads,
-  lr.lag,
-  kernel,
   criterion = "bic",
+  lr.kernel = "Kurozumi",
+  lr.lag = NULL,
   boot.p = FALSE,
   boot.type = "sample",
   boot.iter = 999
@@ -51,17 +51,17 @@ See Carrion-i-Silvestre & Sansó (2006) for details.}
 
 \item{max.lags, max.leads}{Scalars defininig the initial number of lags and leads for DOLS.}
 
-\item{lr.lag}{scalar, with the maximum order of the parametric correction.
-The final order of the parametric correction is selected using the BIC information criterion.}
+\item{criterion}{Information criterion for DOLS lags and leads selection: aic, bic, hq, or lwz,}
 
-\item{kernel}{Kernel for calculating long-run variance
+\item{lr.kernel}{Kernel for calculating long-run variance
 \itemize{
-\item \code{bartlett}: for Bartlett kernel,
-\item \code{quadratic}: for Quadratic Spectral kernel,
-\item \code{NULL} for the Kurozumi's proposal, using Bartlett kernel.
+\item \code{Kurozumi} for the Kurozumi's proposal, using Quadratic kernel (default).
+\item \code{Bartlett}: for Bartlett kernel,
+\item \code{Quadratic}: for Quadratic Spectral kernel,
 }}
 
-\item{criterion}{Information criterion for DOLS lags and leads selection: aic, bic, hq, or lwz,}
+\item{lr.lag}{scalar showing the bandwidth of long run variance estimator.
+If negative or \code{NULL} then the bandwidth is selected as in Andrews (1991).}
 
 \item{boot.p}{Whether bootstrapped p-values should be returned.}
 

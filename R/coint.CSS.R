@@ -39,12 +39,12 @@
 #' * `TRUE`: if the regressors are weakly exogenous,
 #' * `FALSE`: if the regressors are not weakly exogenous (DOLS is used in this case).
 #' @param max.lags,max.leads Scalars defininig the initial number of lags and leads for DOLS.
-#' @param lr.lag scalar, with the maximum order of the parametric correction.
-#' The final order of the parametric correction is selected using the BIC information criterion.
-#' @param kernel Kernel for calculating long-run variance
-#' * `bartlett`: for Bartlett kernel,
-#' * `quadratic`: for Quadratic Spectral kernel,
-#' * `NULL` for the Kurozumi's proposal, using Bartlett kernel.
+#' @param lr.kernel Kernel for calculating long-run variance
+#' * `Kurozumi` for the Kurozumi's proposal, using Quadratic kernel (default).
+#' * `Bartlett`: for Bartlett kernel,
+#' * `Quadratic`: for Quadratic Spectral kernel,
+#' @param lr.lag scalar showing the bandwidth of long run variance estimator.
+#' If negative or `NULL` then the bandwidth is selected as in Andrews (1991).
 #' @param criterion Information criterion for DOLS lags and leads selection: aic, bic, hq, or lwz,
 #' @param boot.p Whether bootstrapped p-values should be returned.
 #' @param boot.iter The number of bootstrap iterations,
@@ -122,9 +122,9 @@ coint.CSS <- function(
   weakly.exog = TRUE,
   max.lags,
   max.leads,
-  lr.lag,
-  kernel,
   criterion = "bic",
+  lr.kernel = "Kurozumi",
+  lr.lag = NULL,
   boot.p = FALSE,
   boot.type = "sample",
   boot.iter = 999
@@ -184,18 +184,18 @@ coint.CSS <- function(
     )
   }
 
-  test <- ifelse(
-    is.null(kernel),
-    .kpss.statistic(result$residuals, .lr.var.kurozumi(result$residuals)),
+  test <- if (lr.kernel == "Kurozumi") {
+    .kpss.statistic(result$residuals, .lr.var.kurozumi(result$residuals))
+  } else {
     .kpss.statistic(
       result$residuals,
-      .lr.var.spc(result$residuals, lr.lag, kernel)
+      .lr.var.spc(result$residuals, lr.lag, lr.kernel)
     )
-  )
+  }
 
   result$statistic <- test
   result$lr.var.max.lag <- lr.lag
-  result$lr.var.kernel <- kernel
+  result$lr.var.kernel <- lr.kernel
   class(result) <- "bt_kpss"
 
   if (boot.p) {

@@ -111,12 +111,13 @@ NULL
 #' @order 4
 .lr.var.spc <- function(
   y,
-  kmax = 0,
+  kmax = NULL,
   kernel = "Bartlett",
   criterion = "bic"
 ) {
   N <- length(y)
 
+  if (is.null(kmax) || kmax < 0) kmax <- .lr.bandwidth(a, N, kernel)
   kmax <- max(kmax, 0)
 
   min_IC <- log(sum(y^2) / (N - kmax))
@@ -133,7 +134,7 @@ NULL
   res <- arModel$residuals
   N <- length(res)
 
-  a <- sum(y[1:(N - 1)] * y[2:N]) / sum(y[2:N]^2)
+  a <- drop(sum(y[1:(N - 1)] * y[2:N]) / sum(y[2:N]^2))
   a <- .alpha.single(a)$q1
   m <- trunc(.lr.bandwidth(a, N, kernel))
   wgtF <- .lr.weight(kernel)
@@ -150,8 +151,7 @@ NULL
 
 
 .lr.bandwidth <- function(alpha, N, selector = "Bartlett") {
-  switch(
-    selector,
+  switch(selector,
     "Bartlett" = 1.1447 * (N * alpha)^(1 / 3),
     "Parzen" = 2.6614 * (N * alpha)^(1 / 5),
     "Tuckey-Hanning" = 1.7462 * (N * alpha)^(1 / 5),
@@ -165,8 +165,7 @@ NULL
 
 
 .lr.weight <- function(kernel) {
-  switch(
-    kernel,
+  switch(kernel,
     "truncated" = function(i, l) {
       if (abs(i / (l + 1)) <= 1) {
         return(1)

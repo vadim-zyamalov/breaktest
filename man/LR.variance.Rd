@@ -14,7 +14,7 @@
 
 .lr.var.kurozumi(y, k = 0.8)
 
-.lr.var.spc(y, kmax = 0, kernel = "Bartlett", criterion = "bic")
+.lr.var.spc(y, kmax = NULL, kernel = "Bartlett", criterion = "bic")
 }
 \arguments{
 \item{y}{A time series of interest.}
