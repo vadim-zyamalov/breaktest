@@ -5,7 +5,7 @@
 #' @param ... Any additional arguments for [print] function.
 #'
 #' @keywords internal
-#' @export
+#' @exportS3Method
 print.bt_SADF <- function(x, ...) {
   test_name <- NULL
 
@@ -48,7 +48,7 @@ print.bt_SADF <- function(x, ...) {
 #' @rdname print.bt_SADF
 #' @importFrom stringr str_split
 #' @keywords internal
-#' @export
+#' @exportS3Method
 print.bt_mdfHLT <- function(obj, ...) {
   if (obj$const && !obj$trend) {
     cat("Model 0: Structural change in intercept\n")
@@ -122,7 +122,7 @@ print.bt_mdfHLT <- function(obj, ...) {
 #' @rdname print.bt_SADF
 #' @importFrom stringr str_split
 #' @keywords internal
-#' @export
+#' @exportS3Method
 print.bt_mdfHLTN <- function(obj, ...) {
   cat("\t\tstat\tc.v.\n\n")
 
@@ -163,7 +163,7 @@ print.bt_mdfHLTN <- function(obj, ...) {
 
 #' @rdname print.bt_SADF
 #' @keywords internal
-#' @export
+#' @exportS3Method
 print.mdfCHLT <- function(obj, ...) {
   cat("\t\tstat\tc.v.\t wild c.v.\n\n")
   for (v in c("MZa", "MSB", "MZt", "ADF")) {
@@ -182,7 +182,7 @@ print.mdfCHLT <- function(obj, ...) {
 
 #' @rdname print.bt_SADF
 #' @keywords internal
-#' @export
+#' @exportS3Method
 print.cointGH <- function(x, ...) {
   cat("Gregory-Hansen tests\n")
   cat("\t\tstat\tc.v.\tasymptotic\n\n")
@@ -202,7 +202,7 @@ print.cointGH <- function(x, ...) {
 
 #' @rdname print.bt_SADF
 #' @keywords internal
-#' @export
+#' @exportS3Method
 print.bt_robustUR <- function(obj, ...) {
   cat(sprintf("Estimated break moment: %d\n", obj$break.time))
   cat("\t\tstat\tc.v.\t\n\n")
@@ -229,7 +229,7 @@ print.bt_robustUR <- function(obj, ...) {
 
 #' @rdname print.bt_SADF
 #' @keywords internal
-#' @export
+#' @exportS3Method
 print.bt_robustURN <- function(obj, ...) {
   cat(sprintf("Estimated break moment: %d\n", obj$breaks.star))
   cat(sprintf(
@@ -254,7 +254,7 @@ print.bt_robustURN <- function(obj, ...) {
 
 #' @rdname print.bt_SADF
 #' @keywords internal
-#' @export
+#' @exportS3Method
 print.bt_cointPR <- function(obj, ...) {
   mstr <- max(mapply(nchar, names(obj)))
   cat("Perron-Rodríguez testing procedure\n\n")
@@ -275,7 +275,7 @@ print.bt_cointPR <- function(obj, ...) {
 
 #' @rdname print.bt_SADF
 #' @keywords internal
-#' @export
+#' @exportS3Method
 print.bt_confSet <- function(obj, ...) {
   cat(
     "Kurozumi-Skrobotov procedure to find confidence intervals",
@@ -294,7 +294,7 @@ print.bt_confSet <- function(obj, ...) {
 
 #' @rdname print.bt_SADF
 #' @keywords internal
-#' @export
+#' @exportS3Method
 print.bt_mdfCHLT <- function(obj, ...) {
   cat(
     "A modified DF test for a single break",

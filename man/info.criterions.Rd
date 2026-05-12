@@ -4,23 +4,24 @@
 \alias{info.criterions}
 \title{Information criterions}
 \usage{
-info.criterions(resids, extra, modification = FALSE, alpha = 0, y = NULL)
+info.criterions(obj, criterion, ...)
 }
 \arguments{
+\item{...}{Other arguments, including
+\itemize{
+\item \code{modify}: Whether the unit-root test modificaton is needed.
+See Ng and Perron (2001) for further information.
+\item \code{alpha}: The coefficient \eqn{\alpha} of \eqn{y_{t-1}} in ADF model.
+Needed only for criterion modification purposes.
+\item \code{y} The vector of \eqn{y_{t-1}} in ADF model.
+Needed only for criterion modification purposes.
+}}
+
 \item{resids}{Input residuals needed for estimating the values of
 information criterions.}
 
 \item{extra}{Number of extra parameters needed for estimating the punishment
 term.}
-
-\item{modification}{Whether the unit-root test modificaton is needed.
-See Ng and Perron (2001) for further information.}
-
-\item{alpha}{The coefficient \eqn{\alpha} of \eqn{y_{t-1}} in ADF model.
-Needed only for criterion modification purposes.}
-
-\item{y}{The vector of \eqn{y_{t-1}} in ADF model.
-Needed only for criterion modification purposes.}
 }
 \value{
 The list of information criterions values.

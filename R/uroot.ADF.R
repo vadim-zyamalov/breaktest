@@ -146,15 +146,14 @@ uroot.ADF <- function(
       mXr[rows, 1, drop = FALSE]
     )
     b <- tmp.ols$coefficients
-    e <- tmp.ols$residuals
 
     rIC <- info.criterions(
-      e,
-      1,
-      modification = modified.criterion,
+      tmp.ols,
+      criterion,
+      modify = modified.criterion,
       alpha = b[1],
       y = mXr[rows, 1, drop = FALSE]
-    )[[criterion]]
+    )
     rLag <- 0
 
     for (l in seq_len(max.lag)) {
@@ -172,15 +171,14 @@ uroot.ADF <- function(
         mXr[rows, 1:(1 + l), drop = FALSE]
       )
       b <- tmp.ols$coefficients
-      e <- tmp.ols$residuals
 
       tmp.ic <- info.criterions(
-        e,
-        l + 1,
-        modification = modified.criterion,
+        tmp.ols,
+        criterion, ,
+        modify = modified.criterion,
         alpha = b[1],
         y = mXr[rows, 1, drop = FALSE]
-      )[[criterion]]
+      )
 
       if (tmp.ic < rIC) {
         rIC <- tmp.ic

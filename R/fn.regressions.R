@@ -116,7 +116,7 @@ GLS.reg <- function(y, z, c) {
     residuals = resids,
     fitted.values = fitted
   )
-  class(result) <- "bt_gls"
+  class(result) <- c("bt_gls", "bt_ols")
   result
 }
 
@@ -178,8 +178,10 @@ AR.reg <- function(
     minIC <- Inf
 
     for (l in 0:max.lag) {
-      loopModel <- OLS.reg(y[rows], mX[rows, 1:(Nx + l)])
-      loopIC <- info.criterions(loopModel$residuals, Nx + l)[[criterion]]
+      loopIC <- info.criterions(
+        OLS.reg(y[rows], mX[rows, 1:(Nx + l)]),
+        criterion
+      )
 
       if (loopIC < minIC) {
         minIC <- loopIC
@@ -196,7 +198,7 @@ AR.reg <- function(
   result$criterion <- minIC
   result$criterion.name <- criterion
 
-  class(result) <- "bt_ar"
+  class(result) <- с("bt_ar", "bt_ols")
   result
 }
 
@@ -270,8 +272,10 @@ DOLS.reg <- function(
     for (l in c(0, seq_len(n.lags))) {
       for (f in c(0, seq_len(n.leads))) {
         mX <- cbind(z, x, xL[, seq_len(l)], xF[, seq_len(f)])
-        loopModel <- OLS.reg(y[rows], mX[rows, ])
-        loopIC <- info.criterions(loopModel$residuals, ncol(mX))[[criterion]]
+        loopIC <- info.criterions(
+          OLS.reg(y[rows], mX[rows, ]),
+          criterion
+        )
 
         if (loopIC < minIC) {
           minIC <- loopIC
@@ -289,7 +293,7 @@ DOLS.reg <- function(
   result$lags <- resLag
   result$leads <- resLead
 
-  class(result) <- "bt_dols"
+  class(result) <- c("bt_dols", "bt_ols")
   result
 }
 

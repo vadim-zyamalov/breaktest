@@ -155,7 +155,6 @@ coint.CSS <- function(
         break.type = break.type,
         break.point = break.point,
         break.coint = break.coint,
-        criterions = info.criterions(result$residuals, ncol(mX)),
         lags = 0,
         leads = 0
       )
@@ -176,10 +175,6 @@ coint.CSS <- function(
         break.type = break.type,
         break.point = break.point,
         break.coint = break.coint,
-        criterions = info.criterions(
-          result$residuals,
-          ncol(z) + ncol(x) * (1 + result$lags + result$leads)
-        )
       )
     )
   }

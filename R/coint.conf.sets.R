@@ -320,8 +320,7 @@ segments.KS <- function(
     wf[(maxLF + 1):(N - maxLF), ]
   )
 
-  uhat <- OLS.reg(y0, w0)$residuals
-  minIC <- info.criterions(uhat, ncol(w0))[[criterion]]
+  minIC <- info.criterions(OLS.reg(y0, w0), criterion)
   estL <- 0
   estF <- 0
 
@@ -345,9 +344,7 @@ segments.KS <- function(
         )
       }
 
-      uhat <- OLS.reg(y0, loopW)$residuals
-
-      loopIC <- info.criterions(uhat, ncol(loopW))[[criterion]]
+      loopIC <- info.criterions(OLS.reg(y0, loopW), criterion)
       if (loopIC < minIC) {
         estL <- loopL
         estF <- loopF
