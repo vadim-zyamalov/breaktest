@@ -198,7 +198,7 @@ AR.reg <- function(
   result$criterion <- minIC
   result$criterion.name <- criterion
 
-  class(result) <- с("bt_ar", "bt_ols")
+  class(result) <- c("bt_ar", "bt_ols")
   result
 }
 

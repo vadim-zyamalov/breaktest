@@ -2,12 +2,36 @@
 % Please edit documentation in R/fn.info.criterion.R
 \name{info.criterions}
 \alias{info.criterions}
+\alias{AIC.bt_ols}
+\alias{BIC.bt_ols}
+\alias{HQIC.bt_ols}
+\alias{LWZ.bt_ols}
 \title{Information criterions}
 \usage{
 info.criterions(obj, criterion, ...)
+
+\method{AIC}{bt_ols}(obj, k = 2, ...)
+
+\method{BIC}{bt_ols}(obj, ...)
+
+\method{HQIC}{bt_ols}(obj, ...)
+
+\method{LWZ}{bt_ols}(obj, ...)
 }
 \arguments{
-\item{...}{Other arguments, including
+\item{obj}{An object of one of the class \code{bt_ols}.
+It should be pointed that \link{AR.reg} and \link{DOLS.reg} return object that belong
+to subclasses of \code{bt_ols}, so they also can be used.}
+
+\item{criterion}{One of the following string values (case insensitive):
+\itemize{
+\item \code{"AIC"},
+\item \code{"BIC"},
+\item \code{"HQIC"},
+\item \code{"LWZ"}.
+}}
+
+\item{...}{Other arguments need for criterion modification, including
 \itemize{
 \item \code{modify}: Whether the unit-root test modificaton is needed.
 See Ng and Perron (2001) for further information.
@@ -16,15 +40,9 @@ Needed only for criterion modification purposes.
 \item \code{y} The vector of \eqn{y_{t-1}} in ADF model.
 Needed only for criterion modification purposes.
 }}
-
-\item{resids}{Input residuals needed for estimating the values of
-information criterions.}
-
-\item{extra}{Number of extra parameters needed for estimating the punishment
-term.}
 }
 \value{
-The list of information criterions values.
+The value of the desired information criterion.
 }
 \description{
 Information criterions

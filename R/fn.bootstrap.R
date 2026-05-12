@@ -1,32 +1,32 @@
-#' @title
 #' Functions to receive bootstrapped p-values.
 #'
-#' @param obj An object of class `bt_kpss`.
-#' @param iter Number of bootstrap iterations.
-#' @param boot.type Type of bootstrapping:
-#' * `"sample"`: sampling from residuals with replacement,
-#' * `"Cavaliere-Taylor"`: multiplying residuals by \eqn{N(0, 1)}-distributed
-#' variable,
-#' * `"Rademacher"`: multiplying residuals by Rademacher-distributed variable.
+#' @description
+#' `bootstrap` is a generic function aimed to handle objects of classes provided in this package.
 #'
-#' @import doSNOW
-#' @import foreach
-#' @import parallel
-#' @importFrom stats quantile
-#' @importFrom stats rnorm
-#' @importFrom stats sd
-#' @importFrom utils txtProgressBar
-#' @importFrom utils setTxtProgressBar
+#' @param obj An object of one of the following classes:
+#' * `bt_adf`,
+#' * `bt_kpss`,
+#' * `bt_SADF` and `bt_GSADF`,
+#' * `bt_mdfCHLT`.
 #'
-#' @keywords internal
+#' @details
+#' `bootstrap` is a generic function aimed to handle objects of classes provided in this package.
+#' Normally one should use special function parameters to obtain bootstrapped critical values or
+#' p-values (depends on test).
+#' If later you decide to calculate one then you call `bootstrap` function on the object
+#' with corresponding results.
+#'
+#' @return
+#' Bootstrapped critical value or p-value.
+#'
 #' @export
 bootstrap <- function(obj, ...) UseMethod("bootstrap")
 
 
 #' @rdname bootstrap
-#' @keywords internal
+#' @param iter Number of bootstrapping iterations.
 #' @exportS3Method
-bootstrap.bt_adf <- function(obj, iter = 999, ...) {
+bootstrap.bt_adf <- function(obj, iter = 999) {
   vCoefs <- obj$model$coefficients[-1]
   vEps <- obj$model$residuals
 
@@ -37,19 +37,7 @@ bootstrap.bt_adf <- function(obj, iter = 999, ...) {
     if (obj$const) .const(cN) else NULL,
     if (obj$trend) .trend(cN) else NULL
   )
-  # progress.bar <- txtProgressBar(max = iter, style = 3)
-  # progress <- function(n) setTxtProgressBar(progress.bar, n)
-  # cores <- detectCores()
-  # cluster <- makeCluster(max(cores - 1, 1), type = "SOCK")
-  # registerDoSNOW(cluster)
-  # tmp.stats <- foreach(
-  #  i = 1:iter,
-  #  .combine = c,
-  #  .inorder = FALSE,
-  #  .errorhandling = "remove",
-  #  .packages = c("breaktest"),
-  #  .options.snow = list(progress = progress)
-  # ) %dopar%
+
   result <- NULL
   for (i in 1:iter) {
     u <- rep(0, cLag + cN)
@@ -80,15 +68,20 @@ bootstrap.bt_adf <- function(obj, iter = 999, ...) {
     )
     result <- c(result, tmp.res$t.stats[1])
   }
-  # stopCluster(cluster)
+
   sum(result < obj$t.alpha) / iter
 }
 
 
 #' @rdname bootstrap
-#' @keywords internal
+#' @param boot.type Type of bootstrapping:
+#' * `"sample"`: sampling from residuals with replacement,
+#' * `"Cavaliere-Taylor"`: multiplying residuals by \eqn{N(0, 1)}-distributed
+#' variable,
+#' * `"Rademacher"`: multiplying residuals by Rademacher-distributed variable.
+#' @importFrom stats rnorm
 #' @exportS3Method
-bootstrap.bt_kpss <- function(obj, iter = 999, boot.type = "sample", ...) {
+bootstrap.bt_kpss <- function(obj, iter = 999, boot.type = "sample") {
   xreg <- obj$exog
   u <- obj$residuals
   max.lag <- obj$lr.var.max.lag
@@ -96,7 +89,8 @@ bootstrap.bt_kpss <- function(obj, iter = 999, boot.type = "sample", ...) {
 
   result <- NULL
   for (i in 1:iter) {
-    y.loop <- switch(boot.type,
+    y.loop <- switch(
+      boot.type,
       "sample" = sample(u, length(u), replace = TRUE),
       "Cavaliere-Taylor" = rnorm(length(u)) * u,
       "Rademacher" = sample(c(-1, 1), length(u), replace = TRUE) * u,
@@ -123,45 +117,28 @@ bootstrap.bt_kpss <- function(obj, iter = 999, boot.type = "sample", ...) {
 
 
 #' @rdname bootstrap
-#' @keywords internal
 #' @exportS3Method
 bootstrap.bt_SADF <- function(obj, iter = 999) {
   y <- obj$y
+  N <- length(y)
 
   trim <- obj$trim
-
   const <- obj$const
-
-  N <- length(y)
-  ## Find SADF.value.
 
   model <- uroot.SADF(y, trim, const)
   SADF.value <- model$SADF.value
 
-  ## Do parallel.
-
-  # cores <- detectCores()
-  # progress.bar <- txtProgressBar(max = iter, style = 3)
-  # progress <- function(n) setTxtProgressBar(progress.bar, n)
-  # cluster <- makeCluster(max(cores - 1, 1))
-  # registerDoSNOW(cluster)
-  # result <- foreach(
-  #  step = 1:iter,
-  #  .combine = c,
-  #  .options.snow = list(progress = progress)
-  # ) %dopar%
   result <- NULL
   for (i in 1:iter) {
     y.star <- cumsum(rnorm(N - 1) * .diffn(y, na = 0))
     result <- c(result, uroot.SADF(y.star, trim, const)$SADF.value)
   }
-  # stopCluster(cluster)
+
   sum(result > SADF.value) / iter
 }
 
 
 #' @rdname bootstrap
-#' @keywords internal
 #' @exportS3Method
 bootstrap.bt_GSADF <- function(obj, iter = 999) {
   y <- obj$y
@@ -176,46 +153,27 @@ bootstrap.bt_GSADF <- function(obj, iter = 999) {
   model <- uroot.GSADF(y, trim, const)
   GSADF.value <- model$GSADF.value
 
-  # cores <- detectCores()
-  # progress.bar <- txtProgressBar(max = iter, style = 3)
-  # progress <- function(n) setTxtProgressBar(progress.bar, n)
-  # cluster <- makeCluster(max(cores - 1, 1))
-  # clusterExport(cluster, c("GSADF.test", ".diffn"))
-  # registerDoSNOW(cluster)
-  # result <- foreach(
-  #  step = 1:iter,
-  #  .combine = c,
-  #  .options.snow = list(progress = progress)
-  # ) %dopar%
   result <- NULL
   for (i in 1:iter) {
     y.star <- cumsum(rnorm(N - 1) * .diffn(y, na = 0))
     result <- c(result, uroot.GSADF(y.star, trim, const)$GSADF.value)
   }
-  # stopCluster(cluster)
   sum(result > GSADF.value) / iter
 }
 
 
 #' @rdname bootstrap
-#' @keywords internal
 #' @exportS3Method
-bootstrap.bt_mdfCHLT <- function(obj, iter = 999, y, ...) {
+bootstrap.bt_mdfCHLT <- function(obj, iter = 999, y) {
   N <- length(y)
   dy <- diff(y)
+
   trim <- obj$params$trim
-
   tb_dy <- obj$params$tb
-
   tau_lam_MZ <- obj$params$MZ$tau
-
   cbar_tau_lam_MZ <- obj$params$MZ$cbar
-
   tau_lam_ADF <- obj$params$ADF$tau
-
   cbar_tau_lam_ADF <- obj$params$ADF$cbar
-
-  ## Bootstrap
 
   r <- c(
     0,
@@ -224,16 +182,6 @@ bootstrap.bt_mdfCHLT <- function(obj, iter = 999, y, ...) {
       cbind(.const(N), .du(tb_dy, N))[-1, ]
     )$residuals
   )
-  # cores <- detectCores()
-  # progress.bar <- txtProgressBar(max = iter, style = 3)
-  # progress <- function(n) setTxtProgressBar(progress.bar, n)
-  # cluster <- makeCluster(max(cores - 1, 1))
-  # registerDoSNOW(cluster)
-  # tmp.result <- foreach(
-  #  i = 1:iter,
-  #  .combine = rbind,
-  #  .options.snow = list(progress = progress)
-  # ) %dopar%
   result <- NULL
   for (i in 1:iter) {
     z <- rnorm(N)
@@ -247,9 +195,7 @@ bootstrap.bt_mdfCHLT <- function(obj, iter = 999, y, ...) {
 
       MZ_wb <- .mz.statistics(r_GLS_t_wb, 0)
       MZa_wb <- MZ_wb$mza
-
       MSB_wb <- MZ_wb$msb
-
       MZt_wb <- MZ_wb$mzt
 
       rm(MZ_wb)
@@ -258,9 +204,7 @@ bootstrap.bt_mdfCHLT <- function(obj, iter = 999, y, ...) {
 
       MZ_wb <- .mz.statistics(resid.wb, 0)
       MZa_wb <- MZ_wb$mza
-
       MSB_wb <- MZ_wb$msb
-
       MZt_wb <- MZ_wb$mzt
 
       rm(MZ_wb)
@@ -292,7 +236,6 @@ bootstrap.bt_mdfCHLT <- function(obj, iter = 999, y, ...) {
     }
     result <- rbind(result, c(MZa_wb, MSB_wb, MZt_wb, ers_ADF_wb))
   }
-  # stopCluster(cluster)
   list(
     MZa = sort(result[, 1])[trunc(0.05 * iter)],
     MSB = sort(result[, 2])[trunc(0.05 * iter)],

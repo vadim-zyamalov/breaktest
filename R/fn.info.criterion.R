@@ -8,11 +8,15 @@
 #' * Hannan-Quinn,
 #' * Liu et al.
 #'
-#' @param resids Input residuals needed for estimating the values of
-#' information criterions.
-#' @param extra Number of extra parameters needed for estimating the punishment
-#' term.
-#' @param ... Other arguments, including
+#' @param obj An object of one of the class `bt_ols`.
+#' It should be pointed that [AR.reg] and [DOLS.reg] return object that belong
+#' to subclasses of `bt_ols`, so they also can be used.
+#' @param criterion One of the following string values (case insensitive):
+#' * `"AIC"`,
+#' * `"BIC"`,
+#' * `"HQIC"`,
+#' * `"LWZ"`.
+#' @param ... Other arguments need for criterion modification, including
 #' * `modify`: Whether the unit-root test modificaton is needed.
 #' See Ng and Perron (2001) for further information.
 #' * `alpha`: The coefficient \eqn{\alpha} of \eqn{y_{t-1}} in ADF model.
@@ -21,7 +25,7 @@
 #' Needed only for criterion modification purposes.
 #'
 #' @return
-#' The list of information criterions values.
+#' The value of the desired information criterion.
 #'
 #' @references
 #' Ng, Serena, and Pierre Perron. “Lag Length Selection and the Construction of
@@ -31,7 +35,8 @@
 #'
 #' @export
 info.criterions <- function(obj, criterion, ...) {
-  switch(toupper(criterion),
+  switch(
+    toupper(criterion),
     AIC = AIC,
     BIC = BIC,
     HQIC = HQIC,
@@ -40,6 +45,7 @@ info.criterions <- function(obj, criterion, ...) {
   )(obj, ...)
 }
 
+#' @rdname info.criterions
 #' @exportS3Method
 AIC.bt_ols <- function(obj, k = 2, ...) {
   r <- na.omit(obj$residuals)
@@ -62,29 +68,29 @@ AIC.bt_ols <- function(obj, k = 2, ...) {
   log(s2) + k * (Nx + tau) / N
 }
 
+#' @rdname info.criterions
 #' @exportS3Method
 BIC.bt_ols <- function(obj, ...) {
   AIC(obj, k = log(nobs(obj), ...))
 }
 
-
 #' @export
 HQIC <- function(obj, ...) UseMethod("HQIC")
 
+#' @rdname info.criterions
 #' @exportS3Method
 HQIC.bt_ols <- function(obj, ...) {
   AIC(obj, k = 2 * log(log(nobs(obj))), ...)
 }
 
-
 #' @export
 LWZ <- function(obj, ...) UseMethod("LWZ")
 
+#' @rdname info.criterions
 #' @exportS3Method
 LWZ.bt_ols <- function(obj, ...) {
   AIC(obj, k = 0.299 * (log(nobs(obj)))^2.1 * nobs(obj), ...)
 }
-
 
 #' @exportS3Method
 nobs.bt_ols <- function(obj, ...) {

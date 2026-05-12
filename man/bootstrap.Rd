@@ -11,20 +11,26 @@
 \usage{
 bootstrap(obj, ...)
 
-\method{bootstrap}{bt_adf}(obj, iter = 999, ...)
+\method{bootstrap}{bt_adf}(obj, iter = 999)
 
-\method{bootstrap}{bt_kpss}(obj, iter = 999, boot.type = "sample", ...)
+\method{bootstrap}{bt_kpss}(obj, iter = 999, boot.type = "sample")
 
 \method{bootstrap}{bt_SADF}(obj, iter = 999)
 
 \method{bootstrap}{bt_GSADF}(obj, iter = 999)
 
-\method{bootstrap}{bt_mdfCHLT}(obj, iter = 999, y, ...)
+\method{bootstrap}{bt_mdfCHLT}(obj, iter = 999, y)
 }
 \arguments{
-\item{obj}{An object of class \code{bt_kpss}.}
+\item{obj}{An object of one of the following classes:
+\itemize{
+\item \code{bt_adf},
+\item \code{bt_kpss},
+\item \code{bt_SADF} and \code{bt_GSADF},
+\item \code{bt_mdfCHLT}.
+}}
 
-\item{iter}{Number of bootstrap iterations.}
+\item{iter}{Number of bootstrapping iterations.}
 
 \item{boot.type}{Type of bootstrapping:
 \itemize{
@@ -34,7 +40,16 @@ variable,
 \item \code{"Rademacher"}: multiplying residuals by Rademacher-distributed variable.
 }}
 }
-\description{
-Functions to receive bootstrapped p-values.
+\value{
+Bootstrapped critical value or p-value.
 }
-\keyword{internal}
+\description{
+\code{bootstrap} is a generic function aimed to handle objects of classes provided in this package.
+}
+\details{
+\code{bootstrap} is a generic function aimed to handle objects of classes provided in this package.
+Normally one should use special function parameters to obtain bootstrapped critical values or
+p-values (depends on test).
+If later you decide to calculate one then you call \code{bootstrap} function on the object
+with corresponding results.
+}
