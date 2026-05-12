@@ -120,13 +120,13 @@ NULL
   if (is.null(kmax) || kmax < 0) kmax <- .lr.bandwidth(a, N, kernel)
   kmax <- max(kmax, 0)
 
-  min_IC <- log(sum(y^2) / (N - kmax))
+  #min_IC <- log(sum(y^2) / (N - kmax))
 
   arModel <- AR.reg(y, NULL, kmax, criterion)
-  IC <- info.criterions(arModel$residuals, arModel$lag)[[criterion]]
+  #IC <- info.criterions(arModel$residuals, arModel$lag)[[criterion]]
 
   # Sul, Phillips and Choi (2003)
-  if (min_IC < IC) {
+  if (arModel$lag == 0) {
     return((sum(y^2) / N) * min(1, N * 0.15))
   }
 
