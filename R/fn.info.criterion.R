@@ -1,3 +1,10 @@
+#' @export
+HQIC <- function(obj, ...) UseMethod("HQIC")
+
+#' @export
+LWZ <- function(obj, ...) UseMethod("LWZ")
+
+
 #' @title
 #' Information criterions
 #'
@@ -65,25 +72,19 @@ AIC.bt_ols <- function(obj, k = 2, alpha = NULL, y = NULL) {
 #' @rdname info.criterions
 #' @exportS3Method
 BIC.bt_ols <- function(obj, alpha = NULL, y = NULL) {
-  AIC(obj, k = log(nobs(obj)), alpha = NULL, y = NULL)
+  AIC(obj, k = log(nobs(obj)), alpha = alpha, y = y)
 }
-
-#' @export
-HQIC <- function(obj, alpha = NULL, y = NULL) UseMethod("HQIC")
 
 #' @rdname info.criterions
 #' @exportS3Method
 HQIC.bt_ols <- function(obj, alpha = NULL, y = NULL) {
-  AIC(obj, k = 2 * log(log(nobs(obj))), alpha = NULL, y = NULL)
+  AIC(obj, k = 2 * log(log(nobs(obj))), alpha = alpha, y = y)
 }
-
-#' @export
-LWZ <- function(obj, alpha = NULL, y = NULL) UseMethod("LWZ")
 
 #' @rdname info.criterions
 #' @exportS3Method
 LWZ.bt_ols <- function(obj, alpha = NULL, y = NULL) {
-  AIC(obj, k = 0.299 * (log(nobs(obj)))^2.1 * nobs(obj), alpha = NULL, y = NULL)
+  AIC(obj, k = 0.299 * (log(nobs(obj)))^2.1 * nobs(obj), alpha = alpha, y = y)
 }
 
 #' @exportS3Method
