@@ -150,7 +150,6 @@ uroot.ADF <- function(
     rIC <- info.criterions(
       tmp.ols,
       criterion,
-      modify = modified.criterion,
       alpha = b[1],
       y = mXr[rows, 1, drop = FALSE]
     )
@@ -174,8 +173,7 @@ uroot.ADF <- function(
 
       tmp.ic <- info.criterions(
         tmp.ols,
-        criterion, ,
-        modify = modified.criterion,
+        criterion,
         alpha = b[1],
         y = mXr[rows, 1, drop = FALSE]
       )

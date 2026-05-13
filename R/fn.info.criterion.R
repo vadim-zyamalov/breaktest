@@ -16,12 +16,11 @@
 #' * `"BIC"`,
 #' * `"HQIC"`,
 #' * `"LWZ"`.
-#' @param ... Other arguments need for criterion modification, including
-#' * `modify`: Whether the unit-root test modificaton is needed.
-#' See Ng and Perron (2001) for further information.
-#' * `alpha`: The coefficient \eqn{\alpha} of \eqn{y_{t-1}} in ADF model.
-#' Needed only for criterion modification purposes.
-#' * `y` The vector of \eqn{y_{t-1}} in ADF model.
+#' @param alpha The coefficient \eqn{\alpha} of \eqn{y_{t-1}} in ADF model.
+#' Needed only for criterion modification purposes,
+#' see Ng and Perron (2001) for further information.
+#' If NULL then no modification is applied.
+#' @param y The vector of \eqn{y_{t-1}} in ADF model.
 #' Needed only for criterion modification purposes.
 #'
 #' @return
@@ -34,7 +33,7 @@
 #' https://doi.org/10.1111/1468-0262.00256.
 #'
 #' @export
-info.criterions <- function(obj, criterion, ...) {
+info.criterions <- function(obj, criterion, alpha = NULL, y = NULL) {
   switch(
     toupper(criterion),
     AIC = AIC,
@@ -42,25 +41,20 @@ info.criterions <- function(obj, criterion, ...) {
     HQIC = HQIC,
     LWZ = LWZ,
     stop("IC: unknown criterion'", criterion, "'")
-  )(obj, ...)
+  )(obj, alpha = alpha, y = y)
 }
 
 #' @rdname info.criterions
 #' @exportS3Method
-AIC.bt_ols <- function(obj, k = 2, ...) {
+AIC.bt_ols <- function(obj, k = 2, alpha = NULL, y = NULL) {
   r <- na.omit(obj$residuals)
   N <- length(r)
   Nx <- length(obj$coefficients)
 
-  extra <- list(...)
-
   s2 <- sum(r^2) / N
 
-  tau <- if ("modify" %in% names(extra)) {
-    if (!"alpha" %in% names(extra) || !"y" %in% names(extra)) {
-      stop("AIC: 'a' and 'y' are needed for IC modification!")
-    }
-    extra$alpha^2 * sum(extra$y^2) / s2
+  tau <- if (!is.null(alpha) && !is.null(y)) {
+    alpha^2 * sum(y^2) / s2
   } else {
     0
   }
@@ -70,29 +64,29 @@ AIC.bt_ols <- function(obj, k = 2, ...) {
 
 #' @rdname info.criterions
 #' @exportS3Method
-BIC.bt_ols <- function(obj, ...) {
-  AIC(obj, k = log(nobs(obj), ...))
+BIC.bt_ols <- function(obj, alpha = NULL, y = NULL) {
+  AIC(obj, k = log(nobs(obj)), alpha = NULL, y = NULL)
 }
 
 #' @export
-HQIC <- function(obj, ...) UseMethod("HQIC")
+HQIC <- function(obj, alpha = NULL, y = NULL) UseMethod("HQIC")
 
 #' @rdname info.criterions
 #' @exportS3Method
-HQIC.bt_ols <- function(obj, ...) {
-  AIC(obj, k = 2 * log(log(nobs(obj))), ...)
+HQIC.bt_ols <- function(obj, alpha = NULL, y = NULL) {
+  AIC(obj, k = 2 * log(log(nobs(obj))), alpha = NULL, y = NULL)
 }
 
 #' @export
-LWZ <- function(obj, ...) UseMethod("LWZ")
+LWZ <- function(obj, alpha = NULL, y = NULL) UseMethod("LWZ")
 
 #' @rdname info.criterions
 #' @exportS3Method
-LWZ.bt_ols <- function(obj, ...) {
-  AIC(obj, k = 0.299 * (log(nobs(obj)))^2.1 * nobs(obj), ...)
+LWZ.bt_ols <- function(obj, alpha = NULL, y = NULL) {
+  AIC(obj, k = 0.299 * (log(nobs(obj)))^2.1 * nobs(obj), alpha = NULL, y = NULL)
 }
 
 #' @exportS3Method
-nobs.bt_ols <- function(obj, ...) {
+nobs.bt_ols <- function(obj) {
   length(na.omit(obj$residuals))
 }

@@ -8,15 +8,15 @@
 \alias{LWZ.bt_ols}
 \title{Information criterions}
 \usage{
-info.criterions(obj, criterion, ...)
+info.criterions(obj, criterion, alpha = NULL, y = NULL)
 
-\method{AIC}{bt_ols}(obj, k = 2, ...)
+\method{AIC}{bt_ols}(obj, k = 2, alpha = NULL, y = NULL)
 
-\method{BIC}{bt_ols}(obj, ...)
+\method{BIC}{bt_ols}(obj, alpha = NULL, y = NULL)
 
-\method{HQIC}{bt_ols}(obj, ...)
+\method{HQIC}{bt_ols}(obj, alpha = NULL, y = NULL)
 
-\method{LWZ}{bt_ols}(obj, ...)
+\method{LWZ}{bt_ols}(obj, alpha = NULL, y = NULL)
 }
 \arguments{
 \item{obj}{An object of one of the class \code{bt_ols}.
@@ -31,15 +31,13 @@ to subclasses of \code{bt_ols}, so they also can be used.}
 \item \code{"LWZ"}.
 }}
 
-\item{...}{Other arguments need for criterion modification, including
-\itemize{
-\item \code{modify}: Whether the unit-root test modificaton is needed.
-See Ng and Perron (2001) for further information.
-\item \code{alpha}: The coefficient \eqn{\alpha} of \eqn{y_{t-1}} in ADF model.
-Needed only for criterion modification purposes.
-\item \code{y} The vector of \eqn{y_{t-1}} in ADF model.
-Needed only for criterion modification purposes.
-}}
+\item{alpha}{The coefficient \eqn{\alpha} of \eqn{y_{t-1}} in ADF model.
+Needed only for criterion modification purposes,
+see Ng and Perron (2001) for further information.
+If NULL then no modification is applied.}
+
+\item{y}{The vector of \eqn{y_{t-1}} in ADF model.
+Needed only for criterion modification purposes.}
 }
 \value{
 The value of the desired information criterion.
