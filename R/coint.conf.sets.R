@@ -5,6 +5,19 @@
 #' This procedure is to construct a confidence set for the change point in
 #' cointegrating regressions.
 #'
+#' @details
+#' The function provided is for constructing confidence sets for a break date in cointegrating
+#' regressions by inverting a test for the break location, which is obtained by maximizing the
+#' weighted average of power. It is found in Kurozumi and Skrobotov (2018)
+#' that the limiting distribution of the test depends on the number of I(1) regressors
+#' whose coefficients sustain structural change and the number of I(1) regressors
+#' whose coefficients are fixed throughout the sample.
+#' By Monte Carlo simulations, the authors of the original paper showed
+#' that compared with a confidence interval developed by using the existing method
+#' based on the limiting distribution of the break point estimator under
+#' the assumption of the shrinking shift, the confidence set proposed in the present paper has
+#' a more accurate coverage rate, while the length of the confidence set is comparable.
+#'
 #' @param y A time series of interest.
 #' @param trend Whether the trend is to be included.
 #' @param zb I(1) regressors with break.

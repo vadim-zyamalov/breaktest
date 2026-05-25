@@ -122,6 +122,20 @@ Procedure to test the presence of cointegration in the case of multiple known st
 This procedure is based on the procedures for one and two known breaks by Carrion-i-Silvestre and Sansó (2006, 2007).
 }
 \details{
+This function is a generalization of two methods proposed in Carrion-i-Silvestre and Sansó (2006, 2007).
+
+In Carrion-i-Silvestre and Sansó (2006) authors propose an LM-Type statistic
+to test the null hypothesis of cointegration allowing for the possibility of a structural break,
+in both the deterministic and the cointegration vector.
+The test has been designed to be used as a complement to the usual non-cointegration tests
+in order to obtain stronger evidence of cointegration.
+The cases of known and unknown break date are considered.
+
+In Carrion-i-Silvestre and Sansó (2007) authors generalize the KPSS-type test
+to allow for two structural breaks.
+Seven models have been defined depending on the way that the structural breaks
+affect the time series behaviour.
+
 At the first step obtained are the residuals from the regression of LHS series \eqn{y}
 on the set of deterministic components and (if any) exogenous regressors \eqn{x}.
 Deterministic components may include

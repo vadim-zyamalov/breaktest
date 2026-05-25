@@ -1,17 +1,17 @@
-#' @title
-#' Weighted supremum ADF test
-#' @order 1
+#' @rdname uroot.SADF
+#' @order 6
 #'
 #' @param y A time series of interest.
 #' @param trim The trimming parameter to find the lower and upper bounds of
 #' possible break dates.
 #' @param const Whether the constant needs to be included.
 #' @param alpha A significance level of interest.
-#' @param iter Nnumber of iterations.
+#' @param iter Number of iterations.
 #' @param urs Use `union of rejections` strategy.
 #' @param seed A seed parameter for the random number generator.
 #'
-#' @return An object of type `sadf`. It's a list of:
+#' @return [uroot.w.SADF] returns an object of class `bt_SADF` and subclass `bt_wSADF`.
+#' It's a list of:
 #' * `y`,
 #' * `trim`,
 #' * `const`,
@@ -34,17 +34,6 @@
 #' * `U.value`: union test statistic value,
 #' * `U.bootstrap.values`: bootstrapped series of `U.value`,
 #' * `U.cr.value`: critical value of `U.value`.
-#'
-#' @references
-#' Harvey, David I., Stephen J. Leybourne, and Yang Zu.
-#' “Testing Explosive Bubbles with Time-Varying Volatility.”
-#' Econometric Reviews 38, no. 10 (November 26, 2019): 1131–51.
-#' https://doi.org/10.1080/07474938.2018.1536099.
-#'
-#' Kurozumi, Eiji, Anton Skrobotov, and Alexey Tsarev.
-#' “Time-Transformed Test for Bubbles under Non-Stationary Volatility.”
-#' Journal of Financial Econometrics, April 23, 2022.
-#' https://doi.org/10.1093/jjfinec/nbac004.
 #'
 #' @import doSNOW
 #' @import foreach
@@ -195,14 +184,16 @@ uroot.w.SADF <- function(
     }
   )
 
-  class(result) <- "sadf"
+  class(result) <- c("bt_wSADF", "bt_SADF")
 
   result
 }
 
 
-#' @rdname uroot.w.SADF
-#' @order 2
+#' @rdname uroot.SADF
+#' @order 7
+#'
+#' @return [uroot.w.GSADF] returns an object of type `bt_SADF` and subclass `bt_wGSADF`.
 #'
 #' @import doSNOW
 #' @import foreach
@@ -354,7 +345,7 @@ uroot.w.GSADF <- function(
     }
   )
 
-  class(result) <- "sadf"
+  class(result) <- c("bt_wGSADF", "bt_SADF")
 
   result
 }

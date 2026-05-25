@@ -3,7 +3,18 @@
 #' @order 1
 #'
 #' @details
-#' `SADF.test` is a test statistic equal to the minimum value of [uroot.ADF] for
+#' This set of unit root tests are developed for testing for bubbles
+#' under time-varying non-stationary volatility.
+#' Because the limiting distribution of the seminal Phillips et al. (2011) test
+#' depends on the variance function and usually requires a bootstrap implementation
+#' under heteroskedasticity, Kurozumi et al. (2022) construct the test
+#' based on a deformation of the time domain.
+#' The proposed test is asymptotically pivotal under the null hypothesis
+#' and its limiting distribution coincides with that of the standard test
+#' under homoskedasticity, so that the test does not require computationally
+#' extensive methods for inference.
+#'
+#' `uroot.SADF` is a test statistic equal to the minimum value of [uroot.ADF] for
 #' subsamples starting at \eqn{t = 1}.
 #'
 #' `GSADF.test` is a generalized version of `SADF.test`. Subsamples are allowed
@@ -17,7 +28,7 @@
 #' needed to suppress the calculation of p-values during the precalculation of
 #' tables needed for the p-values estimating.
 #'
-#' @return An object of type `sadf`. It's a list of:
+#' @return [uroot.SADF] returns an object of type `bt_SADF`. It's a list of:
 #' * `y`,
 #' * `trim`,
 #' * `const`,
@@ -81,6 +92,8 @@ uroot.SADF <- function(
 
 #' @rdname uroot.SADF
 #' @order 2
+#'
+#' @return [uroot.GSADF] returns an object of class `bt_SADF` and subclass `bt_GSADF`.
 #'
 #' @export
 uroot.GSADF <- function(

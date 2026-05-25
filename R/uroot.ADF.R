@@ -7,6 +7,11 @@
 #' Ng and Perron (2001) and Cavaliere et al. (2015).
 #'
 #' @details
+#' A function for ADF test with the ability to select the number of lags.
+#' Lags are selected by informational criterions which can be modified as in
+#' Ng and Perron (2001) and Cavaliere et al. (2015).
+#'
+#' It's an ordinary Augmented Dickey-Fuller test using OLS estimation under the hood.
 #' Due to the Frisch-Waugh-Lovell theorem we first detrend `y` and then apply
 #' the test to the detrended series.
 #'

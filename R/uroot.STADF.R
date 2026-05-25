@@ -1,16 +1,11 @@
-#' @title
-#' Supremum ADF tests with time transformation
-#' @order 1
+#' @rdname uroot.SADF
+#' @order 3
 #'
 #' @details
-#' See [uroot.SADF]. Tests with time transformation are the modified versions of
+#' Tests with time transformation are the modified versions of
 #' the ordinary `SADF` and `GSADF` tests using Nadaraya-Watson residuals and
-#' reindexing procedure by Cavaliere-Taylor (2008).
+#' reindexing procedure by Cavaliere and Taylor (2008).
 #'
-#' @param y A time series of interest.
-#' @param trim A trimming parameter to determine the lower and upper bounds for
-#' a possible break point.
-#' @param const Whether the constant needs to be included.
 #' @param omega.est Whether the variance of Nadaraya-Watson residuals should be
 #' used.
 #' @param truncated Whether the truncation of Nadaraya-Watson residuals is
@@ -26,7 +21,8 @@
 #' needed to suppress the calculation of p-values during the precalculation of
 #' tables needed for the p-values estimating.
 #'
-#' @return An object of type `sadf`. It's a list of:
+#' @return [uroot.STADF] returns an object of type `bt_SADF` and subclass `bt_STADF`.
+#' It's a list of:
 #' * `y`,
 #' * `N`: Number of observations,
 #' * `trim`,
@@ -54,11 +50,6 @@
 #' “Time-Transformed Unit Root Tests for Models with Non-Stationary Volatility.”
 #' Journal of Time Series Analysis 29, no. 2 (March 2008): 300–330.
 #' https://doi.org/10.1111/j.1467-9892.2007.00557.x.
-#'
-#' Kurozumi, Eiji, Anton Skrobotov, and Alexey Tsarev.
-#' “Time-Transformed Test for Bubbles under Non-Stationary Volatility.”
-#' Journal of Financial Econometrics, April 23, 2022.
-#' https://doi.org/10.1093/jjfinec/nbac004.
 #'
 #' @importFrom stats sd
 #'
@@ -201,8 +192,10 @@ uroot.STADF <- function(
 }
 
 
-#' @rdname uroot.STADF
-#' @order 2
+#' @rdname uroot.SADF
+#' @order 4
+#'
+#' @return [uroot.GSTADF] returns an object of type `bt_SADF` and subclass `bt_GSTADF`.
 #'
 #' @importFrom stats sd
 #'

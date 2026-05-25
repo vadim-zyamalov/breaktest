@@ -29,6 +29,17 @@ A list of:
 A set of residual based tests for cointegration
 }
 \details{
+Perron and Rodríguez (2016) provide generalized least-squares (GLS) detrended versions
+of single-equation static regression or residuals-based tests
+for testing whether or not non-stationary time series are cointegrated.
+Their approach is to consider nearly optimal tests for unit roots
+and to apply them in the cointegration context.
+Authors derive the local asymptotic power functions of all tests
+considered for a triangular data-generating process,
+imposing a directional restriction such that the regressors are pure integrated processes.
+Their GLS versions of the tests do indeed provide substantial power improvements
+over their ordinary least-squares counterparts.
+
 The code provided is the original GAUSS code by Perron and Rodríguez
 ported to R.
 }

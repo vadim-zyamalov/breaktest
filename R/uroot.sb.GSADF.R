@@ -1,17 +1,27 @@
-#' @title
-#' Sign-based SADF test
+#' @rdname uroot.SADF
+#' @order 5
 #'
 #' @details
 #' Refactored original code by Kurozumi et al.
 #'
-#' @param y A time series of interest.
-#' @param trim A trimming parameter to determine the lower and upper bounds for
-#' a possible break point.
-#' @param const Whether the constant needs to be included.
 #' @param alpha Needed level of significance.
 #' @param iter Number of bootstrapping iterations.
 #' @param urs Use union of rejections strategy if `TRUE`.
 #' @param seed The seed parameter for the random number generator.
+#'
+#' @return [uroot.sb.GSADF] returns an object of class `bt_SADF` and subclass `bt_sbGSADF`. It's a list of:
+#' * `y`,
+#' * main parameters, such as `trim`, `const`, `alpha`, `iter`,
+#  * `urs`,
+#' * `seed`,
+#' supremum SBADF-statistic values incl. bootstrapped ones,
+#' * p-value,
+#' * indicator of explosive process.
+#'
+#' If `urs=TRUE` then some additional values included:
+#' * t-values,
+#' * GSADF bootstrapped statistics,
+#' * bootstrapped U-values.
 #'
 #' @references
 #' Harvey, David I., Stephen J. Leybourne, and Yang Zu.
@@ -19,11 +29,6 @@
 #' in the Presence of Deterministically Time-Varying Volatility.”
 #' Econometric Theory 36, no. 1 (February 2020): 122–69.
 #' https://doi.org/10.1017/S0266466619000057.
-#'
-#' Kurozumi, Eiji, Anton Skrobotov, and Alexey Tsarev.
-#' “Time-Transformed Test for Bubbles under Non-Stationary Volatility.”
-#' Journal of Financial Econometrics, April 23, 2022.
-#' https://doi.org/10.1093/jjfinec/nbac004.
 #'
 #' @import doSNOW
 #' @import foreach
