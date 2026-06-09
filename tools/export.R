@@ -12,6 +12,7 @@ source("tools/cvals_MDF_multiple.R")
 source("tools/cvals_MDF_CHLT.R")
 source("tools/cbar_PR.R")
 source("tools/cvals_PR.R")
+source("tools/cvals_NBCN.R")
 
 save(
   .cval_kpss_1p,
@@ -31,6 +32,7 @@ save(
   .cval_MDF_CHLT,
   .cbar_PR,
   .cval_PR,
+  .cval_NBCN,
   file = "sysdata.rda",
   compress = "xz"
 )

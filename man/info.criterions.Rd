@@ -20,7 +20,7 @@ info.criterions(obj, criterion, alpha = NULL, y = NULL)
 }
 \arguments{
 \item{obj}{An object of one of the class \code{bt_ols}.
-It should be pointed that \link{AR.reg} and \link{DOLS.reg} return object that belong
+It should be pointed that \code{AR.reg} and \code{DOLS.reg} return object that belong
 to subclasses of \code{bt_ols}, so they also can be used.}
 
 \item{criterion}{One of the following string values (case insensitive):

@@ -16,7 +16,7 @@ LWZ <- function(obj, ...) UseMethod("LWZ")
 #' * Liu et al.
 #'
 #' @param obj An object of one of the class `bt_ols`.
-#' It should be pointed that [AR.reg] and [DOLS.reg] return object that belong
+#' It should be pointed that `AR.reg` and `DOLS.reg` return object that belong
 #' to subclasses of `bt_ols`, so they also can be used.
 #' @param criterion One of the following string values (case insensitive):
 #' * `"AIC"`,

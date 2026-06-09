@@ -132,6 +132,7 @@ segments.BP <- function(
     xx <- m - i
     datevec[xx] <- optdat[datevec[xx + 1], xx]
   }
+
   list(
     SSR = optSSR[N, m],
     break.point = datevec
@@ -266,4 +267,101 @@ segments.GLS <- function(
   }
 
   resBreaks
+}
+
+#' @rdname cs.bubble.emerge
+#' @order 4
+#' @details
+#' [segments.AR1] function fits
+#' \deqn{y_t = phi_1 * y_{t-1} * I(t \leq bp)
+#'           + phi_2 * y_{t-1} * I(t > bp) + e_t}
+#' over all candidate breakpoints in \eqn{[N \times trim, N \times (1 - trim)]}.
+#' @return [segments.AR1] returns a named list: bp (breakpoint index), phi.
+segments.AR1 <- function(
+  y,
+  trim = 0.1
+) {
+  if (!is.matrix(y)) {
+    y <- as.matrix(y)
+  }
+
+  yL <- na.omit(.lagn(y, 1))
+  y <- y[-1]
+
+  N <- length(y)
+
+  SSR <- Inf
+  resBreak <- N
+  resBeta <- NULL
+  resSsq <- NULL
+
+  tr <- .trend(N)
+  bp_min <- max(1, floor(N * trim))
+  bp_max <- N - bp_min
+
+  for (bp in bp_min:bp_max) {
+    mX <- cbind(
+      yL * (tr <= bp),
+      yL * (tr > bp)
+    )
+
+    loopModel <- OLS.reg(y, mX)
+    loopSSR <- sum(loopModel$residuals^2)
+
+    if (loopSSR < SSR) {
+      resBreak <- bp
+      SSR <- loopSSR
+      resBeta <- loopModel$coefficients
+      resSsq <- loopModel$s.sq
+    }
+  }
+
+  list(
+    SSR = SSR,
+    s.sq = resSsq,
+    break.point = resBreak,
+    coefficients = resBeta
+  )
+}
+
+#' @rdname cs.bubble.emerge
+#' @order 5
+#' @details
+#' [segments.NBCN] function uses a sequential three-step search:
+#'   1. Find Tc on the full series.
+#'   2. Find Te on y\[1:(Tc+1)\].
+#'   3. Find Tr on y\[(Tc+2):end\].
+#' Then refits the 4-regime model to get `phi_a`, `phi_b`, and `s2`.
+#' @return [segments.NBCN] returns a named list: Te_est, Tc_est, Tr_est, phi_a, phi_b, s2.
+segments.NBCN <- function(y) {
+  if (!is.matrix(y)) {
+    y <- as.matrix(y)
+  }
+
+  N <- length(y)
+
+  Tc_est <- segments.AR1(y)$break.point
+  Te_est <- segments.AR1(y[1:(Tc_est + 1)])$break.point
+  Tr_est <- (Tc_est + 1) + segments.AR1(y[(Tc_est + 2):N])$break.point
+
+  yL <- na.omit(.lagn(y, 1))
+  y <- y[-1]
+  N <- N - 1
+  tr <- .trend(N)
+
+  mX <- cbind(
+    yL * (tr <= Te_est),
+    yL * (tr > Te_est) * (tr <= Tc_est),
+    yL * (tr > Tc_est) * (tr <= Tr_est),
+    yL * (tr > Tr_est)
+  )
+
+  tmpModel <- OLS.reg(y, mX)
+
+  list(
+    model = tmpModel,
+    Te_est = Te_est,
+    Tc_est = Tc_est,
+    Tr_est = Tr_est
+  )
 }

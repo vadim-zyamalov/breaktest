@@ -108,3 +108,47 @@
     mzt = mzt
   )
 }
+
+
+.nbcn.t.stat <- function(y, t1, t2) {
+  lo <- min(t1, t2)
+  hi <- max(t1, t2)
+
+  dy <- y[lo:hi] - y[(lo - 1):(hi - 1)]
+  yL <- y[(lo - 1):(hi - 1)]
+
+  S_y1dy <- sum(yL * dy)
+  S_yL2 <- sum(yL^2)
+  S_dy2 <- sum(dy^2)
+
+  list(
+    S_y1dy = S_y1dy,
+    S_yL2 = S_yL2,
+    S_dy2 = S_dy2,
+    t.stat = S_y1dy / sqrt(S_yL2)
+  )
+}
+
+.nbcn.cval <- function(coef, lambda) {
+  if (is.null(lambda)) {
+    stop(".nbcn.cval: No lambda provided!")
+  }
+
+  d <- as.integer(lambda > 0.7)
+  nc <- length(coef)
+
+  x <- c(
+    1,
+    1 / lambda,
+    lambda,
+    lambda^2,
+    lambda^3,
+    d,
+    d / lambda,
+    d * lambda,
+    d * lambda^2,
+    d * lambda^3
+  )[1:nc]
+
+  sum(coef * x)
+}

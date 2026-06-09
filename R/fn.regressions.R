@@ -48,6 +48,7 @@ OLS.reg <- function(y, x) {
 
   result <- list(
     coefficients = cf,
+    s.sq = s.sq,
     se.coefs = se.cf,
     t.stats = t.beta,
     residuals = resid,

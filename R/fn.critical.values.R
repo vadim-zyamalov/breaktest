@@ -15,11 +15,7 @@
 #' @param n.zf Number of variables without breaks.
 #'
 #' @keywords internal
-get.cv.coint.conf.sets <- function(lambda,
-                                   trend,
-                                   conf.level,
-                                   n.zb,
-                                   n.zf) {
+get.cv.coint.conf.sets <- function(lambda, trend, conf.level, n.zb, n.zf) {
   if (conf.level == 0.9) {
     if (n.zf == 0) {
       values_table <- .cval_break_date_cset[[1]][[1]]
@@ -106,9 +102,7 @@ get.cv.coint.conf.sets <- function(lambda,
 #' @param cr.values The set of precalculated tables.
 #'
 #' @keywords internal
-get.p.values.SADF <- function(statistic,
-                              n.obs,
-                              cr.values) {
+get.p.values.SADF <- function(statistic, n.obs, cr.values) {
   N.table.obs <- as.numeric(names(cr.values))
 
   if (n.obs < min(N.table.obs)) {
@@ -135,4 +129,60 @@ get.p.values.SADF <- function(statistic,
   }
 
   p.value
+}
+
+
+get.cv.collapse <- function(lambda_e, tail = c("right", "left"), LR = FALSE) {
+  tail <- match.arg(tail)
+  pwr <- if (LR) 1 else 0.5
+  base <- (lambda_e * qchisq(0.05, df = 1))^pwr
+  if (tail == "right") -base else base
+}
+
+
+get.cv.emergence <- function(T1, T2, N, lambda_e = NULL) {
+  if (!is.null(lambda_e)) {
+    if (T1 < T2) {
+      sqrt(lambda_e * qchisq(0.05, df = 1))
+    } else {
+      c(
+        EMa21 = .nbcn.cval(.cval_NBCN$EMa21_e, lambda_e),
+        EMb21 = .nbcn.cval(.cval_NBCN$EMb21_e, lambda_e)
+      )
+    }
+  } else {
+    if (T1 < T2) {
+      (T1 - 1) / N * qchisq(0.05, df = 1)
+    } else {
+      .nbcn.cval(.cval_NBCN$LRb21_e, (T1 - 1) / N)
+    }
+  }
+}
+
+
+get.cv.recovery <- function(
+  lambda_e,
+  lambda1 = NULL,
+  tail = c("right", "left"),
+  LR = FALSE
+) {
+  tail <- match.arg(tail)
+  pwr <- if (LR) 1 else 0.5
+  if (tail == "right") {
+    if (!LR) {
+      c(
+        EMa = .nbcn.cval(.cval_NBCN$EMa12_r, lambda1),
+        EMas = .nbcn.cval(.cval_NBCN$EMa12_rs, lambda1),
+        EMb = .nbcn.cval(.cval_NBCN$EMb12_r, lambda1),
+        EMbs = .nbcn.cval(.cval_NBCN$EMb12_rs, lambda1)
+      )
+    } else {
+      c(
+        LRa = lambda_e * qchisq(0.05, df = 1),
+        LRas = .nbcn.cval(.cval_NBCN$LRa12_rs, lambda1)
+      )
+    }
+  } else {
+    -(lambda_e * qchisq(0.05, df = 1))^pwr
+  }
 }
