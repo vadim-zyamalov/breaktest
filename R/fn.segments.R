@@ -269,14 +269,17 @@ segments.GLS <- function(
   resBreaks
 }
 
-#' @rdname cs.bubble.emerge
+#' @rdname bubbles.nbcn
 #' @order 4
 #' @details
 #' [segments.AR1] function fits
-#' \deqn{y_t = phi_1 * y_{t-1} * I(t \leq bp)
-#'           + phi_2 * y_{t-1} * I(t > bp) + e_t}
+#' \deqn{y_t = \phi_1 y_{t-1} I(t \leq bp) + \phi_2 y_{t-1} I(t > bp) + e_t}
 #' over all candidate breakpoints in \eqn{[N \times trim, N \times (1 - trim)]}.
-#' @return [segments.AR1] returns a named list: bp (breakpoint index), phi.
+#' @return [segments.AR1] returns a named list of:
+#' * break.point: index of estimates breakpoint,
+#' * coefficients: AR(1) coefficients for pre-bubble and exploding regimes,
+#' * SSR: minimum value of SSR,
+#' * s.sq: estimated variance of internal model resuduals \eqn{\hat{e}_t}.
 segments.AR1 <- function(
   y,
   trim = 0.1
@@ -324,15 +327,18 @@ segments.AR1 <- function(
   )
 }
 
-#' @rdname cs.bubble.emerge
+#' @rdname bubbles.nbcn
 #' @order 5
 #' @details
 #' [segments.NBCN] function uses a sequential three-step search:
 #'   1. Find Tc on the full series.
 #'   2. Find Te on y\[1:(Tc+1)\].
 #'   3. Find Tr on y\[(Tc+2):end\].
-#' Then refits the 4-regime model to get `phi_a`, `phi_b`, and `s2`.
-#' @return [segments.NBCN] returns a named list: Te_est, Tc_est, Tr_est, phi_a, phi_b, s2.
+#' Then refits the 4-regime model to get `phi_a`, `phi_b`, and `s.sq`.
+#' @return [segments.NBCN] returns a named list of:
+#' * Te_est, Tc_est, Tr_est: estimates moments of bubble emerging, break, and post-break restoration,
+#' * phi_a, phi_b: AR(1) coefficients for exploding and post-break regimes,
+#' * s.sq: estimated variance of internal model resuduals \eqn{\hat{e}_t}.
 segments.NBCN <- function(y) {
   if (!is.matrix(y)) {
     y <- as.matrix(y)
@@ -359,9 +365,11 @@ segments.NBCN <- function(y) {
   tmpModel <- OLS.reg(y, mX)
 
   list(
-    model = tmpModel,
     Te_est = Te_est,
     Tc_est = Tc_est,
-    Tr_est = Tr_est
+    Tr_est = Tr_est,
+    phi_a = tmpModel$coefficients[2],
+    phi_b = tmpModel$coefficients[3],
+    s.sq = tmpModel$s.sq
   )
 }

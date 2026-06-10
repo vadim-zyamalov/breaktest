@@ -6,7 +6,8 @@
 \alias{cs.bubble.recovery}
 \alias{segments.AR1}
 \alias{segments.NBCN}
-\title{Confidence set for the emergence, collapse, and restore date of a bubble}
+\alias{bubbles.nbcn}
+\title{Confidence sets for the emergence, collapse, and restore date of a bubble}
 \usage{
 cs.bubble.emerge(y, full_N, phi_a, s2, trim = 0.1)
 
@@ -19,7 +20,7 @@ segments.AR1(y, trim = 0.1)
 segments.NBCN(y)
 }
 \arguments{
-\item{y}{Numeric vector (levels).}
+\item{y}{Time series of interest. Should be a column matrix; if not is converted internally.}
 
 \item{full_N}{Full sample size.}
 
@@ -27,7 +28,7 @@ segments.NBCN(y)
 
 \item{s2}{Residual variance.}
 
-\item{trim}{Trimming parameter.}
+\item{trim}{Trimming parameter to exclude observations from breakpoint candidates.}
 
 \item{lambda_e}{Scalar, fraction for critical value scaling.}
 
@@ -36,23 +37,29 @@ segments.NBCN(y)
 \item{lambda_c}{Scalar lambda_c = Tc / T_yall.}
 }
 \value{
-Named list of binary vectors.
+Named list of binary vectors, where 1 means that this observation is in the corresponding confidence set.
 
-\link{segments.AR1} returns a named list: bp (breakpoint index), phi.
+\link{segments.AR1} returns a named list of:
+\itemize{
+\item break.point: index of estimates breakpoint,
+\item coefficients: AR(1) coefficients for pre-bubble and exploding regimes,
+\item SSR: minimum value of SSR,
+\item s.sq: estimated variance of internal model resuduals \eqn{\hat{e}_t}.
+}
 
-\link{segments.NBCN} returns a named list: Te_est, Tc_est, Tr_est, phi_a, phi_b, s2.
+\link{segments.NBCN} returns a named list of:
+\itemize{
+\item Te_est, Tc_est, Tr_est: estimates moments of bubble emerging, break, and post-break restoration,
+\item phi_a, phi_b: AR(1) coefficients for exploding and post-break regimes,
+\item s.sq: estimated variance of internal model resuduals \eqn{\hat{e}_t}.
+}
 }
 \description{
-Confidence set for the emergence, collapse, and restore date of a bubble
+Confidence sets for the emergence, collapse, and restore date of a bubble
 }
 \details{
-Both the "estimated" and "true" parameter variants are handled via the \code{phi_a}, \code{phi_b}, \code{s2} arguments,
-which are to be taken from the results of
-\link{segments.AR1} or \link{segments.NBCN} functions.
-
 \link{segments.AR1} function fits
-\deqn{y_t = phi_1 * y_{t-1} * I(t \leq bp)
-          + phi_2 * y_{t-1} * I(t > bp) + e_t}
+\deqn{y_t = \phi_1 y_{t-1} I(t \leq bp) + \phi_2 y_{t-1} I(t > bp) + e_t}
 over all candidate breakpoints in \eqn{[N \times trim, N \times (1 - trim)]}.
 
 \link{segments.NBCN} function uses a sequential three-step search:
@@ -60,8 +67,11 @@ over all candidate breakpoints in \eqn{[N \times trim, N \times (1 - trim)]}.
 \item Find Tc on the full series.
 \item Find Te on y[1:(Tc+1)].
 \item Find Tr on y[(Tc+2):end].
-Then refits the 4-regime model to get \code{phi_a}, \code{phi_b}, and \code{s2}.
+Then refits the 4-regime model to get \code{phi_a}, \code{phi_b}, and \code{s.sq}.
 }
+
+Both the "estimated" and "true" parameter variants are handled via the \code{phi_a}, \code{phi_b}, and \code{s2} arguments,
+which are to be taken from the results of \link{segments.AR1} or \link{segments.NBCN} functions.
 }
 \references{
 Kurozumi, Eiji, Anton Skrobotov, and Alexey Tsarev. 2022.

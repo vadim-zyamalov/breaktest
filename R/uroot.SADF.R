@@ -1,6 +1,5 @@
-#' @title
 #' Supremum ADF tests
-#' @order 1
+#' @name uroot.SADF
 #'
 #' @details
 #' This set of unit root tests are developed for testing for bubbles
@@ -41,7 +40,11 @@
 #' “Time-Transformed Test for Bubbles under Non-Stationary Volatility.”
 #' Journal of Financial Econometrics, April 23, 2022.
 #' https://doi.org/10.1093/jjfinec/nbac004.
-#'
+NULL
+
+
+#' @rdname uroot.SADF
+#' @order 1
 #' @export
 uroot.SADF <- function(
   y,

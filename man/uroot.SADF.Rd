@@ -88,8 +88,8 @@ uroot.w.GSADF(
 \arguments{
 \item{y}{A time series of interest.}
 
-\item{trim}{The trimming parameter to find the lower and upper bounds of
-possible break dates.}
+\item{trim}{A trimming parameter to determine the lower and upper bounds for
+a possible break point.}
 
 \item{const}{Whether the constant needs to be included.}
 
@@ -123,16 +123,6 @@ estimated.}
 \item{seed}{A seed parameter for the random number generator.}
 }
 \value{
-\link{uroot.SADF} returns an object of type \code{bt_SADF}. It's a list of:
-\itemize{
-\item \code{y},
-\item \code{trim},
-\item \code{const},
-\item vector of \eqn{t}-values,
-\item the value of the corresponding test statistic,
-\item \eqn{p}-value if it was asked for.
-}
-
 \link{uroot.GSADF} returns an object of class \code{bt_SADF} and subclass \code{bt_GSADF}.
 
 \link{uroot.STADF} returns an object of type \code{bt_SADF} and subclass \code{bt_STADF}.
@@ -210,11 +200,27 @@ if \code{urs} is \code{TRUE} the following items are also included:
 }
 
 \link{uroot.w.GSADF} returns an object of type \code{bt_SADF} and subclass \code{bt_wGSADF}.
+
+\link{uroot.SADF} returns an object of type \code{bt_SADF}. It's a list of:
+\itemize{
+\item \code{y},
+\item \code{trim},
+\item \code{const},
+\item vector of \eqn{t}-values,
+\item the value of the corresponding test statistic,
+\item \eqn{p}-value if it was asked for.
+}
 }
 \description{
 Supremum ADF tests
 }
 \details{
+Tests with time transformation are the modified versions of
+the ordinary \code{SADF} and \code{GSADF} tests using Nadaraya-Watson residuals and
+reindexing procedure by Cavaliere and Taylor (2008).
+
+Refactored original code by Kurozumi et al.
+
 This set of unit root tests are developed for testing for bubbles
 under time-varying non-stationary volatility.
 Because the limiting distribution of the seminal Phillips et al. (2011) test
@@ -231,19 +237,8 @@ subsamples starting at \eqn{t = 1}.
 
 \code{GSADF.test} is a generalized version of \code{SADF.test}. Subsamples are allowed
 to start at any point between 1 and \eqn{T (1 - trim)}.
-
-Tests with time transformation are the modified versions of
-the ordinary \code{SADF} and \code{GSADF} tests using Nadaraya-Watson residuals and
-reindexing procedure by Cavaliere and Taylor (2008).
-
-Refactored original code by Kurozumi et al.
 }
 \references{
-Kurozumi, Eiji, Anton Skrobotov, and Alexey Tsarev.
-“Time-Transformed Test for Bubbles under Non-Stationary Volatility.”
-Journal of Financial Econometrics, April 23, 2022.
-https://doi.org/10.1093/jjfinec/nbac004.
-
 Cavaliere, Giuseppe, and A. M. Robert Taylor.
 “Time-Transformed Unit Root Tests for Models with Non-Stationary Volatility.”
 Journal of Time Series Analysis 29, no. 2 (March 2008): 300–330.
@@ -254,4 +249,9 @@ Harvey, David I., Stephen J. Leybourne, and Yang Zu.
 in the Presence of Deterministically Time-Varying Volatility.”
 Econometric Theory 36, no. 1 (February 2020): 122–69.
 https://doi.org/10.1017/S0266466619000057.
+
+Kurozumi, Eiji, Anton Skrobotov, and Alexey Tsarev.
+“Time-Transformed Test for Bubbles under Non-Stationary Volatility.”
+Journal of Financial Econometrics, April 23, 2022.
+https://doi.org/10.1093/jjfinec/nbac004.
 }

@@ -1,18 +1,18 @@
-#' Confidence set for the emergence, collapse, and restore date of a bubble
-#' @order 1
+#' Confidence sets for the emergence, collapse, and restore date of a bubble
+#' @name bubbles.nbcn
 #'
-#' @param y      Numeric vector (levels).
+#' @param y      Time series of interest. Should be a column matrix; if not is converted internally.
 #' @param full_N Full sample size.
-#' @param phi_a  Explosive AR coefficient.
+#' @param phi_a    AR coefficient before collapse (explosive phase).
+#' @param phi_b    AR coefficient after collapse (recovery phase).
+#' @param lambda_e Scalar, fraction for critical value scaling.
+#' @param lambda_c  Scalar lambda_c = Tc / T_yall.
 #' @param s2     Residual variance.
-#' @param trim   Trimming parameter.
+#' @param trim   Trimming parameter to exclude observations from breakpoint candidates.
 #'
 #' @details
-#' Both the "estimated" and "true" parameter variants are handled via the `phi_a`, `phi_b`, `s2` arguments,
-#' which are to be taken from the results of
-#' [segments.AR1] or [segments.NBCN] functions.
-#'
-#' @return Named list of binary vectors.
+#' Both the "estimated" and "true" parameter variants are handled via the `phi_a`, `phi_b`, and `s2` arguments,
+#' which are to be taken from the results of [segments.AR1] or [segments.NBCN] functions.
 #'
 #' @references
 #' Kurozumi, Eiji, Anton Skrobotov, and Alexey Tsarev. 2022.
@@ -24,7 +24,12 @@
 #' "Confidence Sets for the Emergence, Collapse, and Recovery Dates of a Bubble".
 #' arXiv:2511.16172.
 #' Preprint, arXiv. https://doi.org/10.48550/arXiv.2511.16172.
-#'
+NULL
+
+
+#' @rdname bubbles.nbcn
+#' @order 1
+#' @return Named list of binary vectors, where 1 means that this observation is in the corresponding confidence set.
 #' @export
 cs.bubble.emerge <- function(
   y,
@@ -132,11 +137,8 @@ cs.bubble.emerge <- function(
 }
 
 
-#' @rdname cs.bubble.emerge
+#' @rdname bubbles.nbcn
 #' @order 2
-#' @param lambda_e Scalar, fraction for critical value scaling.
-#' @param phi_a    AR coefficient before collapse (explosive phase).
-#' @param phi_b    AR coefficient after collapse (recovery phase).
 #' @export
 cs.bubble.collapse <- function(
   y,
@@ -227,9 +229,8 @@ cs.bubble.collapse <- function(
   )
 }
 
-#' @rdname cs.bubble.emerge
+#' @rdname bubbles.nbcn
 #' @order 3
-#' @param lambda_c  Scalar lambda_c = Tc / T_yall.
 #' @export
 cs.bubble.recovery <- function(
   y,
