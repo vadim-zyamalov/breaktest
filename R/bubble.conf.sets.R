@@ -351,3 +351,291 @@ cs.bubble.recovery <- function(
     cset_LE21 = cset_LRb21
   )
 }
+
+
+#' @rdname bubbles.nbcn
+#' @order 4
+#' @details
+#' [segments.AR1] function fits
+#' \deqn{y_t = \phi_1 y_{t-1} I(t \leq bp) + \phi_2 y_{t-1} I(t > bp) + e_t}
+#' over all candidate breakpoints in \eqn{[N \times trim, N \times (1 - trim)]}.
+#' @return [segments.AR1] returns a named list of:
+#' * break.point: index of estimates breakpoint,
+#' * coefficients: AR(1) coefficients for pre-bubble and exploding regimes,
+#' * SSR: minimum value of SSR,
+#' * s.sq: estimated variance of internal model resuduals \eqn{\hat{e}_t}.
+segments.AR1 <- function(
+  y,
+  trim = 0.1
+) {
+  if (!is.matrix(y)) {
+    y <- as.matrix(y)
+  }
+
+  yL <- na.omit(.lagn(y, 1))
+  y <- y[-1]
+
+  N <- length(y)
+
+  SSR <- Inf
+  resBreak <- N
+  resBeta <- NULL
+  resSsq <- NULL
+
+  tr <- .trend(N)
+  bp_min <- max(1, floor(N * trim))
+  bp_max <- N - bp_min
+
+  for (bp in bp_min:bp_max) {
+    mX <- cbind(
+      yL * (tr <= bp),
+      yL * (tr > bp)
+    )
+
+    loopModel <- OLS.reg(y, mX)
+    loopSSR <- sum(loopModel$residuals^2)
+
+    if (loopSSR < SSR) {
+      resBreak <- bp
+      SSR <- loopSSR
+      resBeta <- loopModel$coefficients
+      resSsq <- loopModel$s.sq
+    }
+  }
+
+  list(
+    SSR = SSR,
+    s.sq = resSsq,
+    break.point = resBreak,
+    coefficients = resBeta
+  )
+}
+
+#' @rdname bubbles.nbcn
+#' @order 5
+#' @details
+#' [segments.NBCN] function uses a sequential three-step search:
+#'   1. Find Tc on the full series.
+#'   2. Find Te on y\[1:(Tc+1)\].
+#'   3. Find Tr on y\[(Tc+2):end\].
+#' Then refits the 4-regime model to get `phi_a`, `phi_b`, and `s.sq`.
+#' @return [segments.NBCN] returns a named list of:
+#' * Te_est, Tc_est, Tr_est: estimates moments of bubble emerging, break, and post-break restoration,
+#' * phi_a, phi_b: AR(1) coefficients for exploding and post-break regimes,
+#' * s.sq: estimated variance of internal model resuduals \eqn{\hat{e}_t}.
+segments.NBCN <- function(y, trim = 0.1) {
+  if (!is.matrix(y)) {
+    y <- as.matrix(y)
+  }
+
+  N <- length(y)
+
+  Tc_est <- segments.AR1(y, trim)$break.point
+  Te_est <- segments.AR1(y[1:(Tc_est + 1)], trim)$break.point
+  Tr_est <- (Tc_est + 1) + segments.AR1(y[(Tc_est + 2):N], trim)$break.point
+
+  yL <- na.omit(.lagn(y, 1))
+  y <- y[-1]
+  N <- N - 1
+  tr <- .trend(N)
+
+  mX <- cbind(
+    yL * (tr <= Te_est),
+    yL * (tr > Te_est) * (tr <= Tc_est),
+    yL * (tr > Tc_est) * (tr <= Tr_est),
+    yL * (tr > Tr_est)
+  )
+
+  tmpModel <- OLS.reg(y, mX)
+
+  list(
+    Te_est = Te_est,
+    Tc_est = Tc_est,
+    Tr_est = Tr_est,
+    phi_a = tmpModel$coefficients[2],
+    phi_b = tmpModel$coefficients[3],
+    s.sq = tmpModel$s.sq
+  )
+}
+
+
+#' Plotting break dates for bubbles
+#'
+#' @param y Time series of interest.
+#' @param trim Trimming parameter for breakpoints estimation procedure.
+#' @param plot_type Select the style of the resulting graph.
+#' @param date_first If not NULL then the X-axis will be labeled with dates.
+#' @param date_by Time delta of your data.
+#' @param date_format Format of dates on the graph.
+#' @param y_label An optional label for Y-axis.
+#' @param title An optional title of the graph.
+#'
+#' @import ggplot2
+#' @import patchwork
+#'
+#' @references
+#' Kurozumi, Eiji, and Anton Skrobotov. 2026.
+#' "Confidence Sets for the Emergence, Collapse, and Recovery Dates of a Bubble".
+#' arXiv:2511.16172.
+#' Preprint, arXiv. https://doi.org/10.48550/arXiv.2511.16172.
+#'
+#' @export
+plot_bubble <- function(
+  y,
+  trim = 0.1,
+  plot_type = c("paper", "presentation"),
+  date_first = NULL,
+  date_format = "%Y-%m",
+  date_by = "month",
+  y_label = NULL,
+  title = NULL
+) {
+  plot_type <- match.arg(plot_type)
+  params <- plot_bubbles_style(plot_type)
+
+  N <- length(y)
+
+  # Break dates
+  segments <- segments.NBCN(y, trim)
+  br_data <- c(
+    segments$Te_est,
+    segments$Tc_est,
+    segments$Tr_est
+  )
+
+  # X-axis values
+  if (!is.null(date_first)) {
+    x_data <- seq(as.Date(date_first), by = date_by, length.out = N)
+    vline_x <- x_data[br_data]
+    vline_lbl <- format(vline_x, date_format)
+  } else {
+    x_data <- 1:N
+    vline_x <- x_data[br_data]
+    vline_lbl <- vline_x
+  }
+
+  # Vertical lines label positioning
+  y_range <- range(y, na.rm = TRUE)
+  vline_y <- y_range[1] + 0.10 * diff(y_range)
+  x_mid <- mean(range(x_data))
+  label_hjust <- ifelse(vline_x < x_mid, 1.1, -0.1)
+
+  # Plot construction
+  p <- ggplot(mapping = aes(x = x_data, y = y)) +
+    # X-axis
+    (if (!is.null(date_first)) {
+      scale_x_date(
+        date_labels = date_format,
+        expand = expansion(mult = 0.01)
+      )
+    } else {
+      scale_x_continuous(
+        expand = expansion(mult = 0.01)
+      )
+    }) +
+    # Y-axis
+    scale_y_continuous(
+      expand = expansion(mult = c(0.01, 0.04))
+    ) +
+    # Main line
+    geom_line(
+      colour = params$line_colour,
+      linewidth = params$line_size
+    ) +
+    # Vertical lines
+    geom_vline(
+      xintercept = as.numeric(vline_x),
+      colour = params$vline_colour,
+      linetype = params$vline_type,
+      linewidth = params$vline_size
+    ) +
+    # Vertical lines labels
+    geom_text(
+      mapping = aes(
+        x = vline_x,
+        y = vline_y,
+        label = vline_lbl,
+        hjust = label_hjust
+      ),
+      angle = params$label_angle,
+      size = params$label_size,
+      colour = params$label_colour,
+      inherit.aes = FALSE
+    ) +
+
+    labs(
+      x = NULL,
+      y = y_label,
+      title = title
+    ) +
+    params$base_theme() +
+    theme(
+      panel.background = element_rect(fill = params$panel_bg, colour = NA),
+      panel.grid.major = element_line(colour = params$grid_major),
+      panel.grid.minor = element_line(colour = params$grid_minor),
+      axis.text = element_text(size = params$axis_text_sz),
+      axis.title.y = element_text(
+        size = params$axis_title_sz,
+        margin = margin(r = 6)
+      ),
+      plot.title = element_text(
+        size = params$title_sz,
+        face = "bold",
+        margin = margin(b = 8)
+      ),
+      plot.margin = margin(10, 15, 8, 8)
+    )
+
+  suppressWarnings(print(p))
+}
+
+
+plot_bubbles_style <- function(plot_type) {
+  switch(
+    plot_type,
+
+    paper = list(
+      # цвета
+      line_colour = "black",
+      vline_colour = "#CC0000",
+      label_colour = "grey30",
+      # размеры
+      line_size = 0.55,
+      vline_size = 0.55,
+      vline_type = "dashed",
+      label_size = 2.8,
+      label_angle = 90,
+      # оси
+      axis_text_sz = 9,
+      axis_title_sz = 10,
+      title_sz = 11,
+      # тема
+      base_theme = theme_bw,
+      panel_bg = "white",
+      grid_major = "grey88",
+      grid_minor = "grey94"
+    ),
+
+    presentation = list(
+      # цвета
+      line_colour = "#1a1a1a",
+      vline_colour = "#E8000D",
+      label_colour = "#333333",
+      # размеры
+      line_size = 0.85,
+      vline_size = 0.85,
+      vline_type = "dashed",
+      label_size = 4.0,
+      label_angle = 90,
+      # оси
+      axis_text_sz = 13,
+      axis_title_sz = 14,
+      title_sz = 15,
+      # тема
+      base_theme = theme_gray,
+      panel_bg = "#F0F0F0",
+      grid_major = "white",
+      grid_minor = "white"
+    )
+  )
+}
