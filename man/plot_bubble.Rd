@@ -7,6 +7,7 @@
 plot_bubble(
   y,
   trim = 0.1,
+  break_points = NULL,
   plot_type = c("paper", "presentation"),
   date_first = NULL,
   date_format = "\%Y-\%m",
@@ -19,6 +20,11 @@ plot_bubble(
 \item{y}{Time series of interest.}
 
 \item{trim}{Trimming parameter for breakpoints estimation procedure.}
+
+\item{break_points}{Breakpoints to be plotted;
+if NULL (default) then these points are estimated.
+If \code{date_first} is not NULL \code{break_points} should bu numeric or Date,
+otherwise it should be numeric only.}
 
 \item{plot_type}{Select the style of the resulting graph.}
 

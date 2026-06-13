@@ -463,6 +463,10 @@ segments.NBCN <- function(y, trim = 0.1) {
 #'
 #' @param y Time series of interest.
 #' @param trim Trimming parameter for breakpoints estimation procedure.
+#' @param break_points Breakpoints to be plotted;
+#' if NULL (default) then these points are estimated.
+#' If `date_first` is not NULL `break_points` should bu numeric or Date,
+#' otherwise it should be numeric only.
 #' @param plot_type Select the style of the resulting graph.
 #' @param date_first If not NULL then the X-axis will be labeled with dates.
 #' @param date_by Time delta of your data.
@@ -483,6 +487,7 @@ segments.NBCN <- function(y, trim = 0.1) {
 plot_bubble <- function(
   y,
   trim = 0.1,
+  break_points = NULL,
   plot_type = c("paper", "presentation"),
   date_first = NULL,
   date_format = "%Y-%m",
@@ -495,30 +500,40 @@ plot_bubble <- function(
 
   N <- length(y)
 
+  # X-axis values
+  x_data <- if (!is.null(date_first)) {
+    seq(as.Date(date_first), by = date_by, length.out = N)
+  } else {
+    1:N
+  }
+
   # Break dates
-  segments <- segments.NBCN(y, trim)
-  br_data <- c(
-    segments$Te_est,
-    segments$Tc_est,
-    segments$Tr_est
-  )
+  if (is.null(break_points)) {
+    segments <- segments.NBCN(y, trim)
+    break_points <- c(
+      segments$Te_est,
+      segments$Tc_est,
+      segments$Tr_est
+    )
+  }
 
   # X-axis values
   if (!is.null(date_first)) {
-    x_data <- seq(as.Date(date_first), by = date_by, length.out = N)
-    vline_x <- x_data[br_data]
-    vline_lbl <- format(vline_x, date_format)
+    if (is.numeric(break_points)) {
+      break_points <- x_data[break_points]
+    }
+    stopifnot(inherits(break_points, "Date"))
+    vline_lbl <- format(break_points, date_format)
   } else {
-    x_data <- 1:N
-    vline_x <- x_data[br_data]
-    vline_lbl <- vline_x
+    stopifnot(is.numeric(break_points))
+    vline_lbl <- break_points
   }
 
   # Vertical lines label positioning
   y_range <- range(y, na.rm = TRUE)
   vline_y <- y_range[1] + 0.10 * diff(y_range)
   x_mid <- mean(range(x_data))
-  label_hjust <- ifelse(vline_x < x_mid, 1.1, -0.1)
+  label_hjust <- ifelse(break_points < x_mid, 1.1, -0.1)
 
   # Plot construction
   p <- ggplot(mapping = aes(x = x_data, y = y)) +
@@ -544,7 +559,7 @@ plot_bubble <- function(
     ) +
     # Vertical lines
     geom_vline(
-      xintercept = as.numeric(vline_x),
+      xintercept = as.numeric(break_points),
       colour = params$vline_colour,
       linetype = params$vline_type,
       linewidth = params$vline_size
@@ -552,7 +567,7 @@ plot_bubble <- function(
     # Vertical lines labels
     geom_text(
       mapping = aes(
-        x = vline_x,
+        x = break_points,
         y = vline_y,
         label = vline_lbl,
         hjust = label_hjust
