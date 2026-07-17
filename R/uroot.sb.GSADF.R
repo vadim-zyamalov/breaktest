@@ -62,22 +62,12 @@ uroot.sb.GSADF <- function(
   progress <- function(n) setTxtProgressBar(progress.bar, n)
 
   cluster <- makeCluster(max(cores - 1, 1))
-  clusterExport(
-    cluster,
-    c(
-      "ADF.test",
-      "GSADF.test",
-      # "supSBADF.statistic",
-      ".cval_GSADF_without_const",
-      ".cval_GSADF_with_const",
-      ".diffn"
-    )
-  )
   registerDoSNOW(cluster)
 
   GSADF.bootstrap.values <- foreach(
     i = 1:iter,
     .combine = rbind,
+    .packages = "breaktest",
     .options.snow = list(progress = progress)
   ) %dopar%
     {

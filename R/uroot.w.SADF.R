@@ -69,22 +69,12 @@ uroot.w.SADF <- function(
   progress <- function(n) setTxtProgressBar(progress.bar, n)
 
   cluster <- makeCluster(max(cores - 1, 1))
-  clusterExport(
-    cluster,
-    c(
-      "ADF.test",
-      "SADF.test",
-      "supBZ.statistic",
-      ".cval_SADF_without_const",
-      ".cval_SADF_with_const",
-      ".diffn"
-    )
-  )
   registerDoSNOW(cluster)
 
   SADF.supBZ.bootstrap.values <- foreach(
     i = 1:iter,
     .combine = rbind,
+    .packages = "breaktest",
     .options.snow = list(progress = progress)
   ) %dopar%
     {
@@ -229,22 +219,12 @@ uroot.w.GSADF <- function(
   progress <- function(n) setTxtProgressBar(progress.bar, n)
 
   cluster <- makeCluster(max(cores - 1, 1))
-  clusterExport(
-    cluster,
-    c(
-      "ADF.test",
-      "GSADF.test",
-      "supBZ.statistic",
-      ".cval_GSADF_without_const",
-      ".cval_GSADF_with_const",
-      ".diffn"
-    )
-  )
   registerDoSNOW(cluster)
 
   SADF.supBZ.bootstrap.values <- foreach(
     step = 1:iter,
     .combine = rbind,
+    .packages = "breaktest",
     .options.snow = list(progress = progress)
   ) %dopar%
     {

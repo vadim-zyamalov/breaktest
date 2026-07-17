@@ -141,10 +141,10 @@ uroot.STADF <- function(
   STADF.value <- max(t.values)
 
   if (add.p.value) {
-    if (const == TRUE) {
-      cr.values <- .cval_SADF_with_const
+    cr.values <- if (const) {
+      .cval_SADF_with_const
     } else {
-      cr.values <- .cval_SADF_without_const
+      .cval_SADF_without_const
     }
 
     p.value <- get.p.values.SADF(STADF.value, n.obs, cr.values)

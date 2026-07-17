@@ -131,11 +131,8 @@ VECM.logl <- function(y, p) {
   z1 <- cbind(.lagn(y, 1), .trend(N))[-seq_len(p), , drop = FALSE]
 
   Xp <- as.matrix(rep(1, N))
-  if (p > 0) {
-    Xp <- cbind(
-      Xp,
-      apply(as.array(1:p), 1, function(l) .lagn(d.y, l))
-    )
+  for (l in seq_len(p)) {
+    Xp <- cbind(Xp, .lagn(d.y, l))
   }
   Xp <- Xp[-seq_len(p), , drop = FALSE]
 
@@ -202,10 +199,8 @@ VECM.break.logl <- function(y, p, breaks.list) {
     z1 <- cbind(.lagn(y, 1), tE)[-seq_len(p), , drop = FALSE]
 
     Xp <- cbind(E1, E2, D)
-    if (p > 0) {
-      for (j in 1:p) {
-        Xp <- cbind(Xp, .lagn(d.y, j))
-      }
+    for (j in seq_len(p)) {
+      Xp <- cbind(Xp, .lagn(d.y, j))
     }
     Xp <- Xp[-seq_len(p), , drop = FALSE]
 

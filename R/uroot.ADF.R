@@ -263,11 +263,8 @@ rescale.CPST <- function(d.y, x, deter, adf.lag, max.lag) {
   diffYresc <- .diffn(vYresc, na = 0)
 
   xr <- .lagn(vYresc, 1, na = 0)
-  if (max.lag > 0) {
-    xr <- cbind(
-      xr,
-      apply(as.array(1:max.lag), 1, function(l) .lagn(diffYresc, l, na = 0))
-    )
+  for (l in seq_len(max.lag)) {
+    xr <- cbind(xr, .lagn(diffYresc, l, na = 0))
   }
 
   list(

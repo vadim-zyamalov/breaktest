@@ -81,7 +81,11 @@ uroot.SADF <- function(
   class(result) <- "bt_SADF"
 
   if (add.p.value) {
-    cr.values <- ifelse(const, .cval_SADF_with_const, .cval_SADF_without_const)
+    cr.values <- if (const) {
+      .cval_SADF_with_const
+    } else {
+      .cval_SADF_without_const
+    }
     result$p.value <- get.p.values.SADF(SADF.value, N, cr.values)
   }
 
@@ -136,11 +140,11 @@ uroot.GSADF <- function(
   class(result) <- c("bt_GSADF", "bt_SADF")
 
   if (add.p.value) {
-    cr.values <- ifelse(
-      const,
-      .cval_GSADF_with_const,
+    cr.values <- if (const) {
+      .cval_GSADF_with_const
+    } else {
       .cval_GSADF_without_const
-    )
+    }
     result$p.value <- get.p.values.SADF(GSADF.value, N, cr.values)
   }
 
