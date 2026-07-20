@@ -5,7 +5,7 @@
 #' Refactored original code by Kurozumi et al.
 #'
 #' @param alpha Needed level of significance.
-#' @param iter Number of bootstrapping iterations.
+#' @param boot.iter Number of bootstrapping iterations.
 #' @param urs Use union of rejections strategy if `TRUE`.
 #' @param seed The seed parameter for the random number generator.
 #'
@@ -45,7 +45,7 @@ uroot.sb.GSADF <- function(
   trim = 0.01 + 1.8 / sqrt(length(y)),
   const = TRUE,
   alpha = 0.05,
-  iter = 999,
+  boot.iter = 999,
   urs = TRUE,
   seed = round(10^4 * sd(y))
 ) {
@@ -58,14 +58,14 @@ uroot.sb.GSADF <- function(
   ## Do parallel.
   cores <- detectCores()
 
-  progress.bar <- txtProgressBar(max = iter, style = 3)
+  progress.bar <- txtProgressBar(max = boot.iter, style = 3)
   progress <- function(n) setTxtProgressBar(progress.bar, n)
 
   cluster <- makeCluster(max(cores - 1, 1))
   registerDoSNOW(cluster)
 
   GSADF.bootstrap.values <- foreach(
-    i = 1:iter,
+    i = 1:boot.iter,
     .combine = rbind,
     .packages = "breaktest",
     .options.snow = list(progress = progress)
@@ -116,7 +116,7 @@ uroot.sb.GSADF <- function(
 
     ## Find U_bootstrap_values.
     U.bootstrap.values <- c()
-    for (b in 1:iter) {
+    for (b in 1:boot.iter) {
       U.bootstrap.values[b] <- max(
         GSADF.bootstrap.values[b],
         GSADF.cr.value /
@@ -128,11 +128,11 @@ uroot.sb.GSADF <- function(
     ## Find critical value.
     U.cr.value <- as.numeric(quantile(U.bootstrap.values, 1 - alpha))
 
-    p.value <- sum(U.bootstrap.values > U.value) / iter
+    p.value <- sum(U.bootstrap.values > U.value) / boot.iter
 
     is.explosive <- ifelse(U.value > U.cr.value, 1, 0)
   } else {
-    p.value <- sum(supSBADF.bootstrap.values > supSBADF.value) / iter
+    p.value <- sum(supSBADF.bootstrap.values > supSBADF.value) / boot.iter
 
     is.explosive <- ifelse(supSBADF.value > supSBADF.cr.value, 1, 0)
   }
@@ -142,7 +142,7 @@ uroot.sb.GSADF <- function(
     trim = trim,
     const = const,
     alpha = alpha,
-    iter = iter,
+    iter = boot.iter,
     urs = urs,
     seed = seed,
     SBADF.values = supSBADF.model$SBADF.values,
