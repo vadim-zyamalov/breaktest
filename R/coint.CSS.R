@@ -188,7 +188,7 @@ coint.CSS <- function(
       list(
         break.type = break.type,
         break.point = break.point,
-        break.coint = break.coint,
+        break.coint = break.coint
       )
     )
   }
