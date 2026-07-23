@@ -119,7 +119,7 @@
 #' “Testing the Null of Co‐integration in the Presence of Variance Breaks.” 
 #' Journal of Time Series Analysis, 27(4), 613-636.
 #'
-#' # Andrews, Donald W. K.
+#' Andrews, Donald W. K.
 #' “Heteroskedasticity and Autocorrelation Consistent
 #' Covariance Matrix Estimation.”
 #' Econometrica 59, no. 3 (1991): 817–58.
