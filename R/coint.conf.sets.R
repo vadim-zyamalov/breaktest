@@ -2,11 +2,11 @@
 #' Confidence sets for the break date in cointegrating regressions
 #'
 #' @description
-#' This procedure is to construct a confidence set for the change point in
+#' Procedure to construct a confidence set for the change point in
 #' cointegrating regressions.
 #'
 #' @details
-#' The function provided is for constructing confidence sets for a break date in cointegrating
+#' The function constructs confidence sets for a break date in cointegrating
 #' regressions by inverting a test for the break location, which is obtained by maximizing the
 #' weighted average of power. It is found in Kurozumi and Skrobotov (2018)
 #' that the limiting distribution of the test depends on the number of I(1) regressors
@@ -17,6 +17,38 @@
 #' based on the limiting distribution of the break point estimator under
 #' the assumption of the shrinking shift, the confidence set proposed in the present paper has
 #' a more accurate coverage rate, while the length of the confidence set is comparable.
+#' 
+#' The model underlying the confidence set construction is
+#' \deqn{
+#' y_t = \beta_{b,c} + \beta_{b,\tau} t + z_{b,t}'\beta_{b,z}
+#'   + \mathrm{1}(t > [\lambda_0 T])\left(\delta_{b,c} + \delta_{b,\tau} t + z_{b,t}'\delta_{b,z}\right)
+#'   + z_{f,t}'\beta_{f,z} + u_t,
+#' }
+#' where \eqn{z_{b,t}} (`zb`) is the vector of \eqn{I(1)} regressors whose coefficients
+#' sustain a structural break at the unknown date \eqn{T_0 = [\lambda_0 T]}, and
+#' \eqn{z_{f,t}} (`zf`) is the vector of \eqn{I(1)} regressors whose coefficients are
+#' fixed throughout the sample. The constant and, if `trend = TRUE`, the linear trend
+#' are allowed to break jointly with \eqn{z_{b,t}}, corresponding to Model II-c of
+#' Kurozumi and Skrobotov (2018); setting `trend = FALSE` reduces the specification
+#' to the corresponding Model I-c.
+#'
+#' Since \eqn{z_{b,t}} and \eqn{z_{f,t}} are \eqn{I(1)} and endogenous, the regression
+#' is augmented with leads and lags of their first differences (dynamic OLS), so that
+#' the estimated equation becomes
+#' \deqn{
+#' y_t = \beta_{b,c} + \beta_{b,\tau} t + z_{b,t}'\beta_{b,z}
+#'   + \mathrm{1}(t > [\lambda_0 T])\left(\delta_{b,c} + \delta_{b,\tau} t + z_{b,t}'\delta_{b,z}\right)
+#'   + z_{f,t}'\beta_{f,z}
+#'   + \sum_{j=-nL}^{nF} \pi_{b,j}'\Delta z_{b,t-j}
+#'   + \sum_{j=-nL}^{nF} \pi_{f,j}'\Delta z_{f,t-j} + u_t,
+#' }
+#' where `nF` and `nL` are the numbers of leads and lags, respectively. If either is
+#' `NULL`, both are selected by the information `criterion`.
+#'
+#' The confidence set for the break date \eqn{T_0} is obtained by inverting a test for
+#' the break location that maximizes the weighted average power over the magnitude and
+#' location of the break, at the confidence level `conf.level`. The lower and upper
+#' bounds of admissible break dates are determined by the trimming parameter `trim`.
 #'
 #' @param y A time series of interest.
 #' @param trend Whether the trend is to be included.
