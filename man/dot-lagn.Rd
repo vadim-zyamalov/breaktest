@@ -2,21 +2,11 @@
 % Please edit documentation in R/fn.helpers.R
 \name{.lagn}
 \alias{.lagn}
-\title{Produce a vector lagged backward of forward}
+\title{GAUSS lagn(x, k): lag a matrix by k periods, padding with NA.}
 \usage{
 .lagn(x, i, na = NA)
 }
-\arguments{
-\item{x}{An initial vector.}
-
-\item{i}{Size of lag (lead if negative).}
-
-\item{na}{A value to fill missing observations, \code{NA} by default.}
-}
-\value{
-Lagged or leaded vector.
-}
 \description{
-Produce a vector lagged backward of forward
+GAUSS lagn(x, k): lag a matrix by k periods, padding with NA.
 }
 \keyword{internal}

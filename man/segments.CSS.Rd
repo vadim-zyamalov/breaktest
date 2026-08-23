@@ -21,10 +21,8 @@ segments.CSS(beg, end, bp.min, bp.max, N, SSR.data)
 }
 \value{
 A list of:
-\itemize{
-\item \code{SSR}: Optimal SSR value,
-\item \code{break.point}: The point of possible break.
-}
+\item{SSR}{Optimal SSR value,}
+\item{break.point}{The point of possible break.}
 }
 \description{
 Procedure to minimize the SSR for 1 break point

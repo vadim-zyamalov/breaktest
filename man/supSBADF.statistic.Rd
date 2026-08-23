@@ -15,14 +15,11 @@ supSBADF.statistic(y, trim = 0.01 + 1.8/sqrt(length(y)), generalized = FALSE)
 }
 \value{
 A list of
-\itemize{
-\item \code{y},
-\item \code{trim},
-\item \code{C.t}: the cumulative sum of "signs" (1 or -1) of the first difference of
-\code{y},
-\item \code{SBADF.values}: series of sign-based ADF statistics,
-\item \code{supSBADF.value}: the maximum of \code{SBADF.values}.
-}
+\item{y}{},
+\item{trim}{},
+\item{C.t}{the cumulative sum of "signs" (1 or -1) of the first difference of \code{y},}
+\item{SBADF.values}{series of sign-based ADF statistics,}
+\item{supSBADF.value}{the maximum of \code{SBADF.values}.}
 }
 \description{
 Calculate superior sign-based SADF statistic.

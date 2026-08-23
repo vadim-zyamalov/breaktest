@@ -9,8 +9,8 @@
 #' @param SSR.data The matrix of recursive SSR values.
 #'
 #' @return A list of:
-#' * `SSR`: Optimal SSR value,
-#' * `break.point`: The point of possible break.
+#' \item{SSR}{Optimal SSR value,}
+#' \item{break.point}{The point of possible break.}
 #'
 #' @references
 #' Carrion-i-Silvestre, Josep Lluís, and Andreu Sansó.

@@ -23,27 +23,26 @@
 #'
 #' @return [uroot.STADF] returns an object of type `bt_SADF` and subclass `bt_STADF`.
 #' It's a list of:
-#' * `y`,
-#' * `N`: Number of observations,
-#' * `trim`,
-#' * `const`,
-#' * `omega.est`,
-#' * `truncated`,
-#' * `is.reindex`,
-#' * `new.index`: the vector of new indices,
-#' * `ksi.input`,
-#' * `hc`,
-#' * `h.est`,
-#' * `u.hat`,
-#' * `pc`,
-#' * `w.sq`,
-#' * `t.values`: vector of \eqn{t}-values,
-#' * the value of the corresponding test statistic,
-#' * `u.hat.truncated`: truncated residuals if truncation was asked for,
-#' * `ksi`, `sigma`: estimated values of the truncation parameter and resulting
-#' s.e. if `ksi.input` equals `auto`,
-#' * `eta.hat`: the values of reindexing function if reindexing was asked for,
-#' * \eqn{p}-value if it was asked for.
+#' \item{y}{}
+#' \item{N}{Number of observations,}
+#' \item{trim}{}
+#' \item{const}{}
+#' \item{omega.est}{}
+#' \item{truncated}{}
+#' \item{is.reindex}{}
+#' \item{new.index}{the vector of new indices,}
+#' \item{ksi.input}{}
+#' \item{hc}{}
+#' \item{h.est}{}
+#' \item{u.hat}{}
+#' \item{pc}{}
+#' \item{w.sq}{}
+#' \item{t.values}{vector of \eqn{t}-values,}
+#' \item{*.value}{the value of the corresponding test statistic,}
+#' \item{u.hat.truncated}{truncated residuals if truncation was asked for,}
+#' \item{ksi`, `sigma}{estimated values of the truncation parameter and resulting s.e. if `ksi.input` equals `auto`,}
+#' \item{eta.hat}{the values of reindexing function if reindexing was asked for,}
+#' \item{\eqn{p}-value}{if it was asked for.}
 #'
 #' @references
 #' Cavaliere, Giuseppe, and A. M. Robert Taylor.

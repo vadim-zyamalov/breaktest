@@ -8,10 +8,10 @@
 #' @param x Explanatory variables.
 #'
 #' @return A list of:
-#' * `beta`: estimates of coefficients,
-#' * `resid`: estimated residuals,
-#' * `predict`: forecasted values,
-#' * `t.beta`: \eqn{t}-statistics for `beta`.
+#' \item{beta}{estimates of coefficients,}
+#' \item{resid}{estimated residuals,}
+#' \item{predict}{forecasted values,}
+#' \item{t.beta}{\eqn{t}-statistics for `beta`.}
 #'
 #' @importFrom Rfast rowAll
 #' @importFrom Rfast lmfit
@@ -19,23 +19,20 @@
 #'
 #' @keywords internal
 OLS.reg <- function(y, x) {
-  if (!is.matrix(y)) {
-    y <- as.matrix(y)
-  }
-  if (!is.matrix(x)) {
-    x <- as.matrix(x)
-  }
+  y <- as.matrix(y)
+  x <- as.matrix(x)
 
   N <- length(y)
 
   rows <- rowAll(!is.na(y)) & rowAll(!is.na(x))
 
-  y <- y[rows, , drop = FALSE]
-  x <- x[rows, , drop = FALSE]
+  y <- .msub(y, rows)
+  x <- .msub(x, rows)
 
-  .model <- lmfit(x, y)
-  r <- .model$residuals
-  cf <- drop(.model$be)
+  cf <- solve(crossprod(x)) %*% crossprod(x, y)
+  r <- y - x %*% cf
+
+  cf <- drop(cf)
   s.sq <- sum(r^2) / (nrow(x) - ncol(x))
   se.cf <- sqrt(diag(s.sq * spdinv(t(x) %*% x)))
   t.beta <- cf / se.cf
@@ -73,19 +70,15 @@ OLS.reg <- function(y, x) {
 #' @param c A coefficient for \eqn{\rho} calculation.
 #'
 #' @return A list of:
-#' * `beta`: estimates of coefficients,
-#' * `resid`: estimated residuals,
-#' * `predict`: forecasted values,
-#' * `t.beta`: \eqn{t}-statistics for `beta`.
+#' \item{beta}{estimates of coefficients,}
+#' \item{resid}{estimated residuals,}
+#' \item{predict}{forecasted values,}
+#' \item{t.beta}{\eqn{t}-statistics for `beta`.}
 #'
 #' @keywords internal
 GLS.reg <- function(y, z, c) {
-  if (!is.matrix(y)) {
-    y <- as.matrix(y)
-  }
-  if (!is.matrix(z)) {
-    z <- as.matrix(z)
-  }
+  y <- as.matrix(y)
+  z <- as.matrix(z)
 
   N <- nrow(y)
   Nc <- ncol(y)
@@ -131,11 +124,11 @@ GLS.reg <- function(y, z, c) {
 #' @param criterion A criterion for lag number estimation.
 #'
 #' @return A list of:
-#' * `beta`: estimates of coefficients,
-#' * `residuals`: estimated residuals,
-#' * `predict`: forecasted values,
-#' * `t.beta`: \eqn{t}-statistics for `beta`,
-#' * `lag`: estimated number of lags.
+#' \item{beta}{estimates of coefficients,}
+#' \item{residuals}{estimated residuals,}
+#' \item{predict}{forecasted values,}
+#' \item{t.beta}{\eqn{t}-statistics for `beta`,}
+#' \item{lag}{estimated number of lags.}
 #'
 #' @importFrom Rfast rowAll
 #' @keywords internal
@@ -151,26 +144,16 @@ AR.reg <- function(
     }
   }
 
-  if (!is.matrix(y)) {
-    y <- as.matrix(y)
-  }
-  if (!is.null(x) && !is.matrix(x)) {
-    x <- as.matrix(x)
-  }
+  y <- as.matrix(y)
+  x <- if (!is.null(x)) as.matrix(x)
 
-  if (!is.null(x)) {
-    Nx <- ncol(x)
-    mX <- x
-  } else {
-    Nx <- 0
-    mX <- NULL
-  }
+  Nx <- if (!is.null(x)) ncol(x) else 0
 
   for (l in seq_len(max.lag)) {
-    mX <- cbind(mX, .lagn(y, l))
+    x <- cbind(x, .lagn(y, l))
   }
 
-  rows <- rowAll(!is.na(y)) & rowAll(!is.na(mX))
+  rows <- rowAll(!is.na(y)) & rowAll(!is.na(x))
 
   if (is.null(criterion)) {
     resLag <- max.lag
@@ -180,7 +163,7 @@ AR.reg <- function(
 
     for (l in 0:max.lag) {
       loopIC <- info.criterions(
-        OLS.reg(y[rows], mX[rows, 1:(Nx + l)]),
+        OLS.reg(y[rows], x[rows, 1:(Nx + l)]),
         criterion
       )
 
@@ -192,8 +175,8 @@ AR.reg <- function(
   }
 
   rows <- rowAll(!is.na(y)) &
-    rowAll(!is.na(mX[, 1:(Nx + resLag), drop = FALSE]))
-  result <- OLS.reg(y[rows], mX[rows, 1:(Nx + resLag)])
+    rowAll(!is.na(x[, 1:(Nx + resLag), drop = FALSE]))
+  result <- OLS.reg(y[rows], x[rows, 1:(Nx + resLag)])
 
   result$lag <- resLag
   result$criterion <- minIC
@@ -234,18 +217,14 @@ DOLS.reg <- function(
   n.leads,
   criterion = "aic"
 ) {
-  if (!is.matrix(y)) {
-    y <- as.matrix(y)
-  }
+  y <- as.matrix(y)
+
   if (is.null(x)) {
     stop("ERROR! DOLS.multiple: explanatory variables needed for DOLS")
   }
-  if (!is.matrix(x)) {
-    x <- as.matrix(x)
-  }
-  if (!is.null(z) && !is.matrix(z)) {
-    z <- as.matrix(z)
-  }
+  x <- as.matrix(x)
+
+  z <- if (!is.null(z)) z <- as.matrix(z)
 
   dX <- .diffn(x)
 
@@ -260,6 +239,7 @@ DOLS.reg <- function(
   }
 
   mX <- cbind(z, x, xL, xF)
+
   rows <- rowAll(!is.na(y)) & rowAll(!is.na(mX))
 
   if (is.null(criterion)) {
@@ -306,11 +286,11 @@ DOLS.reg <- function(
 #' @param x Explanatory variables.
 #' @param h A bandwidth parameter.
 #' @param kernel Needed kernel, currently only `unif` and `gauss`:
-#' * `unif`: \eqn{K(x) = \left\{\begin{array}{ll}
+#' \item{unif}{\eqn{K(x) = \left\{\begin{array}{ll}
 #' 1 & \frac{|x - x_i|}{h} \leq 1 \\
 #' 0 & \textrm{otherwize}
-#' \end{array}\right.}
-#' * `gauss`: \eqn{\Phi(\frac{x - x_i}{h})}
+#' \end{array}\right.}}
+#' \item{gauss}{\eqn{\Phi(\frac{x - x_i}{h})}}
 #'
 #' @return A list of arguments as well as the estimated coefficient vector and
 #' residuals.
@@ -358,11 +338,11 @@ NW.reg <- function(
 #' @param e A series of interest.
 #' @param h A bandwidth parameter.
 #' @param kernel Needed kernel, currently only `unif` and `gauss`:
-#' * `unif`: \eqn{K(x) = \left\{\begin{array}{ll}
+#' \item{unif}{\eqn{K(x) = \left\{\begin{array}{ll}
 #' 1 & \frac{|x - x_i|}{h} \leq 1 \\
 #' 0 & \textrm{otherwize}
-#' \end{array}\right.}
-#' * `gauss`: \eqn{\Phi(\frac{x - x_i}{h})}
+#' \end{array}\right.}}
+#' \item{gauss}{\eqn{\Phi(\frac{x - x_i}{h})}}
 #'
 #' @return A list of arguments as well as the estimated omega and s.e.
 #'
@@ -417,11 +397,11 @@ NW.variance <- function(
 #' @param y A dependent variable.
 #' @param x An explanatory variable.
 #' @param kernel Needed kernel, currently only `unif` and `gauss`:
-#' * `unif`: \eqn{K(x) = \left\{\begin{array}{ll}
+#' \item{unif}{\eqn{K(x) = \left\{\begin{array}{ll}
 #' 1 & \frac{|x - x_i|}{h} \leq 1 \\
 #' 0 & \textrm{otherwize}
-#' \end{array}\right.}
-#' * `gauss`: \eqn{\Phi(\frac{x - x_i}{h})}
+#' \end{array}\right.}}
+#' \item{gauss}{\eqn{\Phi(\frac{x - x_i}{h})}}
 #'
 #' @references
 #' Harvey, David I., S. Leybourne, Stephen J., and Yang Zu.
@@ -476,11 +456,11 @@ NW.bandwidth <- function(y, x, kernel = "unif") {
 #' @param x A series for kernel calculations.
 #' @param h A bandwidth parameter.
 #' @param kernel Needed kernel, currently only `unif` and `gauss`:
-#' * `unif`: \eqn{K(x) = \left\{\begin{array}{ll}
+#' \item{unif}{\eqn{K(x) = \left\{\begin{array}{ll}
 #' 1 & \frac{|x - x_i|}{h} \leq 1 \\
 #' 0 & \textrm{otherwize}
-#' \end{array}\right.}
-#' * `gauss`: \eqn{\Phi(\frac{x - x_i}{h})}
+#' \end{array}\right.}}
+#' \item{gauss}{\eqn{\Phi(\frac{x - x_i}{h})}}
 #'
 #' @importFrom stats pnorm
 #'

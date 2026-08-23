@@ -60,7 +60,7 @@ uroot.sb.GSADF(
   trim = 0.01 + 1.8/sqrt(length(y)),
   const = TRUE,
   alpha = 0.05,
-  iter = 999,
+  boot.iter = 999,
   urs = TRUE,
   seed = round(10^4 * sd(y))
 )
@@ -97,6 +97,8 @@ a possible break point.}
 needed to suppress the calculation of p-values during the precalculation of
 tables needed for the p-values estimating.}
 
+\item{boot.iter}{Number of bootstrapping iterations.}
+
 \item{omega.est}{Whether the variance of Nadaraya-Watson residuals should be
 used.}
 
@@ -116,40 +118,37 @@ estimated.}
 
 \item{alpha}{A significance level of interest.}
 
-\item{iter}{Number of iterations.}
-
 \item{urs}{Use \verb{union of rejections} strategy.}
 
 \item{seed}{A seed parameter for the random number generator.}
+
+\item{iter}{Number of iterations.}
 }
 \value{
 \link{uroot.GSADF} returns an object of class \code{bt_SADF} and subclass \code{bt_GSADF}.
 
 \link{uroot.STADF} returns an object of type \code{bt_SADF} and subclass \code{bt_STADF}.
 It's a list of:
-\itemize{
-\item \code{y},
-\item \code{N}: Number of observations,
-\item \code{trim},
-\item \code{const},
-\item \code{omega.est},
-\item \code{truncated},
-\item \code{is.reindex},
-\item \code{new.index}: the vector of new indices,
-\item \code{ksi.input},
-\item \code{hc},
-\item \code{h.est},
-\item \code{u.hat},
-\item \code{pc},
-\item \code{w.sq},
-\item \code{t.values}: vector of \eqn{t}-values,
-\item the value of the corresponding test statistic,
-\item \code{u.hat.truncated}: truncated residuals if truncation was asked for,
-\item \code{ksi}, \code{sigma}: estimated values of the truncation parameter and resulting
-s.e. if \code{ksi.input} equals \code{auto},
-\item \code{eta.hat}: the values of reindexing function if reindexing was asked for,
-\item \eqn{p}-value if it was asked for.
-}
+\item{y}{}
+\item{N}{Number of observations,}
+\item{trim}{}
+\item{const}{}
+\item{omega.est}{}
+\item{truncated}{}
+\item{is.reindex}{}
+\item{new.index}{the vector of new indices,}
+\item{ksi.input}{}
+\item{hc}{}
+\item{h.est}{}
+\item{u.hat}{}
+\item{pc}{}
+\item{w.sq}{}
+\item{t.values}{vector of \eqn{t}-values,}
+\item{*.value}{the value of the corresponding test statistic,}
+\item{u.hat.truncated}{truncated residuals if truncation was asked for,}
+\item{ksi\verb{, }sigma}{estimated values of the truncation parameter and resulting s.e. if \code{ksi.input} equals \code{auto},}
+\item{eta.hat}{the values of reindexing function if reindexing was asked for,}
+\item{\eqn{p}-value}{if it was asked for.}
 
 \link{uroot.GSTADF} returns an object of type \code{bt_SADF} and subclass \code{bt_GSTADF}.
 
@@ -172,32 +171,29 @@ If \code{urs=TRUE} then some additional values included:
 
 \link{uroot.w.SADF} returns an object of class \code{bt_SADF} and subclass \code{bt_wSADF}.
 It's a list of:
-\itemize{
-\item \code{y},
-\item \code{trim},
-\item \code{const},
-\item \code{alpha},
-\item \code{iter},
-\item \code{urs},
-\item \code{seed},
-\item \code{sigma.sq}: the estimated variance,
-\item \code{BZ.values}: a series of BZ-statistic,
-\item \code{supBZ.value}: the maximum of \code{supBZ.values},
-\item \code{supBZ.bootstsrap.values}: bootstrapped supremum BZ values,
-\item \code{supBZ.cr.value}: supremum BZ \eqn{\alpha} critical value,
-\item \code{p.value},
-\item \code{is.explosive}: 1 if \code{supBZ.value} is greater than \code{supBZ.cr.value}.
-}
+\item{y}{}
+\item{trim}{}
+\item{const}{}
+\item{alpha}{}
+\item{iter}{}
+\item{urs}{}
+\item{seed}{}
+\item{sigma.sq}{the estimated variance,}
+\item{BZ.values}{a series of BZ-statistic,}
+\item{supBZ.value}{the maximum of \code{supBZ.values},}
+\item{supBZ.bootstsrap.values}{bootstrapped supremum BZ values,}
+\item{supBZ.cr.value}{supremum BZ \eqn{\alpha} critical value,}
+\item{p.value}{},
+\item{is.explosive}{1 if \code{supBZ.value} is greater than \code{supBZ.cr.value}.}
 
 if \code{urs} is \code{TRUE} the following items are also included:
-\itemize{
-\item vector of \eqn{t}-values,
-\item the value of the SADF test statistic,
-\item \code{SADF.bootstrap.values}: bootstrapped SADF values,
-\item \code{U.value}: union test statistic value,
-\item \code{U.bootstrap.values}: bootstrapped series of \code{U.value},
-\item \code{U.cr.value}: critical value of \code{U.value}.
-}
+\item{t.values}{vector of \eqn{t}-values,}
+\item{SADF.value}{the value of the SADF test statistic,}
+\item{SADF.bootstrap.values}{bootstrapped SADF values,}
+\item{SADF.cr.value}{critical value of \code{SADF.value}.}
+\item{U.value}{union test statistic value,}
+\item{U.bootstrap.values}{bootstrapped series of \code{U.value},}
+\item{U.cr.value}{critical value of \code{U.value}.}
 
 \link{uroot.w.GSADF} returns an object of type \code{bt_SADF} and subclass \code{bt_wGSADF}.
 

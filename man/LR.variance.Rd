@@ -5,47 +5,48 @@
 \alias{.lr.var.quad}
 \alias{.lr.var.kurozumi}
 \alias{.lr.var.spc}
+\alias{.lr.matr.quad}
 \alias{LR.variance}
 \title{Calculating long-run variance or covariance matrix}
 \usage{
 .lr.var.bartlett(y)
 
-.lr.var.quad(y)
+.lr.var.quad(y, k = NULL)
 
-.lr.var.kurozumi(y, k = 0.8)
+.lr.var.kurozumi(y, k = 0.8, kernel = "Bartlett", bw = NULL)
 
-.lr.var.spc(y, kmax = NULL, kernel = "Bartlett", criterion = "bic")
+.lr.var.spc(y, kmax = NULL, kernel = "Bartlett", criterion = "bic", bw = NULL)
+
+.lr.matr.quad(y, k = NULL)
 }
 \arguments{
 \item{y}{A time series of interest.}
 
 \item{k}{A limiting parameter for Kurozumi's proposal.}
 
-\item{kmax}{A maximum number of lars for recoloring procedure from Sul et al. (2005).}
-
 \item{kernel}{A kernel to be used:
-\itemize{
-\item \code{Truncated}: \eqn{\left\{\begin{array}{ll}
+\item{Truncated}{\eqn{\left\{\begin{array}{ll}
 1 & |x| \leq 1 \\
 0 & \textrm{otherwize}
-\end{array}\right.}
-\item \code{Bartlett}: \eqn{\left\{\begin{array}{ll}
+\end{array}\right.}}
+\item{Bartlett}{\eqn{\left\{\begin{array}{ll}
 1 - |x| & |x| \leq 1 \\
 0 & \textrm{otherwize}
-\end{array}\right.},
-\item \code{Parzen}: \eqn{\left\{\begin{array}{ll}
+\end{array}\right.},}
+\item{Parzen}{\eqn{\left\{\begin{array}{ll}
 1 - 6 x^2 + 6 {|x|}^3 & |x| \leq 1/2 \\
 2 (1 - |x|)^3 & 1/2 \leq |x| \leq 1 \\
 0 & \textrm{otherwize}
-\end{array}\right.},
-\item \code{Tukey-Hanning}: \eqn{\left\{\begin{array}{ll}
+\end{array}\right.},}
+\item{Tukey-Hanning}{\eqn{\left\{\begin{array}{ll}
 (1 + \cos(\pi x))/2 & |x| \leq 1 \\
 0 & \textrm{otherwize}
-\end{array}\right.},
-\item \code{Quadratic}: \eqn{
+\end{array}\right.},}
+\item{Quadratic}{\eqn{
 \frac{25}{12 \pi^2 x^2}
-\left(\frac{\sin(6 \pi x / 5)}{6 \pi x / 5} - \cos(6 \pi x / 5)\right)}.
-}}
+\left(\frac{\sin(6 \pi x / 5)}{6 \pi x / 5} - \cos(6 \pi x / 5)\right)}.}}
+
+\item{kmax}{A maximum number of lars for recoloring procedure from Sul et al. (2005).}
 
 \item{criterion}{An information criterion for recoloring lag selection.}
 }

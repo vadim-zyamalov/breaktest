@@ -15,12 +15,10 @@ GLS.reg(y, z, c)
 }
 \value{
 A list of:
-\itemize{
-\item \code{beta}: estimates of coefficients,
-\item \code{resid}: estimated residuals,
-\item \code{predict}: forecasted values,
-\item \code{t.beta}: \eqn{t}-statistics for \code{beta}.
-}
+\item{beta}{estimates of coefficients,}
+\item{resid}{estimated residuals,}
+\item{predict}{forecasted values,}
+\item{t.beta}{\eqn{t}-statistics for \code{beta}.}
 }
 \description{
 Getting GLS estimates of betas, residuals, forecasted values and t-values.

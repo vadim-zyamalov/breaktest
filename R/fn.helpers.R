@@ -1,42 +1,80 @@
-#' @title
-#' Produce a vector lagged backward of forward
-#'
-#' @param x An initial vector.
-#' @param i Size of lag (lead if negative).
-#' @param na A value to fill missing observations, `NA` by default.
-#'
-#' @return Lagged or leaded vector.
-#'
+#' Row-subset a matrix, always keeping it a matrix.
+#' If `x` is NULL then NULL is returned
+#' @keywords internal
+.msub <- function(x, idx) {
+  if (!is.null(x)) {
+    x <- as.matrix(x)
+    x[idx, , drop = FALSE]
+  }
+}
+
+#' GAUSS zeros(n, m): an n x m matrix of zeros.
+#' @keywords internal
+.zeros <- function(n, m = 1) matrix(0, nrow = n, ncol = m)
+
+#' GAUSS ones(n, m): an n x m matrix of ones.
+#' @keywords internal
+.ones <- function(n, m = 1) matrix(1, nrow = n, ncol = m)
+
+#' Safe integer range (GAUSS-style a:b).
+#' @keywords internal
+.seqi <- function(a, b) {
+  if (a > b) integer(0) else seq.int(a, b)
+}
+
+#' GAUSS lagn(x, k): lag a matrix by k periods, padding with NA.
 #' @keywords internal
 .lagn <- function(x, i, na = NA) {
-  .lag <- function(x, i, na) {
-    N <- length(x)
+  x <- as.matrix(x)
 
-    if (i > 0) {
-      c(rep(na, i), x)[1:N]
-    } else {
-      i <- abs(i)
-      c(x, rep(na, i))[(i + 1):(N + i)]
-    }
-  }
+  N <- nrow(x)
+  NC <- ncol(x)
 
-  if (!is.matrix(x)) {
-    x <- as.matrix(x)
+  if (i > 0) {
+    rbind(
+      matrix(na, i, NC),
+      .msub(x, .seqi(1, N - i))
+    )
+  } else {
+    i <- abs(i)
+    rbind(
+      .msub(x, .seqi(1 + i, N)),
+      matrix(na, i, NC)
+    )
   }
-  apply(x, 2, (function(col) .lag(col, i, na)))
 }
 
 
-#' @title
-#' Produce a vector or matrix of differences, keeping initial length
-#'
-#' @param x An initial vector.
-#' @param lag Size of lag.
-#' @param difference Order of differentiating.
-#' @param na A value to fill missing observations, `NA` by default.
-#'
-#' @return Vector or matrix of differences.
-#'
+#' GAUSS trimr(x, top, bottom): drop rows from the top and/or bottom.
+#' @keywords internal
+.trimr <- function(x, top, bottom) {
+  x <- as.matrix(x)
+  N <- nrow(x)
+  .msub(x, .seqi(top + 1, N - bottom))
+}
+
+
+#' GAUSS cumsumc(X): cumulative sum down each column of a matrix.
+#' @keywords internal
+.cumsumc <- function(x) {
+  x <- as.matrix(x)
+  apply(x, 2, cumsum)
+}
+
+
+#' Symmetric positive-definite matrix power via eigendecomposition.
+#' @keywords internal
+.sym_mat_pow <- function(A, power) {
+  A <- as.matrix(A)
+  if (nrow(A) == 1) {
+    return(matrix(A[1, 1]^power, 1, 1))
+  }
+  ee <- eigen(A, symmetric = TRUE)
+  ee$vectors %*% diag(ee$values^power) %*% t(ee$vectors)
+}
+
+
+#' Produce a vector or matrix of differences, keeping initial length.
 #' @keywords internal
 .diffn <- function(x, lag = 1, differences = 1, na = NA) {
   .diff <- function(x, l, d, na) {

@@ -510,7 +510,7 @@ PY.statistic <- function(
     for (i in seq_len(khat - 1)) {
       regu <- cbind(regu, .lagn(du, i, na = 0))
     }
-    regu <- regu[khat:N, , drop = FALSE]
+    regu <- .msub(regu, khat:N)
 
     tmp.OLS <- OLS.reg(depu, regu)
     b <- tmp.OLS$coefficients
@@ -555,14 +555,12 @@ PY.statistic <- function(
     }
 
     gdep <- rbind(
-      y[1, , drop = FALSE],
-      y[2:N, , drop = FALSE] -
-        amus * y[1:(N - 1), , drop = FALSE]
+      .msub(y, 1),
+      .msub(y, 2:N) - amus * .msub(y, 1:(N - 1))
     )
     greg <- rbind(
-      reg[1, , drop = FALSE],
-      reg[2:N, , drop = FALSE] -
-        amus * reg[1:(N - 1), , drop = FALSE]
+      .msub(reg, 1),
+      .msub(reg, 2:N) - amus * .msub(reg, 1:(N - 1))
     )
 
     tmp.OLS <- OLS.reg(gdep, greg)
@@ -579,7 +577,7 @@ PY.statistic <- function(
         }
 
         depv <- v[(khat - 1):N]
-        regv <- regv[(khat - 1):N, , drop = FALSE]
+        regv <- .msub(regv, (khat - 1):N)
 
         tmp.OLS <- OLS.reg(depv, regv)
         beta <- tmp.OLS$coefficients
@@ -591,8 +589,8 @@ PY.statistic <- function(
             DUki <- .du(tb - ki, N)
             regki <- cbind(.const(N), .trend(N), DUki)
             gdepki <- rbind(
-              y[1, , drop = FALSE],
-              y[2:N, , drop = FALSE] - amus * y[1:(N - 1), , drop = FALSE]
+              .msub(y, 1),
+              .msub(y, 2:N) - amus * .msub(y, 1:(N - 1))
             )
             gregki <- rbind(
               reg[1, ],
@@ -619,8 +617,8 @@ PY.statistic <- function(
               .du(tb - ki, N) * (.trend(N) - tb)
             )
             gdepki <- rbind(
-              y[1, , drop = FALSE],
-              y[2:N, , drop = FALSE] - amus * y[1:(N - 1), , drop = FALSE]
+              .msub(y, 1),
+              .msub(y, 2:N) - amus * .msub(y, 1:(N - 1))
             )
             gregki <- rbind(
               reg[1, ],

@@ -12,13 +12,11 @@ NW.variance(e, h, kernel = "unif")
 \item{h}{A bandwidth parameter.}
 
 \item{kernel}{Needed kernel, currently only \code{unif} and \code{gauss}:
-\itemize{
-\item \code{unif}: \eqn{K(x) = \left\{\begin{array}{ll}
+\item{unif}{\eqn{K(x) = \left\{\begin{array}{ll}
 1 & \frac{|x - x_i|}{h} \leq 1 \\
 0 & \textrm{otherwize}
-\end{array}\right.}
-\item \code{gauss}: \eqn{\Phi(\frac{x - x_i}{h})}
-}}
+\end{array}\right.}}
+\item{gauss}{\eqn{\Phi(\frac{x - x_i}{h})}}}
 }
 \value{
 A list of arguments as well as the estimated omega and s.e.

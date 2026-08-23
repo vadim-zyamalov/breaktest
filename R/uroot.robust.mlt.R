@@ -705,8 +705,8 @@ KP.seq.statistic <- function(
           .dt(tb, N)
         )
 
-        y_i <- y[(datevec[i] + 1):datevec[i + 1], , drop = FALSE]
-        reg_i <- reg[(datevec[i] + 1):datevec[i + 1], , drop = FALSE]
+        y_i <- .msub(y, (datevec[i] + 1):datevec[i + 1])
+        reg_i <- .msub(reg, (datevec[i] + 1):datevec[i + 1])
 
         khat <- max(1, AR.reg(y_i, reg_i, max.lag, criterion)$lag)
 
@@ -720,7 +720,7 @@ KP.seq.statistic <- function(
         }
 
         depu <- u[khat:length(u)]
-        regu <- regu[khat:length(u), , drop = FALSE]
+        regu <- .msub(regu, khat:length(u))
 
         tmp.OLS <- OLS.reg(depu, regu)
         b <- tmp.OLS$coefficients
@@ -769,14 +769,14 @@ KP.seq.statistic <- function(
         }
 
         gdep <- rbind(
-          y[datevec[i] + 1, , drop = FALSE],
-          y[(datevec[i] + 2):datevec[i + 1], , drop = FALSE] -
-            amus * y[(datevec[i] + 1):(datevec[i + 1] - 1), , drop = FALSE] # nolint
+          .msub(y, datevec[i] + 1),
+          .msub(y, (datevec[i] + 2):datevec[i + 1]) -
+            amus * .msub(y, (datevec[i] + 1):(datevec[i + 1] - 1)) # nolint
         )
         greg <- rbind(
-          reg[datevec[i] + 1, , drop = FALSE],
-          reg[(datevec[i] + 2):datevec[i + 1], , drop = FALSE] -
-            amus * reg[(datevec[i] + 1):(datevec[i + 1] - 1), , drop = FALSE] # nolint
+          .msub(reg, datevec[i] + 1),
+          .msub(reg, (datevec[i] + 2):datevec[i + 1]) -
+            amus * .msub(reg, (datevec[i] + 1):(datevec[i + 1] - 1)) # nolint
         )
 
         tmp.OLS <- OLS.reg(gdep, greg)
@@ -793,7 +793,7 @@ KP.seq.statistic <- function(
             }
 
             depv <- v[(khat - 1):length(v)]
-            regv <- regv[(khat - 1):length(v), , drop = FALSE]
+            regv <- .msub(regv, (khat - 1):length(v))
 
             tmp.OLS <- OLS.reg(depv, regv)
             beta <- tmp.OLS$coefficients
@@ -812,10 +812,10 @@ KP.seq.statistic <- function(
                   .du(tb - ki, N) * (.trend(N) - tb)
                 )
                 gdepki <- rbind(
-                  y[datevec[i] + 1, , drop = FALSE],
-                  y[(datevec[i] + 2):datevec[i + 1], , drop = FALSE] - # nolint
+                  .msub(y, datevec[i] + 1),
+                  .msub(y, (datevec[i] + 2):datevec[i + 1]) - # nolint
                     amus *
-                      y[(datevec[i] + 1):(datevec[i + 1] - 1), , drop = FALSE] # nolint
+                      .msub(y, (datevec[i] + 1):(datevec[i + 1] - 1)) # nolint
                 )
                 gregki <- rbind(
                   reg[datevec[i] + 1, ],

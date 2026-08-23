@@ -30,12 +30,10 @@ during the precalculation of tables needed for the p-values estimating.}
 }
 \value{
 An object of type \code{cointGH}. It's a list of
-\itemize{
-\item \code{shift}: shift type,
-\item \code{Za}: \eqn{MZ_\alpha} statistic and c.v.,
-\item \code{Zt}: \eqn{MZ_t} statistic and c.v.,
-\item \code{ADF}: \eqn{ADF} statistic and c.v..
-}
+\item{shift}{shift type,}
+\item{Za}{\eqn{MZ_\alpha} statistic and c.v.,}
+\item{Zt}{\eqn{MZ_t} statistic and c.v.,}
+\item{ADF}{\eqn{ADF} statistic and c.v..}
 }
 \description{
 Gregory and Hansen (1996) test for the null hypothesis of no cointegration

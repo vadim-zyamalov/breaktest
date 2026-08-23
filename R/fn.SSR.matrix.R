@@ -66,8 +66,8 @@ SSR.recursive <- function(y, x, beg, end, width = 2) {
 
   vecSSR <- rep(Inf, N)
 
-  y0 <- y[beg:(beg + width - 1), , drop = FALSE]
-  x0 <- x[beg:(beg + width - 1), , drop = FALSE]
+  y0 <- .msub(y, beg:(beg + width - 1))
+  x0 <- .msub(x, beg:(beg + width - 1))
 
   xx.inv <- solve(t(x0) %*% x0)
   .model <- OLS.reg(y0, x0)
@@ -80,8 +80,8 @@ SSR.recursive <- function(y, x, beg, end, width = 2) {
       break
     }
 
-    z <- x[step, , drop = FALSE]
-    v <- drop(y[step, , drop = FALSE] - z %*% beta)
+    z <- .msub(x, step)
+    v <- drop(.msub(y, step) - z %*% beta)
     f <- drop(1 + z %*% xx.inv %*% t(z))
 
     vecSSR[step] <- vecSSR[step - 1] + v^2 / f

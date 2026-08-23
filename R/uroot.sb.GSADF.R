@@ -182,12 +182,11 @@ uroot.sb.GSADF <- function(
 #' @param generalized Whether to calculate generalized statistic value.
 #'
 #' @return A list of
-#' * `y`,
-#' * `trim`,
-#' * `C.t`: the cumulative sum of "signs" (1 or -1) of the first difference of
-#' `y`,
-#' * `SBADF.values`: series of sign-based ADF statistics,
-#' * `supSBADF.value`: the maximum of `SBADF.values`.
+#' \item{y}{},
+#' \item{trim}{},
+#' \item{C.t}{the cumulative sum of "signs" (1 or -1) of the first difference of `y`,}
+#' \item{SBADF.values}{series of sign-based ADF statistics,}
+#' \item{supSBADF.value}{the maximum of `SBADF.values`.}
 #'
 #' @references
 #' Harvey, David I., Stephen J. Leybourne, and Yang Zu.

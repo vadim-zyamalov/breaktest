@@ -22,7 +22,7 @@ uroot.HLT <- function(y, const = FALSE, trim = 0.15) {
 
   N <- nrow(y)
   m_xi <- ifelse(const, 1.052, 0.853)
-  dy <- .diffn(y)[-1, , drop = FALSE]
+  dy <- .msub(.diffn(y), -1)
 
   bp.min <- trunc(trim * N)
   bp.max <- trunc((1 - trim) * N)

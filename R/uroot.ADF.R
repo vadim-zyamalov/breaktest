@@ -147,7 +147,7 @@ uroot.ADF <- function(
     }
 
     tmp.ols <- OLS.reg(
-      diffYr[rows, , drop = FALSE],
+      .msub(diffYr, rows),
       mXr[rows, 1, drop = FALSE]
     )
     b <- tmp.ols$coefficients
@@ -171,7 +171,7 @@ uroot.ADF <- function(
       }
 
       tmp.ols <- OLS.reg(
-        diffYr[rows, , drop = FALSE],
+        .msub(diffYr, rows),
         mXr[rows, 1:(1 + l), drop = FALSE]
       )
       b <- tmp.ols$coefficients
@@ -191,7 +191,7 @@ uroot.ADF <- function(
   }
 
   res.OLS <- OLS.reg(
-    diffY[rows, , drop = FALSE],
+    .msub(diffY, rows),
     mX[rows, 1:(1 + rLag), drop = FALSE]
   )
 
@@ -324,16 +324,10 @@ detrend.recursively <- function(y, x, cc, gamma, trim) {
   yt <- y - (1 + ct) * .lagn(y, 1, na = 0)
   xt <- x - (1 + ct) * .lagn(x, 1, na = 0)
 
-  yd <- OLS.reg(
-    yt[1:beg, , drop = FALSE],
-    xt[1:beg, , drop = FALSE]
-  )$residuals
+  yd <- OLS.reg(.msub(yt, 1:beg), .msub(xt, 1:beg))$residuals
 
   for (lstar in (beg + 1):n.obs) {
-    ystar <- OLS.reg(
-      yt[1:lstar, , drop = FALSE],
-      xt[1:lstar, , drop = FALSE]
-    )$residuals
+    ystar <- OLS.reg(.msub(yt, 1:lstar), .msub(xt, 1:lstar))$residuals
     yd <- c(yd, ystar[lstar])
   }
   as.matrix(yd)

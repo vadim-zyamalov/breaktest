@@ -127,14 +127,14 @@ VECM.logl <- function(y, p) {
   N <- nrow(y)
   d.y <- .diffn(y)
 
-  z0 <- d.y[-seq_len(p), , drop = FALSE]
-  z1 <- cbind(.lagn(y, 1), .trend(N))[-seq_len(p), , drop = FALSE]
+  z0 <- .msub(d.y, -seq_len(p))
+  z1 <- .msub(cbind(.lagn(y, 1), .trend(N)), -seq_len(p))
 
   Xp <- as.matrix(rep(1, N))
   for (l in seq_len(p)) {
     Xp <- cbind(Xp, .lagn(d.y, l))
   }
-  Xp <- Xp[-seq_len(p), , drop = FALSE]
+  Xp <- .msub(Xp, -seq_len(p))
 
   r0 <- z0 - Xp %*% solve(t(Xp) %*% Xp) %*% t(Xp) %*% z0
   r1 <- z1 - Xp %*% solve(t(Xp) %*% Xp) %*% t(Xp) %*% z1
@@ -178,7 +178,7 @@ VECM.break.logl <- function(y, p, breaks.list) {
 
   d.y <- .diffn(y)
 
-  z0 <- d.y[-seq_len(p), , drop = FALSE]
+  z0 <- .msub(d.y, -seq_len(p))
 
   logL <- NULL
 
@@ -196,13 +196,13 @@ VECM.break.logl <- function(y, p, breaks.list) {
     E2 <- ifelse(1:N > b, 1, 0)
     tE <- apply(cbind(E1, E2), 2, cumsum)
 
-    z1 <- cbind(.lagn(y, 1), tE)[-seq_len(p), , drop = FALSE]
+    z1 <- .msub(cbind(.lagn(y, 1), tE), -seq_len(p))
 
     Xp <- cbind(E1, E2, D)
     for (j in seq_len(p)) {
       Xp <- cbind(Xp, .lagn(d.y, j))
     }
-    Xp <- Xp[-seq_len(p), , drop = FALSE]
+    Xp <- .msub(Xp, -seq_len(p))
 
     r0 <- z0 - Xp %*% solve(t(Xp) %*% Xp) %*% t(Xp) %*% z0
     r1 <- z1 - Xp %*% solve(t(Xp) %*% Xp) %*% t(Xp) %*% z1

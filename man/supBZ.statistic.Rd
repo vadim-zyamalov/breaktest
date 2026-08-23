@@ -24,14 +24,12 @@ will be estimated via Nadaraya-Watson procedure.}
 }
 \value{
 A list of:
-\itemize{
-\item \code{y},
-\item \code{trim},
-\item \code{sigma.sq},
-\item \code{BZ.values}: a series of BZ-statistic,
-\item \code{supBZ.value}: the maximum of \code{supBZ.values},
-\item \code{h.est}: the estimated value of bandwidth if \code{sigma.sq} is \code{NULL}.
-}
+\item{y}{}
+\item{trim}{}
+\item{sigma.sq}{}
+\item{BZ.values}{a series of BZ-statistic,}
+\item{supBZ.value}{the maximum of \code{supBZ.values},}
+\item{h.est}{the estimated value of bandwidth if \code{sigma.sq} is \code{NULL}.}
 }
 \description{
 Calculate supBZ statistic

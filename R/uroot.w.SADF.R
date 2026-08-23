@@ -12,28 +12,29 @@
 #'
 #' @return [uroot.w.SADF] returns an object of class `bt_SADF` and subclass `bt_wSADF`.
 #' It's a list of:
-#' * `y`,
-#' * `trim`,
-#' * `const`,
-#' * `alpha`,
-#' * `iter`,
-#' * `urs`,
-#' * `seed`,
-#' * `sigma.sq`: the estimated variance,
-#' * `BZ.values`: a series of BZ-statistic,
-#' * `supBZ.value`: the maximum of `supBZ.values`,
-#' * `supBZ.bootstsrap.values`: bootstrapped supremum BZ values,
-#' * `supBZ.cr.value`: supremum BZ \eqn{\alpha} critical value,
-#' * `p.value`,
-#' * `is.explosive`: 1 if `supBZ.value` is greater than `supBZ.cr.value`.
+#' \item{y}{}
+#' \item{trim}{}
+#' \item{const}{}
+#' \item{alpha}{}
+#' \item{iter}{}
+#' \item{urs}{}
+#' \item{seed}{}
+#' \item{sigma.sq}{the estimated variance,}
+#' \item{BZ.values}{a series of BZ-statistic,}
+#' \item{supBZ.value}{the maximum of `supBZ.values`,}
+#' \item{supBZ.bootstsrap.values}{bootstrapped supremum BZ values,}
+#' \item{supBZ.cr.value}{supremum BZ \eqn{\alpha} critical value,}
+#' \item{p.value}{},
+#' \item{is.explosive}{1 if `supBZ.value` is greater than `supBZ.cr.value`.}
 #'
 #' if `urs` is `TRUE` the following items are also included:
-#' * vector of \eqn{t}-values,
-#' * the value of the SADF test statistic,
-#' * `SADF.bootstrap.values`: bootstrapped SADF values,
-#' * `U.value`: union test statistic value,
-#' * `U.bootstrap.values`: bootstrapped series of `U.value`,
-#' * `U.cr.value`: critical value of `U.value`.
+#' \item{t.values}{vector of \eqn{t}-values,}
+#' \item{SADF.value}{the value of the SADF test statistic,}
+#' \item{SADF.bootstrap.values}{bootstrapped SADF values,}
+#' \item{SADF.cr.value}{critical value of `SADF.value`.}
+#' \item{U.value}{union test statistic value,}
+#' \item{U.bootstrap.values}{bootstrapped series of `U.value`,}
+#' \item{U.cr.value}{critical value of `U.value`.}
 #'
 #' @import doSNOW
 #' @import foreach
@@ -342,12 +343,12 @@ uroot.w.GSADF <- function(
 #' @param generalized Whether to calculate generalized statistic value.
 #'
 #' @return A list of:
-#' * `y`,
-#' * `trim`,
-#' * `sigma.sq`,
-#' * `BZ.values`: a series of BZ-statistic,
-#' * `supBZ.value`: the maximum of `supBZ.values`,
-#' * `h.est`: the estimated value of bandwidth if `sigma.sq` is `NULL`.
+#' \item{y}{}
+#' \item{trim}{}
+#' \item{sigma.sq}{}
+#' \item{BZ.values}{a series of BZ-statistic,}
+#' \item{supBZ.value}{the maximum of `supBZ.values`,}
+#' \item{h.est}{the estimated value of bandwidth if `sigma.sq` is `NULL`.}
 #'
 #' @references
 #' Harvey, David I., Stephen J. Leybourne, and Yang Zu.

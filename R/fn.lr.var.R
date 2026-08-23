@@ -3,26 +3,26 @@
 #'
 #' @param y A time series of interest.
 #' @param kernel A kernel to be used:
-#' * `Truncated`: \eqn{\left\{\begin{array}{ll}
+#' \item{Truncated}{\eqn{\left\{\begin{array}{ll}
 #' 1 & |x| \leq 1 \\
 #' 0 & \textrm{otherwize}
-#' \end{array}\right.}
-#' * `Bartlett`: \eqn{\left\{\begin{array}{ll}
+#' \end{array}\right.}}
+#' \item{Bartlett}{\eqn{\left\{\begin{array}{ll}
 #' 1 - |x| & |x| \leq 1 \\
 #' 0 & \textrm{otherwize}
-#' \end{array}\right.},
-#' * `Parzen`: \eqn{\left\{\begin{array}{ll}
+#' \end{array}\right.},}
+#' \item{Parzen}{\eqn{\left\{\begin{array}{ll}
 #' 1 - 6 x^2 + 6 {|x|}^3 & |x| \leq 1/2 \\
 #' 2 (1 - |x|)^3 & 1/2 \leq |x| \leq 1 \\
 #' 0 & \textrm{otherwize}
-#' \end{array}\right.},
-#' * `Tukey-Hanning`: \eqn{\left\{\begin{array}{ll}
+#' \end{array}\right.},}
+#' \item{Tukey-Hanning}{\eqn{\left\{\begin{array}{ll}
 #' (1 + \cos(\pi x))/2 & |x| \leq 1 \\
 #' 0 & \textrm{otherwize}
-#' \end{array}\right.},
-#' * `Quadratic`: \eqn{
+#' \end{array}\right.},}
+#' \item{Quadratic}{\eqn{
 #' \frac{25}{12 \pi^2 x^2}
-#' \left(\frac{\sin(6 \pi x / 5)}{6 \pi x / 5} - \cos(6 \pi x / 5)\right)}.
+#' \left(\frac{\sin(6 \pi x / 5)}{6 \pi x / 5} - \cos(6 \pi x / 5)\right)}.}
 #' @param k A limiting parameter for Kurozumi's proposal.
 #' @param kmax A maximum number of lars for recoloring procedure from Sul et al. (2005).
 #' @param criterion An information criterion for recoloring lag selection.
@@ -67,40 +67,96 @@ NULL
 
 #' @rdname LR.variance
 #' @order 2
-.lr.var.quad <- function(y) {
+.lr.var.quad <- function(y, k = NULL) {
   N <- length(y)
-  a <- sum(y[1:(N - 1)] * y[2:N]) / sum(y[2:N]^2)
-  a <- .alpha.single(a)$q2
+  r <- sum(y[1:(N - 1)] * y[2:N]) / sum(y[2:N]^2)
+  if (!is.null(k)) {
+    r <- max(min(r, k), -k)
+  }
+  a <- .alpha.single(r)$q2
   m <- .lr.bandwidth(a, N, "Quadratic")
   wgtF <- .lr.weight("Quadratic")
 
   lrv <- sum(y^2) / N
   for (i in 1:(N - 1)) {
-    lrv <- lrv + 2 * sum(y[1:(N - i)] * y[(1 + i):N]) * wgtF(i - 1, m) / N
+    lrv <- lrv + 2 * sum(y[1:(N - i)] * y[(1 + i):N]) * wgtF(i, m) / N
   }
 
   lrv
 }
 
 #' @rdname LR.variance
+#' @order 5
+.lr.matr.quad <- function(y, k = NULL) {
+  y <- as.matrix(y)
+
+  N <- nrow(y)
+  NC <- ncol(y)
+  wgtF <- .lr.weight("Quadratic")
+
+  alph_n <- 0
+  alph_d <- 0
+
+  for (col in seq_len(NC)) {
+    e <- y[, col]
+    rho <- sum(e[1:(N - 1)] * e[2:N]) / sum(e[2:N]^2)
+    if (!is.null(k)) {
+      rho <- max(min(rho, k), -k)
+    }
+
+    s2 <- mean(diff(e)^2)
+    alph_n <- alph_n + 4 * rho^2 * s2^2 / (1 - rho)^8
+    alph_d <- alph_d + s2^2 / (1 - rho)^4
+  }
+
+  alph <- alph_n / alph_d
+  m <- 1.3221 * (alph * N)^(0.2)
+
+  Lambda <- matrix(0, NC, NC)
+  for (row in .seqi(1, N - 1)) {
+    Lambda <- Lambda +
+      crossprod(
+        .msub(y, .seqi(1, N - row)),
+        .msub(y, .seqi(1 + row, N))
+      ) *
+        wgtF(row, m) /
+        N
+  }
+
+  Sigma <- crossprod(y) / N
+  list(
+    Sigma = Sigma,
+    Omega = Sigma + Lambda + t(Lambda),
+    Omega_1 = Sigma + Lambda
+  )
+}
+
+#' @rdname LR.variance
 #' @order 3
-.lr.var.kurozumi <- function(y, k = 0.8) {
+.lr.var.kurozumi <- function(
+  y,
+  k = 0.8,
+  kernel = "Bartlett",
+  bw = NULL
+) {
   N <- length(y)
+  if (is.null(bw)) {
+    bw <- kernel
+  }
 
   a <- sum(y[1:(N - 1)] * y[2:N]) / sum(y[2:N]^2)
   a <- .alpha.single(a)$q1
   k <- .alpha.single(k)$q1
 
-  m <- min(
-    .lr.bandwidth(a, N, "Bartlett"),
-    .lr.bandwidth(k, N, "Bartlett")
-  )
-  m <- trunc(m)
+  m <- trunc(min(
+    .lr.bandwidth(a, N, bw),
+    .lr.bandwidth(k, N, bw)
+  ))
 
-  wgtF <- .lr.weight("Bartlett")
+  wgtF <- .lr.weight(kernel)
 
   lrv <- sum(y^2) / N
-  for (i in 1:m) {
+  for (i in seq_len(m)) {
     lrv <- lrv + 2 * sum(y[1:(N - i)] * y[(1 + i):N]) * wgtF(i, m) / N
   }
 
@@ -113,11 +169,17 @@ NULL
   y,
   kmax = NULL,
   kernel = "Bartlett",
-  criterion = "bic"
+  criterion = "bic",
+  bw = NULL
 ) {
   N <- length(y)
+  if (is.null(bw)) {
+    bw <- kernel
+  }
 
-  if (is.null(kmax) || kmax < 0) kmax <- .lr.bandwidth(a, N, kernel)
+  if (is.null(kmax) || kmax < 0) {
+    kmax <- .lr.bandwidth(a, N, kernel)
+  }
   kmax <- max(kmax, 0)
 
   #min_IC <- log(sum(y^2) / (N - kmax))
@@ -136,7 +198,7 @@ NULL
 
   a <- drop(sum(y[1:(N - 1)] * y[2:N]) / sum(y[2:N]^2))
   a <- .alpha.single(a)$q1
-  m <- trunc(.lr.bandwidth(a, N, kernel))
+  m <- trunc(.lr.bandwidth(a, N, bw))
   wgtF <- .lr.weight(kernel)
 
   lrv <- sum(y^2) / N
@@ -151,7 +213,8 @@ NULL
 
 
 .lr.bandwidth <- function(alpha, N, selector = "Bartlett") {
-  switch(selector,
+  switch(
+    selector,
     "Bartlett" = 1.1447 * (N * alpha)^(1 / 3),
     "Parzen" = 2.6614 * (N * alpha)^(1 / 5),
     "Tuckey-Hanning" = 1.7462 * (N * alpha)^(1 / 5),
@@ -165,7 +228,8 @@ NULL
 
 
 .lr.weight <- function(kernel) {
-  switch(kernel,
+  switch(
+    kernel,
     "truncated" = function(i, l) {
       if (abs(i / (l + 1)) <= 1) {
         return(1)

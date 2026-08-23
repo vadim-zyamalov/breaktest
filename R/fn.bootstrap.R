@@ -75,10 +75,10 @@ bootstrap.bt_adf <- function(obj, iter = 999) {
 
 #' @rdname bootstrap
 #' @param boot.type Type of bootstrapping:
-#' * `"sample"`: sampling from residuals with replacement,
-#' * `"Cavaliere-Taylor"`: multiplying residuals by \eqn{N(0, 1)}-distributed
+#' \item{"sample"}{sampling from residuals with replacement,}
+#' \item{"Cavaliere-Taylor"}{multiplying residuals by \eqn{N(0, 1)}-distributed}
 #' variable,
-#' * `"Rademacher"`: multiplying residuals by Rademacher-distributed variable.
+#' \item{"Rademacher"}{multiplying residuals by Rademacher-distributed variable.}
 #' @importFrom stats rnorm
 #' @exportS3Method
 bootstrap.bt_kpss <- function(obj, iter = 999, boot.type = "sample") {

@@ -27,10 +27,10 @@
 #' during the precalculation of tables needed for the p-values estimating.
 #'
 #' @return An object of type `cointGH`. It's a list of
-#' * `shift`: shift type,
-#' * `Za`: \eqn{MZ_\alpha} statistic and c.v.,
-#' * `Zt`: \eqn{MZ_t} statistic and c.v.,
-#' * `ADF`: \eqn{ADF} statistic and c.v..
+#' \item{shift}{shift type,}
+#' \item{Za}{\eqn{MZ_\alpha} statistic and c.v.,}
+#' \item{Zt}{\eqn{MZ_t} statistic and c.v.,}
+#' \item{ADF}{\eqn{ADF} statistic and c.v..}
 #'
 #' @references
 #' MacKinnon, James G.
