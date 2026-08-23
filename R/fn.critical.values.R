@@ -186,3 +186,141 @@ get.cv.recovery <- function(
     -(lambda_e * qchisq(0.05, df = 1))^pwr
   }
 }
+
+
+#' Response-surface critical values for cset_break_coint() (Kurozumi & Skrobotov, 2016).
+#'
+#' @param L1      Numeric scalar. Candidate break fraction, T1 / T_y, in (0, 1).
+#' @param const   Integer, 0 or 1. 0 = only a constant is included in the
+#'                regression; 1 = a constant and a linear trend are included.
+#' @param c_level Numeric, 0.90 or 0.95. Confidence level.
+#' @param pzb     Integer >= 0. Number of I(1) regressors whose coefficient
+#'                changes at the break (0, 1, 2, or 3 are tabulated).
+#' @param pzf     Integer >= 0. Number of I(1) regressors with a fixed
+#'                (non-changing) coefficient.
+#' @return Named list with three numeric scalars:
+#'   \item{cval_sup}{Critical value for the sup-test.}
+#'   \item{cval_avg}{Critical value for the avg-test.}
+#'   \item{cval_exp}{Critical value for the exp-test.}
+get.cv.coint.br.conf.sets <- function(L1, trend, c_level, pzb, pzf) {
+  lv1 <- if (c_level == 0.90) {
+    1
+  } else if (c_level == 0.95) {
+    2
+  } else {
+    stop("c_level must be 0.90 or 0.95")
+  }
+  lv2 <- if (pzf == 0) {
+    1
+  } else if (pzb == 0) {
+    2
+  } else if (pzb == 1) {
+    3
+  } else if (pzb == 2) {
+    4
+  } else if (pzb == 3) {
+    5
+  }
+
+  sup_all <- .cval_break_date_cset_RS[[lv1]][[lv2]]$sup_all
+  avg_all <- .cval_break_date_cset_RS[[lv1]][[lv2]]$avg_all
+  exp_all <- .cval_break_date_cset_RS[[lv1]][[lv2]]$exp_all
+
+  l1d <- abs(L1 - 0.5)
+
+  col <- if (pzf == 0) {
+    if (!trend) pzb else 4 + pzb
+  } else if (pzb == 0) {
+    if (!trend) pzf else 4 + pzf
+  } else if (pzb == 1) {
+    if (!trend) pzf else 3 + pzf
+  } else if (pzb == 2) {
+    if (!trend) pzf else 2 + pzf
+  } else if (pzb == 3) {
+    if (!trend) pzf else 1 + pzf
+  } else {
+    stop("pzb must be 0, 1, 2, or 3")
+  }
+
+  coef_sup <- sup_all[, col]
+  coef_avg <- avg_all[, col]
+  coef_exp <- exp_all[, col]
+
+  poly_eval <- function(coef, l1d) {
+    coef[1] +
+      coef[2] / (l1d + 1) +
+      coef[3] * l1d +
+      coef[4] * l1d^2 +
+      coef[5] * l1d^3
+  }
+
+  list(
+    cval_sup = poly_eval(coef_sup, l1d),
+    cval_avg = poly_eval(coef_avg, l1d),
+    cval_exp = poly_eval(coef_exp, l1d)
+  )
+}
+
+#' Response-surface critical values for cset_break() (Kurozumi & Yamamoto, 2015).
+#'
+#' @param L1      Numeric scalar. Candidate break fraction, T1 / T_y, in (0, 1).
+#' @param c_level Numeric, 0.90 or 0.95. Confidence level.
+#' @param k_1     Integer, 1 to 9. Number of regressors (columns of \code{x})
+#'                whose coefficient sustains the break.
+#' @return Named list with four numeric scalars:
+#'   \item{cval_em}{Critical value for the Elliott-Muller / modified-EM tests.}
+#'   \item{cval_sup}{Critical value for the sup-test.}
+#'   \item{cval_avg}{Critical value for the avg-test.}
+#'   \item{cval_exp}{Critical value for the exp-test.}
+get.cv.KY <- function(L1, c_level, k_1) {
+  lv1 <- if (c_level == 0.90) {
+    1
+  } else if (c_level == 0.95) {
+    2
+  } else {
+    stop("c_level must be 0.90 or 0.95")
+  }
+
+  em_all <- .cval_break_date_cset_KY[[lv1]]$em_all
+  sup_all <- .cval_break_date_cset_KY[[lv1]]$sup_all
+  avg_all <- .cval_break_date_cset_KY[[lv1]]$avg_all
+  exp_all <- .cval_break_date_cset_KY[[lv1]]$exp_all
+
+  cval_em <- em_all[k_1]
+  l1d <- abs(L1 - 0.5)
+
+  coef_sup <- sup_all[, k_1]
+  coef_avg <- avg_all[, k_1]
+  cval_sup <- coef_sup[1] +
+    coef_sup[2] / (l1d + 1) +
+    coef_sup[3] * l1d +
+    coef_sup[4] * l1d^2 +
+    coef_sup[5] * l1d^3
+  cval_avg <- coef_avg[1] +
+    coef_avg[2] / (l1d + 1) +
+    coef_avg[3] * l1d +
+    coef_avg[4] * l1d^2 +
+    coef_avg[5] * l1d^3
+
+  if (l1d >= 0.4) {
+    coef_exp <- exp_all[1:4, k_1]
+    cval_exp <- coef_exp[1] +
+      coef_exp[2] * l1d +
+      coef_exp[3] * l1d^2 +
+      coef_exp[4] * l1d^3
+  } else {
+    coef_exp <- exp_all[5:9, k_1]
+    cval_exp <- coef_exp[1] +
+      coef_exp[2] / (l1d + 1) +
+      coef_exp[3] * l1d +
+      coef_exp[4] * l1d^2 +
+      coef_exp[5] * l1d^3
+  }
+
+  list(
+    cval_em = cval_em,
+    cval_sup = cval_sup,
+    cval_avg = cval_avg,
+    cval_exp = cval_exp
+  )
+}

@@ -1,6 +1,8 @@
 #' @title
 #' Confidence sets for the break date in cointegrating regressions
 #'
+#' @order 1
+#'
 #' @description
 #' Procedure to construct a confidence set for the change point in
 #' cointegrating regressions.
@@ -17,7 +19,7 @@
 #' based on the limiting distribution of the break point estimator under
 #' the assumption of the shrinking shift, the confidence set proposed in the present paper has
 #' a more accurate coverage rate, while the length of the confidence set is comparable.
-#' 
+#'
 #' The model underlying the confidence set construction is
 #' \deqn{
 #' y_t = \beta_{b,c} + \beta_{b,\tau} t + z_{b,t}'\beta_{b,z}
@@ -35,12 +37,13 @@
 #' Since \eqn{z_{b,t}} and \eqn{z_{f,t}} are \eqn{I(1)} and endogenous, the regression
 #' is augmented with leads and lags of their first differences (dynamic OLS), so that
 #' the estimated equation becomes
-#' \deqn{
-#' y_t = \beta_{b,c} + \beta_{b,\tau} t + z_{b,t}'\beta_{b,z}
+#' \deqn{\begin{aligned}
+#' y_t & = \beta_{b,c} + \beta_{b,\tau} t + z_{b,t}'\beta_{b,z}
 #'   + \mathrm{1}(t > [\lambda_0 T])\left(\delta_{b,c} + \delta_{b,\tau} t + z_{b,t}'\delta_{b,z}\right)
-#'   + z_{f,t}'\beta_{f,z}
-#'   + \sum_{j=-nL}^{nF} \pi_{b,j}'\Delta z_{b,t-j}
+#'   + z_{f,t}'\beta_{f,z} + {}\\
+#'   & \quad + \sum_{j=-nL}^{nF} \pi_{b,j}'\Delta z_{b,t-j}
 #'   + \sum_{j=-nL}^{nF} \pi_{f,j}'\Delta z_{f,t-j} + u_t,
+#' \end{aligned}
 #' }
 #' where `nF` and `nL` are the numbers of leads and lags, respectively. If either is
 #' `NULL`, both are selected by the information `criterion`.
@@ -61,8 +64,14 @@
 #' possible break date.
 #' @param criterion A criterion for lead and lag number estimation.
 #'
-#' @returns
-#' A list of confidence sets.
+#' @return Named list of five \eqn{T_y \times 1} numeric matrices:
+#'   \item{td}{Time index; \code{td[i] == -1} marks the estimated break date
+#'     (all other entries equal their own time index, or 0 in the padded
+#'     leading/trailing region lost to leads/lags/differencing).}
+#'   \item{cset_sup}{Confidence set from the sup-test (1 = point included).}
+#'   \item{cset_avg}{Confidence set from the avg-test.}
+#'   \item{cset_exp}{Confidence set from the exp-test.}
+#'   \item{cset_bls}{Confidence set from the Bai, Lumsdaine and Stock (1998) method.}
 #'
 #' @references
 #' Kurozumi, Eiji, and Anton Skrobotov.
@@ -122,9 +131,9 @@ coint.conf.sets <- function(
   }
 
   td <- td[rows]
-  y <- y[rows, , drop = FALSE]
-  wb <- wb[rows, , drop = FALSE]
-  wf <- wf[rows, , drop = FALSE]
+  y <- .msub(y, rows)
+  wb <- .msub(wb, rows)
+  wf <- .msub(wf, rows)
 
   N <- nrow(y)
   tb_L1 <- trunc(2 * trim * N)
@@ -167,7 +176,8 @@ coint.conf.sets <- function(
   bhat <- model$coefficients
   uhat <- model$residuals
 
-  lrvU <- .lr.var.kurozumi(uhat)
+  # lrvU <- .lr.var.kurozumi(uhat)
+  lrvU <- .lr.var.quad(uhat, 0.97)
 
   l.hat <- (wb[Tb, ] %*% bhat[seq_len(ncol(wb))])^2 / lrvU
   c.bls <- if (conf.level == 0.9) {
@@ -179,7 +189,6 @@ coint.conf.sets <- function(
   bdd <- trunc(c.bls / l.hat)
   blsL <- max(1, Tb - bdd - 1)
   blsU <- min(Tb + bdd + 1, N)
-
   csetBLS[blsL:blsU] <- 1
 
   for (tb in tb_L1:tb_U1) {
@@ -195,7 +204,8 @@ coint.conf.sets <- function(
     yhat <- OLS.reg(y, w)$residuals
 
     we <- cbind(w, if (abs(tb - Tb) > ncol(wb)) wb1e else NULL)
-    lrvU2 <- .lr.var.kurozumi(OLS.reg(y, we)$residuals)
+    # lrvU2 <- .lr.var.kurozumi(OLS.reg(y, we)$residuals)
+    lrvU2 <- .lr.var.quad(OLS.reg(y, we)$residuals, 0.97)
 
     SUPstat <- 0
     AVGstat <- 0
@@ -220,14 +230,13 @@ coint.conf.sets <- function(
 
         g <- crossprod(rhat, as.matrix(yhat))
         h <- crossprod(rhat)
-        ghg <- c(t(g) %*% spdinv(h) %*% g) / lrvU2
+        ghg <- as.numeric(t(g) %*% spdinv(h) %*% g) / lrvU2
 
         SUPstat <- min(SUPstat, ghg)
         AVGstat <- AVGstat + ghg
         EXPstat <- EXPstat + exp(ghg / 2)
-
-        nbreak <- nbreak + 1
       }
+      nbreak <- nbreak + 1
     }
 
     AVGstat <- AVGstat / (nbreak - dbreak)
@@ -325,10 +334,9 @@ segments.KS <- function(
   uhat <- OLS.reg(y, w)$residuals
   minSSR <- sum(uhat^2)
   Tb <- N
-  wbb <- NULL
 
   for (tb in tb_L:tb_U) {
-    loopWb <- rbind(matrix(0, tb, ncol(wb)), wb[(tb + 1):N, , drop = FALSE])
+    loopWb <- rbind(matrix(0, tb, ncol(wb)), .msub(wb, (tb + 1):N))
     w <- cbind(wb, loopWb, zf)
     uhat <- OLS.reg(y, w)$residuals
     loopSSR <- sum(uhat^2)
@@ -336,18 +344,21 @@ segments.KS <- function(
     if (loopSSR < minSSR) {
       minSSR <- loopSSR
       Tb <- tb
-      wbb <- loopWb
     }
   }
+
+  cat("SSR: ", minSSR, Tb, "\n")
+
+  wbb <- rbind(matrix(0, Tb, ncol(wb)), .msub(wb, (Tb + 1):N))
 
   dz <- .diffn(z)
   wf <- cbind(zf, dz)
 
-  y <- y[2:N, , drop = FALSE]
-  wb <- wb[2:N, , drop = FALSE]
-  wf <- wf[2:N, , drop = FALSE]
-  wbb <- wbb[2:N, , drop = FALSE]
-  dz <- dz[2:N, , drop = FALSE]
+  y <- .msub(y, 2:N)
+  wb <- .msub(wb, 2:N)
+  wf <- .msub(wf, 2:N)
+  wbb <- .msub(wbb, 2:N)
+  dz <- .msub(dz, 2:N)
 
   N <- nrow(y)
 
@@ -369,8 +380,8 @@ segments.KS <- function(
   estL <- 0
   estF <- 0
 
-  for (loopL in 1:maxLF) {
-    for (loopF in 1:maxLF) {
+  for (loopL in .seqi(1, maxLF)) {
+    for (loopF in .seqi(1, maxLF)) {
       loopW <- w0
       for (k in 1:loopL) {
         loopW <- cbind(
@@ -397,6 +408,8 @@ segments.KS <- function(
       }
     }
   }
+
+  cat("z_ld =", estF, " z_lg =", estL, "\n")
 
   list(
     bp = Tb,

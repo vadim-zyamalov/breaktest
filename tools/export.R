@@ -13,6 +13,11 @@ source("tools/cvals_MDF_CHLT.R")
 source("tools/cbar_PR.R")
 source("tools/cvals_PR.R")
 source("tools/cvals_NBCN.R")
+source("tools/cvals_break_date_cset_RS.R")
+
+#-------------------------------------------------------------------------------
+
+load("R/sysdata.rda")
 
 save(
   .cval_kpss_1p,
@@ -33,6 +38,8 @@ save(
   .cbar_PR,
   .cval_PR,
   .cval_NBCN,
+  .cval_break_date_cset_RS,
+  .cval_break_date_cset_KY,
   file = "sysdata.rda",
   compress = "xz"
 )
