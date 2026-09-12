@@ -7,13 +7,13 @@
 \alias{segments.AR1}
 \alias{segments.NBCN}
 \alias{bubbles.nbcn}
-\title{Confidence sets for the emergence, collapse, and restore date of a bubble}
+\title{Confidence sets for the emergence, collapse, and recovery date of a bubble}
 \usage{
-cs.bubble.emerge(y, full_N, phi_a, s2, trim = 0.1)
+cs.bubble.emerge(y, phi_a, s2, trim = 0.1)
 
-cs.bubble.collapse(y, lambda_e, full_N, phi_a, phi_b, s2, trim = 0.1)
+cs.bubble.collapse(y, lambda_e, phi_a, phi_b, s2, trim = 0.1)
 
-cs.bubble.recovery(y, full_N, lambda_e, lambda_c, phi_a, phi_b, s2, trim = 0.1)
+cs.bubble.recovery(y, lambda_e, lambda_c, phi_a, phi_b, s2, trim = 0.1)
 
 segments.AR1(y, trim = 0.1)
 
@@ -21,8 +21,6 @@ segments.NBCN(y, trim = 0.1)
 }
 \arguments{
 \item{y}{Time series of interest. Should be a column matrix; if not is converted internally.}
-
-\item{full_N}{Full sample size.}
 
 \item{phi_a}{AR coefficient before collapse (explosive phase).}
 
@@ -55,7 +53,7 @@ Named list of binary vectors, where 1 means that this observation is in the corr
 }
 }
 \description{
-Confidence sets for the emergence, collapse, and restore date of a bubble
+Confidence sets for the emergence, collapse, and recovery date of a bubble
 }
 \details{
 \link{segments.AR1} function fits

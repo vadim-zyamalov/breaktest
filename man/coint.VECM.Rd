@@ -4,7 +4,7 @@
 \alias{coint.VECM}
 \title{Test of the cointegration rank with a possible break in trend}
 \usage{
-coint.VECM(y, r, max.lag, trim = 0.15)
+coint.VECM(y, r, max.lag = trunc(12 * (length(y)/100)^(1/4)), trim = 0.15)
 }
 \arguments{
 \item{y}{A matrix of \eqn{n} VAR variables.}

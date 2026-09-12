@@ -4,7 +4,7 @@
 \alias{coint.PR}
 \title{A set of residual based tests for cointegration}
 \usage{
-coint.PR(y, x, deter, kmin = 0, signif = 0.05)
+coint.PR(y, x, deter, signif = 0.05)
 }
 \arguments{
 \item{y, x}{Variables of interest. \code{x} can be a matrix of several variables.}
@@ -15,8 +15,6 @@ coint.PR(y, x, deter, kmin = 0, signif = 0.05)
 \item 2: quasi-detrended y and x,
 \item 3: quasi-demeaned y and quasi-detrended x.
 }}
-
-\item{kmin}{A minimum number of lags to be used in the tests.}
 }
 \value{
 A list of:

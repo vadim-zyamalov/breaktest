@@ -1,8 +1,7 @@
-#' Confidence sets for the emergence, collapse, and restore date of a bubble
+#' Confidence sets for the emergence, collapse, and recovery date of a bubble
 #' @name bubbles.nbcn
 #'
 #' @param y      Time series of interest. Should be a column matrix; if not is converted internally.
-#' @param full_N Full sample size.
 #' @param phi_a    AR coefficient before collapse (explosive phase).
 #' @param phi_b    AR coefficient after collapse (recovery phase).
 #' @param lambda_e Scalar, fraction for critical value scaling.
@@ -33,14 +32,11 @@ NULL
 #' @export
 cs.bubble.emerge <- function(
   y,
-  full_N,
   phi_a,
   s2,
   trim = 0.1
 ) {
-  if (!is.matrix(y)) {
-    y <- as.matrix(y)
-  }
+  y <- as.matrix(y)
 
   N <- length(y) - 1
   Teps <- max(1L, floor(N * trim))
@@ -78,15 +74,15 @@ cs.bubble.emerge <- function(
     T2_LRb <- ind_minLRb + T1 + Teps - 1
 
     EMb_stat <- min(tstat) /
-      sqrt(abs(rho_a) * phi_a^(2 * (T2_EM - T1)) * full_N / 2)
+      sqrt(abs(rho_a) * phi_a^(2 * (T2_EM - T1)) * N / 2)
     EMa_stat <- sum(tstat) /
-      sqrt(abs(phi_a^(2 * (N - T1 + 1)) * full_N / 2 / rho_a))
-    LRa_stat <- min(statLRa) / (full_N * phi_a^(2 * (T2_LR - T1)) / 2)
-    LRb_stat <- min(statLRb) / (full_N * phi_a^(2 * (T2_LRb - T1)) / 2)
+      sqrt(abs(phi_a^(2 * (N - T1 + 1)) * N / 2 / rho_a))
+    LRa_stat <- min(statLRa) / (N * phi_a^(2 * (T2_LR - T1)) / 2)
+    LRb_stat <- min(statLRb) / (N * phi_a^(2 * (T2_LRb - T1)) / 2)
 
-    cval_EM12 <- get.cv.emergence(T1, T2_EM, full_N, (T1 - 1) / full_N)
-    cval_LRa <- get.cv.emergence(T1, T2_LR, full_N)
-    cval_LRb <- get.cv.emergence(T1, T2_LRb, full_N)
+    cval_EM12 <- get.cv.emergence(T1, T2_EM, N, (T1 - 1) / N)
+    cval_LRa <- get.cv.emergence(T1, T2_LR, N)
+    cval_LRb <- get.cv.emergence(T1, T2_LRb, N)
 
     cset_EMa12[T1 - 1] <- as.integer(EMa_stat > cval_EM12)
     cset_EMb12[T1 - 1] <- as.integer(EMb_stat > cval_EM12)
@@ -111,7 +107,7 @@ cs.bubble.emerge <- function(
     EMb_stat <- max(tstat)
     LR_stat <- max(statLR) / (N^2 * rho_a)
 
-    cval_EM21 <- get.cv.emergence(T1, T1 - Teps, full_N, (T1 - 1) / N)
+    cval_EM21 <- get.cv.emergence(T1, T1 - Teps, N, (T1 - 1) / N)
     cval_LR21 <- get.cv.emergence(T1, T1 - Teps, N)
 
     cset_EMa21[T1 - 1] <- as.integer(EMa_stat < cval_EM21["EMa21"])
@@ -143,7 +139,6 @@ cs.bubble.emerge <- function(
 cs.bubble.collapse <- function(
   y,
   lambda_e,
-  full_N,
   phi_a,
   phi_b,
   s2,
@@ -187,8 +182,8 @@ cs.bubble.collapse <- function(
       statLR[k] <- (2 * rv$S_y1dy + (2 - phi_a - phi_b) * rv$S_yL2) / s2
     }
 
-    scale_EM <- sqrt(full_N * phi_a^(2 * (T1 - 1)) * abs(rho_b) / 2)
-    scale_LR <- full_N * (phi_a - phi_b) * phi_a^(2 * (T1 - 1)) / (2 * rho_b)
+    scale_EM <- sqrt(N * phi_a^(2 * (T1 - 1)) * abs(rho_b) / 2)
+    scale_LR <- N * (phi_a - phi_b) * phi_a^(2 * (T1 - 1)) / (2 * rho_b)
 
     cset_EMa12[T1 - 1] <- as.integer(mean(tstat) / scale_EM < cval_EM_lt)
     cset_EMb12[T1 - 1] <- as.integer(max(tstat) / scale_EM < cval_EM_lt)
@@ -207,8 +202,8 @@ cs.bubble.collapse <- function(
       statLR[k] <- (2 * rv$S_y1dy + (2 - phi_a - phi_b) * rv$S_yL2) / s2
     }
 
-    scale_EM <- sqrt(full_N * phi_a^(2 * (T1 - 1)) * abs(rho_a) / 2)
-    scale_LR <- full_N * (phi_a - phi_b) * phi_a^(2 * (T1 - 1)) / (2 * rho_a)
+    scale_EM <- sqrt(N * phi_a^(2 * (T1 - 1)) * abs(rho_a) / 2)
+    scale_LR <- N * (phi_a - phi_b) * phi_a^(2 * (T1 - 1)) / (2 * rho_a)
 
     idx <- T1 - 1
     cset_EMa21[idx] <- as.integer(mean(tstat) / scale_EM > cval_EM_gt)
@@ -234,7 +229,6 @@ cs.bubble.collapse <- function(
 #' @export
 cs.bubble.recovery <- function(
   y,
-  full_N,
   lambda_e,
   lambda_c,
   phi_a,
@@ -242,15 +236,13 @@ cs.bubble.recovery <- function(
   s2,
   trim = 0.1
 ) {
-  if (!is.matrix(y)) {
-    y <- as.matrix(y)
-  }
+  y <- as.matrix(y)
 
   N <- length(y) - 1
   Teps <- max(1L, floor(N * trim))
   rho_b <- 1 - phi_b
 
-  exp_ac <- floor(full_N * (lambda_c - lambda_e))
+  exp_ac <- floor(N * (lambda_c - lambda_e))
 
   cset_LRa12 <- integer(N)
   cset_EMa12s <- integer(N)
@@ -274,7 +266,7 @@ cs.bubble.recovery <- function(
 
     ind_minLR <- which.min(statLR)
     T2_LR <- ind_minLR + T1 + Teps - 1
-    scale_LRa <- full_N *
+    scale_LRa <- N *
       (T2_LR - T1) *
       rho_b *
       phi_a^(2 * exp_ac) *
@@ -314,12 +306,12 @@ cs.bubble.recovery <- function(
     ind_maxEM <- which.max(tstat)
     T2_EM <- ind_maxEM + Teps
 
-    scale_LRa <- phi_a^(2 * exp_ac) * phi_b^(2 * (T2_LR - 1)) * full_N / 2
-    scale_LRb <- phi_a^(2 * exp_ac) * phi_b^(2 * (T2_LRb - 1)) * full_N / 2
-    scale_EMa <- phi_a^(exp_ac) * phi_b^(Teps) * sqrt(full_N / abs(rho_b) / 2)
+    scale_LRa <- phi_a^(2 * exp_ac) * phi_b^(2 * (T2_LR - 1)) * N / 2
+    scale_LRb <- phi_a^(2 * exp_ac) * phi_b^(2 * (T2_LRb - 1)) * N / 2
+    scale_EMa <- phi_a^(exp_ac) * phi_b^(Teps) * sqrt(N / abs(rho_b) / 2)
     scale_EMb <- phi_a^(exp_ac) *
       phi_b^(T2_EM - 1) *
-      sqrt(full_N * abs(rho_b) / 2)
+      sqrt(N * abs(rho_b) / 2)
 
     LRa_stat <- max(statLR) / scale_LRa
     LRb_stat <- max(statLRb) / scale_LRb
@@ -368,10 +360,7 @@ segments.AR1 <- function(
   y,
   trim = 0.1
 ) {
-  if (!is.matrix(y)) {
-    y <- as.matrix(y)
-  }
-
+  y <- as.matrix(y)
   yL <- na.omit(.lagn(y, 1))
   y <- y[-1]
 
@@ -424,9 +413,7 @@ segments.AR1 <- function(
 #' * phi_a, phi_b: AR(1) coefficients for exploding and post-break regimes,
 #' * s.sq: estimated variance of internal model resuduals \eqn{\hat{e}_t}.
 segments.NBCN <- function(y, trim = 0.1) {
-  if (!is.matrix(y)) {
-    y <- as.matrix(y)
-  }
+  y <- as.matrix(y)
 
   N <- length(y)
 

@@ -21,7 +21,6 @@
 #' * 1: quasi-demeaned y and x,
 #' * 2: quasi-detrended y and x,
 #' * 3: quasi-demeaned y and quasi-detrended x.
-#' @param kmin A minimum number of lags to be used in the tests.
 #'
 #' @return A list of:
 #' * 7x1-matrix of test statistics values,
@@ -35,7 +34,7 @@
 #' https://doi.org/10.1111/ectj.12056.
 #'
 #' @export
-coint.PR <- function(y, x, deter, kmin = 0, signif = 0.05) {
+coint.PR <- function(y, x, deter, signif = 0.05) {
   if (!signif %in% c(0.01, 0.025, 0.05, 0.075, 0.1, 0.15, 0.2)) {
     stop(
       "ERROR! `signif` should be one of (0.01, 0.025, 0.05, 0.075, 0.1, 0.15, 0.2)!"
@@ -73,7 +72,7 @@ coint.PR <- function(y, x, deter, kmin = 0, signif = 0.05) {
   uhat <- cbind(model$residuals)
 
   c_values <- .cval_PR[[deter]]
-  result <- statistics.PR(uhat, kmin, kmax, opt_cbar, deter)
+  result <- statistics.PR(uhat, kmax, opt_cbar, deter)
 
   result[["MZ(rho)"]]$c.value <- c_values[["Z"]][i_sign, Nc]
   result[["MSB"]]$c.value <- c_values[["MSB"]][i_sign, Nc]
@@ -96,7 +95,7 @@ coint.PR <- function(y, x, deter, kmin = 0, signif = 0.05) {
 #' Perron-Rodriguez (2016)
 #'
 #' @param ud A vector of residuals for testing.
-#' @param min.lag,max.lag Minimum and maximum lag number.
+#' @param kmax Maximum lag number.
 #' @param c.bar A `c` parameter used for GLS detrending purposes.
 #' @param deter A value equal to
 #' * 1: quasi-demeaned y and x,
@@ -108,7 +107,7 @@ coint.PR <- function(y, x, deter, kmin = 0, signif = 0.05) {
 #' * estimated number of lags.
 #'
 #' @keywords internal
-statistics.PR <- function(u, kmin, kmax, c.bar, deter) {
+statistics.PR <- function(u, kmax, c.bar, deter) {
   N <- length(u) - 1
 
   lm_model <- OLS.reg(u, .lagn(u, 1))
@@ -121,7 +120,6 @@ statistics.PR <- function(u, kmin, kmax, c.bar, deter) {
   uT <- u[N + 1]
 
   klag <- uroot.ADF(u, FALSE, FALSE, kmax, "aic", TRUE)$lag
-  klag <- max(kmin, klag)
   model_2 <- uroot.ADF(u, FALSE, FALSE, klag, NULL)
 
   e2 <- na.omit(model_2$model$residuals)

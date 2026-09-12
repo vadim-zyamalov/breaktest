@@ -34,9 +34,6 @@ Sequential statistic for breaks at unknown date.
 }
 \details{
 This procedure is based on ideas of Perron & Yabu (2009).
-
-The code provided is the original Ox code by Skrobotov (2018)
-ported to R.
 }
 \references{
 Kejriwal, Mohitosh, and Pierre Perron.
@@ -45,4 +42,9 @@ with an Integrated or Stationary Noise Component:
 Determination of Number of Breaks in Trend.”
 Journal of Time Series Analysis 31, no. 5 (September 2010): 305–28.
 https://doi.org/10.1111/j.1467-9892.2010.00666.x.
+
+Skrobotov, Anton.
+“Survey on structural breaks and unit root tests.”
+Applied Econometrics 58 (2020): 96–141.
+https://doi.org/10.22394/1993-7601-2020-58-96-141.
 }

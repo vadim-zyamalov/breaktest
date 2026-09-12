@@ -7,7 +7,7 @@
 coint.CSS(
   y,
   x = NULL,
-  const = FALSE,
+  const = TRUE,
   trend = FALSE,
   break.type,
   break.point,
@@ -32,9 +32,11 @@ If it's NULL then the result of this function is just a KPSS test for y.}
 \item{const, trend}{Whether a constant or trend should be included.}
 
 \item{break.type}{A single value or vector of
-\item{c}{for the break in const,}
-\item{t}{for the break in trend,}
-\item{ct}{for the break in const and trend.}}
+\itemize{
+\item \code{c}: for the break in const,
+\item \code{t}: for the break in trend,
+\item \code{ct}: for the break in const and trend.
+}}
 
 \item{break.point}{Array of structural break moments.}
 
@@ -42,8 +44,10 @@ If it's NULL then the result of this function is just a KPSS test for y.}
 See Carrion-i-Silvestre & Sansó (2006) for details.}
 
 \item{weakly.exog}{Boolean where we specify whether the stochastic regressors are exogenous or not
-\item{TRUE}{if the regressors are weakly exogenous,}
-\item{FALSE}{if the regressors are not weakly exogenous (DOLS is used in this case).}}
+\itemize{
+\item \code{TRUE}: if the regressors are weakly exogenous,
+\item \code{FALSE}: if the regressors are not weakly exogenous (DOLS is used in this case).
+}}
 
 \item{max.lags, max.leads}{Scalars defininig the initial number of lags and leads for DOLS.}
 
@@ -52,8 +56,8 @@ See Carrion-i-Silvestre & Sansó (2006) for details.}
 \item{lr.kernel}{Kernel for calculating long-run variance
 \itemize{
 \item \code{Kurozumi} for the Kurozumi's proposal, using Quadratic kernel (default).
-\item{Bartlett}{for Bartlett kernel,}
-\item{Quadratic}{for Quadratic Spectral kernel,}
+\item \code{Bartlett}: for Bartlett kernel,
+\item \code{Quadratic}: for Quadratic Spectral kernel,
 }}
 
 \item{lr.lag}{scalar showing the bandwidth of long run variance estimator.
@@ -97,19 +101,21 @@ If you want to get results like in Carrion-i-Silvestre & Sansó (2007) then you 
 }
 \value{
 An object of class \code{bt_kpss} containing
-\item{statistic}{the value of test statistic,}
-\item{coefficients}{OLS/DOLS estimates of the coefficients,}
-\item{se.coefs}{standard errors of the coefficients above,}
-\item{t.stats}{\eqn{t}-statistics for the coefficients above,}
-\item{residuals}{Residuals of the model,}
-\item{t.beta}{\eqn{t}-statistics for \code{beta},}
-\item{fitted.values}{fitted values of the estimated model,}
-\item{endog}{final \eqn{y} vector used in the estimated model,}
-\item{exog}{final \eqn{x} matrix used in the estimated model,}
-\item{DOLS.lags}{The estimated number of lags and leads in DOLS,}
-\item{break.type\verb{, }break.point\verb{, }break.coint}{breaks specification,}
-\item{criterions}{values of the information criterions for the estimated model,}
-\item{lags\verb{, }leads}{number of lags and leads in the estimated model.}
+\itemize{
+\item \code{statistic}: the value of test statistic,
+\item \code{coefficients}: OLS/DOLS estimates of the coefficients,
+\item \code{se.coefs}: standard errors of the coefficients above,
+\item \code{t.stats}: \eqn{t}-statistics for the coefficients above,
+\item \code{residuals}: Residuals of the model,
+\item \code{t.beta}: \eqn{t}-statistics for \code{beta},
+\item \code{fitted.values}: fitted values of the estimated model,
+\item \code{endog}: final \eqn{y} vector used in the estimated model,
+\item \code{exog}: final \eqn{x} matrix used in the estimated model,
+\item \code{DOLS.lags}: The estimated number of lags and leads in DOLS,
+\item \code{break.type}, \code{break.point}, \code{break.coint}: breaks specification,
+\item \code{criterions}: values of the information criterions for the estimated model,
+\item \code{lags}, \code{leads}: number of lags and leads in the estimated model.
+}
 }
 \description{
 Test for stationarity and cointegration in the presence of multiple structural breaks using the KPSS test.

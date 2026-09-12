@@ -39,7 +39,12 @@
 #' https://doi.org/10.1016/j.jeconom.2016.02.010.
 #'
 #' @export
-coint.VECM <- function(y, r, max.lag, trim = 0.15) {
+coint.VECM <- function(
+  y,
+  r,
+  max.lag = trunc(12 * (length(y) / 100)^(1 / 4)),
+  trim = 0.15
+) {
   N <- nrow(y)
   Nc <- ncol(y)
 

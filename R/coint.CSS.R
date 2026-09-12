@@ -45,20 +45,20 @@
 #' If it's NULL then the result of this function is just a KPSS test for y.
 #' @param const,trend Whether a constant or trend should be included.
 #' @param break.type A single value or vector of
-#' \item{c}{for the break in const,}
-#' \item{t}{for the break in trend,}
-#' \item{ct}{for the break in const and trend.}
+#' * `c`: for the break in const,
+#' * `t`: for the break in trend,
+#' * `ct`: for the break in const and trend.
 #' @param break.point Array of structural break moments.
 #' @param break.coint Whether breaks in cointegrating relation are needed to be included.
 #' See Carrion-i-Silvestre & Sansó (2006) for details.
 #' @param weakly.exog Boolean where we specify whether the stochastic regressors are exogenous or not
-#' \item{TRUE}{if the regressors are weakly exogenous,}
-#' \item{FALSE}{if the regressors are not weakly exogenous (DOLS is used in this case).}
+#' * `TRUE`: if the regressors are weakly exogenous,
+#' * `FALSE`: if the regressors are not weakly exogenous (DOLS is used in this case).
 #' @param max.lags,max.leads Scalars defininig the initial number of lags and leads for DOLS.
 #' @param lr.kernel Kernel for calculating long-run variance
 #' * `Kurozumi` for the Kurozumi's proposal, using Quadratic kernel (default).
-#' \item{Bartlett}{for Bartlett kernel,}
-#' \item{Quadratic}{for Quadratic Spectral kernel,}
+#' * `Bartlett`: for Bartlett kernel,
+#' * `Quadratic`: for Quadratic Spectral kernel,
 #' @param lr.lag scalar showing the bandwidth of long run variance estimator.
 #' If negative or `NULL` then the bandwidth is selected as in Andrews (1991).
 #' @param criterion Information criterion for DOLS lags and leads selection: aic, bic, hq, or lwz,
@@ -90,19 +90,19 @@
 #' * for the specification of `BC-CB` set `const=TRUE`, `trend=TRUE`, `break.type=c("t", "ct")`.
 #'
 #' @return An object of class `bt_kpss` containing
-#' \item{statistic}{the value of test statistic,}
-#' \item{coefficients}{OLS/DOLS estimates of the coefficients,}
-#' \item{se.coefs}{standard errors of the coefficients above,}
-#' \item{t.stats}{\eqn{t}-statistics for the coefficients above,}
-#' \item{residuals}{Residuals of the model,}
-#' \item{t.beta}{\eqn{t}-statistics for `beta`,}
-#' \item{fitted.values}{fitted values of the estimated model,}
-#' \item{endog}{final \eqn{y} vector used in the estimated model,}
-#' \item{exog}{final \eqn{x} matrix used in the estimated model,}
-#' \item{DOLS.lags}{The estimated number of lags and leads in DOLS,}
-#' \item{break.type`, `break.point`, `break.coint}{breaks specification,}
-#' \item{criterions}{values of the information criterions for the estimated model,}
-#' \item{lags`, `leads}{number of lags and leads in the estimated model.}
+#' * `statistic`: the value of test statistic,
+#' * `coefficients`: OLS/DOLS estimates of the coefficients,
+#' * `se.coefs`: standard errors of the coefficients above,
+#' * `t.stats`: \eqn{t}-statistics for the coefficients above,
+#' * `residuals`: Residuals of the model,
+#' * `t.beta`: \eqn{t}-statistics for `beta`,
+#' * `fitted.values`: fitted values of the estimated model,
+#' * `endog`: final \eqn{y} vector used in the estimated model,
+#' * `exog`: final \eqn{x} matrix used in the estimated model,
+#' * `DOLS.lags`: The estimated number of lags and leads in DOLS,
+#' * `break.type`, `break.point`, `break.coint`: breaks specification,
+#' * `criterions`: values of the information criterions for the estimated model,
+#' * `lags`, `leads`: number of lags and leads in the estimated model.
 #'
 #' @references
 #' Carrion-i-Silvestre, Josep Lluís, and Andreu Sansó.
@@ -134,7 +134,7 @@
 coint.CSS <- function(
   y,
   x = NULL,
-  const = FALSE,
+  const = TRUE,
   trend = FALSE,
   break.type,
   break.point,

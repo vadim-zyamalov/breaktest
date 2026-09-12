@@ -565,10 +565,6 @@ MDF.mlt <- function(
 #' @title
 #' Kejrival-Perron procedure of breaks number detection
 #'
-#' @details
-#' The code provided is the original Ox code by Skrobotov (2018)
-#' ported to R.
-#'
 #' @param y An input series of interest.
 #' @param const Whether the break in constant is allowed.
 #' @param breaks Number of breaks.
@@ -584,6 +580,11 @@ MDF.mlt <- function(
 #' Determination of Number of Breaks in Trend.”
 #' Journal of Time Series Analysis 31, no. 5 (September 2010): 305–28.
 #' https://doi.org/10.1111/j.1467-9892.2010.00666.x.
+#'
+#' Skrobotov, Anton.
+#' “Survey on structural breaks and unit root tests.”
+#' Applied Econometrics 58 (2020): 96–141.
+#' https://doi.org/10.22394/1993-7601-2020-58-96-141.
 breaktest.KP <- function(
   y,
   const = FALSE,
@@ -632,9 +633,6 @@ breaktest.KP <- function(
 #' @details
 #' This procedure is based on ideas of Perron & Yabu (2009).
 #'
-#' The code provided is the original Ox code by Skrobotov (2018)
-#' ported to R.
-#'
 #' @param y A time series of interest.
 #' @param const Allowing the break in constant.
 #' @param breaks A number of breaks.
@@ -651,6 +649,11 @@ breaktest.KP <- function(
 #' Determination of Number of Breaks in Trend.”
 #' Journal of Time Series Analysis 31, no. 5 (September 2010): 305–28.
 #' https://doi.org/10.1111/j.1467-9892.2010.00666.x.
+#'
+#' Skrobotov, Anton.
+#' “Survey on structural breaks and unit root tests.”
+#' Applied Econometrics 58 (2020): 96–141.
+#' https://doi.org/10.22394/1993-7601-2020-58-96-141.
 #'
 #' @export
 KP.seq.statistic <- function(

@@ -1,19 +1,21 @@
 #' @title
 #' A wrapping function around [MDF.1br].
 #'
-#' @details
-#' The code provided is the original Ox code by Skrobotov (2018)
-#' ported to R.
-#'
 #' @param y A time series of interest.
 #' @param const,trend Whether the constant term and trend should be included.
 #' @param season Whether the seasonal adjustment is needed.
 #' @param trim Trimming value for a possible break date bounds.
 #'
+#' @references
+#' Skrobotov, Anton.
+#' “Survey on structural breaks and unit root tests.”
+#' Applied Econometrics 58 (2020): 96–141.
+#' https://doi.org/10.22394/1993-7601-2020-58-96-141.
+#'
 #' @export
 uroot.robust <- function(
   y,
-  const = FALSE,
+  const = TRUE,
   trend = FALSE,
   season = FALSE,
   trim = 0.15,
@@ -437,10 +439,6 @@ MDF.1br <- function(
 #' @title
 #' Perron-Yabu (2009) statistic for break at unknown date.
 #'
-#' @details
-#' The code provided is the original Ox code by Skrobotov (2018)
-#' ported to R.
-#'
 #' @param y A time series of interest.
 #' @param const,trend Allowing the break in constant or trend.
 #' @param criterion Needed information criterion: aic, bic, hq or lwz.
@@ -456,6 +454,11 @@ MDF.1br <- function(
 #' Stationary Noise Component.”
 #' Journal of Business & Economic Statistics 27, no. 3 (July 2009): 369–96.
 #' https://doi.org/10.1198/jbes.2009.07268.
+#'
+#' Skrobotov, Anton.
+#' “Survey on structural breaks and unit root tests.”
+#' Applied Econometrics 58 (2020): 96–141.
+#' https://doi.org/10.22394/1993-7601-2020-58-96-141.
 #'
 #' @export
 PY.statistic <- function(

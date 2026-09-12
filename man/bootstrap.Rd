@@ -33,10 +33,12 @@ bootstrap(obj, ...)
 \item{iter}{Number of bootstrapping iterations.}
 
 \item{boot.type}{Type of bootstrapping:
+\itemize{
 \item{"sample"}{sampling from residuals with replacement,}
 \item{"Cavaliere-Taylor"}{multiplying residuals by \eqn{N(0, 1)}-distributed}
 variable,
-\item{"Rademacher"}{multiplying residuals by Rademacher-distributed variable.}}
+\item{"Rademacher"}{multiplying residuals by Rademacher-distributed variable.}
+}}
 }
 \value{
 Bootstrapped critical value or p-value.

@@ -31,14 +31,15 @@ A list of the estimated Wald statistic as well as its c.v.
 \description{
 Perron-Yabu (2009) statistic for break at unknown date.
 }
-\details{
-The code provided is the original Ox code by Skrobotov (2018)
-ported to R.
-}
 \references{
 Perron, Pierre, and Tomoyoshi Yabu.
 “Testing for Shifts in Trend With an Integrated or
 Stationary Noise Component.”
 Journal of Business & Economic Statistics 27, no. 3 (July 2009): 369–96.
 https://doi.org/10.1198/jbes.2009.07268.
+
+Skrobotov, Anton.
+“Survey on structural breaks and unit root tests.”
+Applied Econometrics 58 (2020): 96–141.
+https://doi.org/10.22394/1993-7601-2020-58-96-141.
 }

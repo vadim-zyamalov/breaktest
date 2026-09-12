@@ -6,7 +6,7 @@
 \usage{
 uroot.robust(
   y,
-  const = FALSE,
+  const = TRUE,
   trend = FALSE,
   season = FALSE,
   trim = 0.15,
@@ -25,7 +25,9 @@ uroot.robust(
 \description{
 A wrapping function around \link{MDF.1br}.
 }
-\details{
-The code provided is the original Ox code by Skrobotov (2018)
-ported to R.
+\references{
+Skrobotov, Anton.
+“Survey on structural breaks and unit root tests.”
+Applied Econometrics 58 (2020): 96–141.
+https://doi.org/10.22394/1993-7601-2020-58-96-141.
 }
