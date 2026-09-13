@@ -1,8 +1,8 @@
 #' @title
-#' Unit root testing procedure under a single structural break.
+#' Test for the break in trend under uncertainty over the order of integration of the errors.
 #'
 #' @param y A time series of interest.
-#' @param const Whether a constant should be included.
+#' @param const Whether a constant is allowed to change (break in intersept is allowed).
 #' @param trim The trimming parameter to find the lower and upper bounds of
 #' possible break dates.
 #'
@@ -10,8 +10,8 @@
 #'
 #' @references
 #' Harvey, David I., Stephen J. Leybourne, and A. M. Robert Taylor.
-#' “Unit Root Testing under a Local Break in Trend.”
-#' Journal of Econometrics 167, no. 1 (2012): 140–67.
+#' “Simple, Robust, And Powerful Tests Of The Breaking Trend Hypothesis.”
+#' Econometric Theory 25 , Issue 4 (2009): 995-1029
 #'
 #' @importFrom Rfast spdinv
 #' @export
