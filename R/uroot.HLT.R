@@ -11,7 +11,8 @@
 #' @references
 #' Harvey, David I., Stephen J. Leybourne, and A. M. Robert Taylor.
 #' “Simple, Robust, And Powerful Tests Of The Breaking Trend Hypothesis.”
-#' Econometric Theory 25 , Issue 4 (2009): 995-1029
+#' Econometric Theory 25 , Issue 4 (2009): 995-1029.
+#' https://doi.org/10.1017/S0266466608090385
 #'
 #' @importFrom Rfast spdinv
 #' @export
