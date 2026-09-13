@@ -11,6 +11,12 @@
 #' @param breaks Number of breaks.
 #' @param trim Trimming value for a possible break date bounds.
 #'
+#' @references
+#' Skrobotov, Anton.
+#' “On Trend Breaks and Initial Condition in Unit Root Testing”
+#' Journal of Time Series Econometrics, 2018, Issue 1.
+#' https://doi.org/10.1515/jtse-2016-0014
+#'
 #' @export
 uroot.robust.mlt <- function(
   y,
