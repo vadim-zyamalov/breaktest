@@ -6,7 +6,7 @@
 #' ported to R.
 #'
 #' @param y a time series of interest.
-#' @param const Whether the constant term is allowed to change (Structural changes in intercept).
+#' @param const Whether the constant term is allowed to change (Structural changes in intercept, otherwise Structural changes only in slope).
 #' @param season Whether the seasonal adjustment is needed.
 #' @param breaks Number of breaks.
 #' @param trim Trimming value for a possible break date bounds.
