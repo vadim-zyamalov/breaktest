@@ -202,6 +202,7 @@ get.cv.recovery <- function(
 #'   \item{cval_sup}{Critical value for the sup-test.}
 #'   \item{cval_avg}{Critical value for the avg-test.}
 #'   \item{cval_exp}{Critical value for the exp-test.}
+#' @keywords internal
 get.cv.coint.br.conf.sets <- function(L1, trend, c_level, pzb, pzf) {
   lv1 <- if (c_level == 0.90) {
     1

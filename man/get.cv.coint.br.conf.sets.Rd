@@ -29,3 +29,4 @@ Named list with three numeric scalars:
 \description{
 Response-surface critical values for cset_break_coint() (Kurozumi & Skrobotov, 2016).
 }
+\keyword{internal}
