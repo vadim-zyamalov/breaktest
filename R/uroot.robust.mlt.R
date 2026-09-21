@@ -5,16 +5,22 @@
 #' The code provided is the original Ox code by Skrobotov (2018)
 #' ported to R.
 #'
-#' @param y A series of interest.
-#' @param const Whether the constant term should be included.
+#' @param y a time series of interest.
+#' @param const Whether the constant term is allowed to change (Structural changes in intercept, otherwise Structural changes only in slope).
 #' @param season Whether the seasonal adjustment is needed.
 #' @param breaks Number of breaks.
 #' @param trim Trimming value for a possible break date bounds.
 #'
+#' @references
+#' Skrobotov, Anton.
+#' “On Trend Breaks and Initial Condition in Unit Root Testing”
+#' Journal of Time Series Econometrics, 2018, Issue 1.
+#' https://doi.org/10.1515/jtse-2016-0014
+#'
 #' @export
 uroot.robust.mlt <- function(
   y,
-  const = FALSE,
+  const = TRUE,
   season = FALSE,
   breaks = 2,
   trim = 0.15
@@ -67,7 +73,7 @@ uroot.robust.mlt <- function(
 #' The code provided is the original Ox code by Skrobotov (2018)
 #' ported to R.
 #'
-#' @param y A time series of interest.
+#' @param y a time series of interest.
 #' @param const Whether the constant term should be included.
 #' @param breaks Number of breaks.
 #' @param breaks.star Number of breaks got from the Kejrival-Perron procedure.
