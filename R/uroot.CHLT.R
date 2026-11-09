@@ -1,21 +1,55 @@
 #' @title
-#' MDF test for a single break and possible heteroscedasticity
+#' Unit root tests with one or multiple possible trend breaks
 #'
 #' @details
-#' The code provided is the original GAUSS code by Cavaliere et al.
-#' ported to R.
+#' With `breaks = 1`, the original CHLT (2011) procedure and bootstrap are
+#' retained. With `breaks = 2` or `3`, the GLS minimum-DF component of
+#' [MDF.mlt] is used, with wild bootstrap Algorithm 1 in Cavaliere et al.
+#' (2015), Sections 3 and 5.1. The deterministic regressors are a constant
+#' and a possibly broken linear trend, with one slope-change term per break.
+#'
+#' Simultaneous level shifts are allowed by the large-sample theory in
+#' Section 2, footnote 1, of Cavaliere et al. (2015), without additional GLS
+#' regressors or bootstrap modifications. The implementation does not include
+#' explicit level-shift indicators or estimate level-shift sizes. This
+#' asymptotic result does not imply that finite-sample statistics are invariant
+#' to adding level shifts.
+#'
+#' The original-sample lag is selected by OLS-MAIC for each candidate date
+#' configuration, as in `MDF.mlt`. The grid spans `floor(trim * N)` through
+#' `floor((1 - trim) * N)`, with spacing at least `floor(trim * N)`.
+#' The GLS localizing constants 21.5 and 25.5 are inherited from `MDF.mlt`.
+#' Only the requested number of candidate breaks is searched; their
+#' coefficients may be zero. This does not estimate the number of breaks.
+#'
+#' For multiple breaks, bootstrap innovations are independent standard normal
+#' multipliers times the second differences of `y`, with the first two
+#' innovations zero. Each bootstrap series is their cumulative sum. The full
+#' date search is repeated with zero ADF lags. The p-value is the fraction of
+#' bootstrap minima at or below the observed minimum (Remark 9 of the paper).
+#' The 5% critical value is the empirical quantile (`type = 1`). No fitted
+#' broken trend is added to the bootstrap series. Exhaustive search can be
+#' costly, especially for three breaks and long series.
 #'
 #' @param y A time series of interest.
 #' @param max.lag The maximum possible lag.
-#' @param trim Trimming parameter for lag selection
+#' @param trim Trimming fraction for candidate dates and minimum fraction of
+#' the sample between breaks.
 #' @param boot.cv Whether we need bootstrapped critical values.
 #' @param boot.iter Number of bootstrap iterations.
+#' @param breaks Number of possible trend breaks.
 #'
-#' @return An object of type `mdfCHLT`. It's a list of four sublists
+#' @return An object of class `bt_mdfCHLT`. For one break, four sublists
 #' each containing:
 #' * The value of \eqn{MZ_\alpha}, \eqn{MSB}, \eqn{MZ_t}, or \eqn{ADF},
 #' * The asymptotic c.v.,
 #' * The bootstrapped c.v.
+#' For multiple breaks, `ADF` contains the GLS minimum t-statistic and `cv = NA`
+#' (single-break asymptotic tables are not reused). With `boot.cv = TRUE`,
+#' `ADF$boot.cv` and `ADF$p.value` are added. `params` records the grid settings,
+#' minimizing dates (last pre-break rows), selected lag and GLS constant.
+#' `params$bootstrap` contains the second differences and simulated statistics.
+#' The paper does not define multi-break counterparts of MZa, MSB or MZt.
 #'
 #' @references
 #' Cavaliere, Giuseppe, David I. Harvey, Stephen J. Leybourne,
@@ -24,6 +58,17 @@
 #' Nonstationary Volatility.”
 #' Econometric Theory 27, no. 5 (October 2011): 957–91.
 #' https://doi.org/10.1017/S0266466610000605.
+#'
+#' Cavaliere, G., Harvey, D. I., Leybourne, S. J., and Robert Taylor, A. M.
+#' (2015). "Testing for Unit Roots Under Multiple Possible Trend Breaks and
+#' Non-Stationary Volatility Using Bootstrap Minimum Dickey-Fuller Statistics."
+#' Journal of Time Series Analysis, 36(5), 603-629.
+#' \doi{10.1111/jtsa.12067}.
+#'
+#' @examples
+#' set.seed(73)
+#' y <- cumsum(rnorm(40)) + 0.3 * pmax(seq_len(40) - 15, 0)
+#' uroot.CHLT(y, max.lag = 1, breaks = 2)
 #'
 #' @import doSNOW
 #' @import foreach
@@ -38,8 +83,17 @@ uroot.CHLT <- function(
   max.lag = NULL,
   trim = 0.15,
   boot.cv = FALSE,
-  boot.iter = 999
+  boot.iter = 999,
+  breaks = 1
 ) {
+  if (length(breaks) != 1L || !is.numeric(breaks) ||
+      !is.finite(breaks) || !breaks %in% 1:3) {
+    stop("breaks must be one of 1, 2, or 3")
+  }
+  if (breaks > 1L) {
+    return(.chlt.multiple(y, max.lag, trim, breaks, boot.cv, boot.iter))
+  }
+
   if (!is.matrix(y)) {
     y <- as.matrix(y)
   }
